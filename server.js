@@ -717,8 +717,14 @@ function updatePhysics(dt) {
   });
 }
 
+// ---------------------------------------------------------------
+// Game loop — 60Hz physics, 20Hz full state, 60Hz puck stream
+// ---------------------------------------------------------------
 const TICK_HZ = 60;
+const STATE_EVERY = 3;          // full state @ 20Hz
+let tickCount = 0;
 let lastTick = Date.now();
+
 setInterval(() => {
   const now = Date.now();
   const dt = Math.min((now - lastTick) / 1000, 0.1);
@@ -726,27 +732,40 @@ setInterval(() => {
   try {
     if (room.gameState === 'playing') updatePhysics(dt);
     else if (room.gameState === 'countdown') {
-      const elapsed = (now - room.countdownStartTime) / 1000;
-      if (elapsed >= 10.0) startPrestart();
+      if ((now - room.countdownStartTime) / 1000 >= 10.0) startPrestart();
     } else if (room.gameState === 'prestart') {
       room.prestartTimer -= dt;
       if (room.prestartTimer <= 0) startGame();
     } else if (room.gameState === 'idle') {
       if (getAlive().length >= 2) startCountdown();
     }
-    broadcastState();
+
+    const icePrev = iceRoom.gameState;
 
     if (iceRoom.gameState === 'sliding') updateIcePhysics(dt);
     else if (iceRoom.gameState === 'countdown') {
-      const elapsed = (now - iceRoom.countdownStartTime) / 1000;
-      if (elapsed >= 10.0) startIceSpin();
+      if ((now - iceRoom.countdownStartTime) / 1000 >= 10.0) startIceSpin();
     } else if (iceRoom.gameState === 'spinning') {
-      const elapsed = (now - iceRoom.spinStartTime) / 1000;
-      if (elapsed >= iceRoom.spinDuration) launchIcePuck();
+      if ((now - iceRoom.spinStartTime) / 1000 >= iceRoom.spinDuration) launchIcePuck();
     } else if (iceRoom.gameState === 'idle') {
       if (iceRoom.players.length >= 2) startIceCountdown();
     }
-    broadcastIceState();
+
+    tickCount++;
+
+    // light 60Hz puck stream
+    if (iceRoom.gameState === 'sliding') {
+      io.emit('icePuck', {
+        x: iceRoom.puck.x, y: iceRoom.puck.y,
+        vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding'
+      });
+    }
+
+    // full state at 20Hz, or immediately on a phase change
+    if (iceRoom.gameState !== icePrev || tickCount % STATE_EVERY === 0) {
+      broadcastState();
+      broadcastIceState();
+    }
   } catch (err) { console.error('Game loop error:', err); }
 }, 1000 / TICK_HZ);
 
