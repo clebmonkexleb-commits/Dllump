@@ -349,12 +349,10 @@ async function endIceGame() {
   }, 3000);
 }
 
-// ─── ICE PHYSICS — smooth puck + wall-bounce emitter ─────────────
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
-
   const totalPts = ICE_PERIMETER.length;
-  const subSteps = 8;                // was 300 — massively reduces CPU load
+  const subSteps = 12;
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
   const puckRadius = 10;
@@ -396,9 +394,6 @@ function updateIcePhysics(dt) {
           if (vn < 0) {
             puck.vx -= (1 + RESTITUTION) * vn * nx;
             puck.vy -= (1 + RESTITUTION) * vn * ny;
-            // (random jitter removed for smoothness)
-
-            // ── emit wall-bounce pulse ──
             const nowMs = Date.now();
             if (nowMs - iceRoom.lastBounceTime > 80) {
               iceRoom.lastBounceTime = nowMs;
@@ -722,7 +717,7 @@ function updatePhysics(dt) {
   });
 }
 
-const TICK_HZ = 60;
+const TICK_HZ = 120;
 let lastTick = Date.now();
 setInterval(() => {
   const now = Date.now();
