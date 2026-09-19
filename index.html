@@ -410,7 +410,6 @@
   .panel-grabber{margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:center}
   .panel-grabber .grab{width:44px;height:4px;border-radius:2px;background:var(--surface3);cursor:pointer}
 
-  /* ═══ TOASTS — Telegram liquid glass, bounce, swipe to dismiss ═══ */
   #toast-container{
     position:fixed;
     top:calc(12px + var(--safe-top));
@@ -483,7 +482,6 @@
   }
   .toast-close:active{ background:rgba(255,255,255,.18); }
 
-  /* ═══ QUICK-BET DRAG ═══ */
   #bp{ touch-action:none; transition:transform .22s ease, box-shadow .25s ease; }
   #bp.charging{ transform:scale(1.06); box-shadow:0 0 0 0 rgba(240,208,128,.45); animation:bpChargePulse .85s ease-in-out infinite; }
   @keyframes bpChargePulse{ 0%,100%{box-shadow:0 0 0 0 rgba(240,208,128,.35)} 50%{box-shadow:0 0 0 7px rgba(240,208,128,0)} }
@@ -516,7 +514,6 @@
   .bet-drag-chip.drop-into{ transform:translate(-50%,-50%) scale(.15); opacity:0; }
   .bet-drag-chip.bounce-back{ transform:translate(-50%,-50%) scale(.55); opacity:0; }
 
-  /* ═══ STORY RINGS ═══ */
   .story-ring{
     position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:99997;
     border:2.5px solid rgba(255,255,255,.55);box-sizing:border-box;
@@ -531,7 +528,6 @@
     100%{transform:translate(-50%,-50%) scale(.7);opacity:0}
   }
 
-  /* ═══ PERFORMANCE LITE MODE ═══ */
   body.perf-lite #app::before{ filter:blur(14px) brightness(.42) saturate(.85); }
   body.perf-lite .card-aura,
   body.perf-lite .card-shine,
@@ -883,7 +879,6 @@
     targetFrameMs: IS_LOW_END ? (1000/40) : 0
   };
 
-  /* New server URL — with https:// */
   const SERVER_URL='https://dllump-production-0a3d.up.railway.app';
   const WIN_GIFS=['https://i.postimg.cc/9Frvpxhz/ezgif-3f0e907be807d1cc.gif','https://i.postimg.cc/rmQPRSzF/ezgif-20d222277768f496.gif','https://i.postimg.cc/NfyzL2tt/ezgif-2378686847977dc7.gif','https://i.postimg.cc/Gt6zvzCK/ezgif-258589f1cd2da73d.gif','https://i.postimg.cc/Dwr5bqMn/ezgif-26d5d53255cd286f.gif','https://i.postimg.cc/qvTSYBPx/ezgif-2529049603c6d1a9.gif','https://i.postimg.cc/4dqF1Xbk/ezgif-286c5293f9b85b07.gif'];
 
@@ -1390,7 +1385,6 @@
   function generateDefaultAvatar(initial,ci){const size=128;const c=document.createElement('canvas');c.width=size;c.height=size;const ctx2=c.getContext('2d');const colors=['#e74c3c','#2ecc71','#3498db','#f1c40f','#9b59b6','#e67e22','#1abc9c','#e84393'];const col=colors[ci%colors.length];const grad=ctx2.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);grad.addColorStop(0,lightenColor(col,60));grad.addColorStop(1,col);ctx2.beginPath();ctx2.arc(size/2,size/2,size/2-2,0,Math.PI*2);ctx2.fillStyle=grad;ctx2.fill();const letter=(initial||'?').charAt(0).toUpperCase();ctx2.fillStyle='rgba(255,255,255,0.95)';ctx2.font='bold '+(size*.48)+'px system-ui, sans-serif';ctx2.textAlign='center';ctx2.textBaseline='middle';ctx2.fillText(letter,size/2,size/2+3);const img=new Image();img.src=c.toDataURL('image/png');return img}
   function loadIcePlayerPFP(p){const src=p.pfp||state.defaultAvatar;if(pfpCache.has(src)){const c=pfpCache.get(src);if(c.loaded&&c.img){p.pfpImg=c.img;return}}const img=new Image();let a=0;img.onload=()=>{pfpCache.set(src,{img,loaded:true});p.pfpImg=img};img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};pfpCache.set(src,{img:null,loaded:false});img.src=src}
 
-  /* ── Static rink layer cache (bg + borders) ── */
   let rinkCache=null, rinkCacheSize=0;
   function buildRinkCache(){
     const w=iceState.arenaSize;
@@ -1421,7 +1415,6 @@
     for(let i=1;i<innerPts.length;i++)innerPath.lineTo(innerPts[i].x,innerPts[i].y);
     innerPath.closePath();
 
-    // Outer glow layers (heavy) — only render once
     if(PERF.shadows){
       c.save();c.shadowColor='rgba(140,180,255,.55)';c.shadowBlur=IS_LOW_END?18:38;c.strokeStyle='rgba(180,210,255,.15)';c.lineWidth=22;c.lineJoin='round';c.stroke(path);c.restore();
       c.save();c.shadowColor='rgba(120,170,255,.55)';c.shadowBlur=IS_LOW_END?10:20;c.strokeStyle='rgba(150,190,255,.42)';c.lineWidth=10;c.lineJoin='round';c.stroke(path);c.restore();
@@ -1446,7 +1439,7 @@
     iceCanvas.width=Math.round(size*dpr);iceCanvas.height=Math.round(size*dpr);
     iceCanvas.style.width=size+'px';iceCanvas.style.height=size+'px';
     iceState.arenaSize=size;iceCtx.setTransform(dpr,0,0,dpr,0,0);
-    rinkCacheSize=0; // force rebuild
+    rinkCacheSize=0;
     buildRinkCache();
   }
   function iceScaleFactor(){return iceState.arenaSize/SERVER_ARENA_SIZE}
@@ -1473,11 +1466,81 @@
     confetti:[]
   };
 
+  /* ═══════════════════════════════════════════════════════
+     SMOOTH PUCK INTERPOLATION BUFFER
+     Stores recent server snapshots with arrival times so the
+     puck is rendered smoothly between packets instead of
+     snapping to whichever packet arrived last.
+     ═══════════════════════════════════════════════════════ */
+  const puckBuffer = [];
+  const PUCK_BUFFER_MAX = 40;
+  const PUCK_INTERP_DELAY = 80;
+  let puckLastSnapshotT = 0;
+
+  function pushPuckSnapshot(x, y, vx, vy) {
+    const t = performance.now();
+    if (puckLastSnapshotT && t - puckLastSnapshotT > 150) {
+      puckBuffer.length = 0;
+    }
+    puckBuffer.push({ x, y, vx: vx || 0, vy: vy || 0, t });
+    if (puckBuffer.length > PUCK_BUFFER_MAX) puckBuffer.shift();
+    puckLastSnapshotT = t;
+  }
+
+  function getInterpolatedPuck() {
+    const n = puckBuffer.length;
+    if (n === 0) return { x: iceState.puck.x, y: iceState.puck.y };
+
+    const renderTime = performance.now() - PUCK_INTERP_DELAY;
+
+    if (renderTime <= puckBuffer[0].t) {
+      return { x: puckBuffer[0].x, y: puckBuffer[0].y };
+    }
+
+    for (let i = 0; i < n - 1; i++) {
+      const s0 = puckBuffer[i];
+      const s1 = puckBuffer[i + 1];
+      if (renderTime >= s0.t && renderTime <= s1.t) {
+        const dt = s1.t - s0.t;
+        if (dt <= 0.001) return { x: s1.x, y: s1.y };
+        let a = (renderTime - s0.t) / dt;
+        if (a < 0) a = 0; else if (a > 1) a = 1;
+        return {
+          x: s0.x + (s1.x - s0.x) * a,
+          y: s0.y + (s1.y - s0.y) * a,
+        };
+      }
+    }
+
+    const last = puckBuffer[n - 1];
+    const prev = n >= 2 ? puckBuffer[n - 2] : last;
+    const dt = (last.t - prev.t) || 16;
+    const ahead = Math.min(renderTime - last.t, PUCK_INTERP_DELAY);
+    return {
+      x: last.x + last.vx * (ahead / 1000),
+      y: last.y + last.vy * (ahead / 1000),
+    };
+  }
+
   function getAnonymousColor(id){let h=0;const s=String(id);for(let i=0;i<s.length;i++){h=s.charCodeAt(i)+((h<<5)-h);h&=h}return'hsl('+Math.abs(h%360)+',70%,50%)'}
 
   function applyIceServerState(snapshot){
     const prev=iceState.gameState;
+
+    // Feed the interpolation buffer every time a snapshot arrives.
+    if (snapshot.puck) {
+      pushPuckSnapshot(
+        snapshot.puck.x,
+        snapshot.puck.y,
+        snapshot.puck.vx || 0,
+        snapshot.puck.vy || 0
+      );
+    }
+
     if(snapshot.gameState==='sliding'&&prev!=='sliding'){
+      puckBuffer.length = 0;
+      puckLastSnapshotT = 0;
+      pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
       iceState.puckPrevX=snapshot.puck.x;iceState.puckPrevY=snapshot.puck.y;
       iceState.puck.x=snapshot.puck.x;iceState.puck.y=snapshot.puck.y;
       iceState.puckUpdateTime=Date.now();
@@ -1722,7 +1785,6 @@
     const half=w/2;const s=iceScaleFactor();
     iceCtx.clearRect(0,0,w,w);
 
-    // Blit the cached static rink layer (bg + borders)
     if(!rinkCache || rinkCacheSize!==w) buildRinkCache();
     if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
 
@@ -1739,7 +1801,6 @@
       const tx=(half-csx)*iceState.zoom+half-half*iceState.zoom;
       const ty=(half-csy)*iceState.zoom+half-half*iceState.zoom;
       iceCtx.save();iceCtx.translate(tx,ty);iceCtx.scale(iceState.zoom,iceState.zoom);
-      // Redraw cached layer inside zoom transform for correctness
       if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
     }
 
@@ -1786,12 +1847,12 @@
 
     const now=performance.now();
     const puck=iceState.puck;
-    let rpx=puck.x,rpy=puck.y;
-    if(iceState.puckUpdateTime>0){
-      const elapsed=(Date.now()-iceState.puckUpdateTime)/1000;
-      const t=Math.min(elapsed/(1/30),1);
-      rpx=iceState.puckPrevX+(puck.x-iceState.puckPrevX)*t;
-      rpy=iceState.puckPrevY+(puck.y-iceState.puckPrevY)*t;
+    let rpx,rpy;
+    if(iceState.gameState==='sliding'){
+      const ip=getInterpolatedPuck();
+      rpx=ip.x; rpy=ip.y;
+    } else {
+      rpx=puck.x; rpy=puck.y;
     }
 
     if(iceState.gameState==='sliding'){
@@ -1996,7 +2057,6 @@
     requestAnimationFrame(renderLoop);
     if(state.currentTab!=='ice')return;
     if(document.hidden)return;
-    // Frame limiter on low-end devices
     if(PERF.targetFrameMs && ts && lastFrameTs && (ts - lastFrameTs) < PERF.targetFrameMs) return;
     lastFrameTs = ts || performance.now();
     const now=Date.now();
@@ -2151,7 +2211,6 @@
       if(sheen){const hx=50+rotY*1.4,hy=50-rotX*1.4;sheen.style.backgroundPosition=hx.toFixed(1)+'% '+hy.toFixed(1)+'%'}
       requestAnimationFrame(tick);
     }
-    // Only run the card animation when the wallet tab is visible
     const observer=new MutationObserver(()=>{
       cardActive = document.getElementById('wallet-page').classList.contains('active');
     });
