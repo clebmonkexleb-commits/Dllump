@@ -113,7 +113,7 @@ function getPlayer(id) { return room.players.find(p => p.id === id); }
 const ICE_SIZE = ARENA_SIZE;
 const ICE_CORNER_RADIUS = ARENA_SIZE * 0.045;
 const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 300);
-const ICE_FIELD_SCALE = 0.92;
+const ICE_FIELD_SCALE = 1.0;
 
 function createIceRoom(id) {
   return {
