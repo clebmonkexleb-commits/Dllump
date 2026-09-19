@@ -123,7 +123,6 @@
   #ice-page.active{display:flex}
   #ice-page:not(.active){display:block}
 
-  /* arena wrap gets extra top paddin to move it down below the floating topbar */
   #ice-arena-wrap{
     flex:1;position:relative;display:flex;align-items:center;justify-content:center;
     padding:calc(28px + var(--safe-top)) 8px 0;min-height:0;flex-shrink:0;touch-action:none
@@ -137,7 +136,11 @@
   #ice-top-panel .panel-value{font-size:15px;font-weight:800;color:#fff;line-height:1.2}
   #ice-top-panel .panel-value.gold{color:#f0d080}
   #ice-timer-section{flex:1.2;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:50px}
-  #ice-countdown-timer{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1.2}
+  #ice-countdown-timer{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1.2;transition:color .3s ease,text-shadow .3s ease}
+  #ice-countdown-timer.cinematic{color:#fff;text-shadow:0 0 18px rgba(180,210,255,.9),0 0 42px rgba(120,170,255,.5)}
+  #ice-countdown-timer.urgent{color:#f0d080;text-shadow:0 0 22px rgba(240,208,128,.95),0 0 60px rgba(240,208,128,.55)}
+  #ice-countdown-timer.tick{animation:countTick .38s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes countTick{0%{transform:scale(1)}40%{transform:scale(1.32)}100%{transform:scale(1)}}
   #ice-timer-progress-wrap{width:100%;height:2px;border-radius:2px;background:rgba(180,210,255,.15);overflow:hidden}
   #ice-timer-progress{height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,#b8d2ff,#fff);transition:width .1s linear}
 
@@ -205,7 +208,6 @@
   #ice-win-multiplier{font-size:30px;font-weight:800;color:#fff;text-align:center}
   #ice-win-continue-btn{padding:12px 0;border-radius:14px;border:1px solid rgba(140,180,255,.35);background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);color:#fff;font-weight:800;font-size:15px;cursor:pointer;width:100%;text-align:center;margin-top:6px;font-family:inherit;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(91,157,255,.4)}
 
-  /* content pages get a real top offset so they clear the absolute topbar */
   #wallet-page,#profile-page,#top-page{padding:calc(46px + var(--safe-top)) 16px calc(90px + var(--safe-bottom));display:block;touch-action:pan-y}
   .page-head{margin:6px 0 18px}
   .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);display:flex;margin-bottom:4px;min-height:14px}
@@ -440,8 +442,113 @@
   .panel-grabber{margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:center}
   .panel-grabber .grab{width:44px;height:4px;border-radius:2px;background:var(--surface3);cursor:pointer}
 
-  #notif{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.85);background:rgba(20,20,20,.96);border:.5px solid var(--border2);border-radius:20px;padding:20px 32px;color:#fff;font-size:18px;font-weight:700;text-align:center;z-index:99999;pointer-events:none;opacity:0;transition:opacity .25s ease,transform .25s var(--ease-spring);box-shadow:0 20px 60px rgba(0,0,0,.9);max-width:80%}
-  #notif.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  /* ═══════════════════════════════════════════════════════
+     TOASTS — Telegram-style liquid glass, bounce, swipe to dismiss
+     ═══════════════════════════════════════════════════════ */
+  #toast-container{
+    position:fixed;
+    top:calc(12px + var(--safe-top));
+    left:50%;
+    transform:translateX(-50%);
+    z-index:99999;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    width:calc(100% - 24px);
+    max-width:400px;
+    pointer-events:none;
+  }
+  .toast{
+    position:relative;
+    padding:12px 14px;
+    border-radius:18px;
+    background:linear-gradient(135deg, rgba(56,68,100,.72), rgba(22,28,46,.82));
+    backdrop-filter:blur(28px) saturate(180%);
+    -webkit-backdrop-filter:blur(28px) saturate(180%);
+    border:1px solid rgba(180,210,255,.22);
+    box-shadow:
+      0 14px 44px rgba(0,0,0,.55),
+      0 0 0 0.5px rgba(255,255,255,.06) inset,
+      inset 0 1px 0 rgba(255,255,255,.22);
+    color:#fff;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:.1px;
+    pointer-events:auto;
+    cursor:grab;
+    touch-action:none;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    opacity:0;
+    transform:translateY(-140%) scale(.82);
+    transition:
+      transform .52s cubic-bezier(.34,1.56,.64,1),
+      opacity .3s ease,
+      box-shadow .25s ease;
+    will-change:transform,opacity;
+    overflow:hidden;
+    max-height:120px;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+  .toast.swiping{
+    transition:none;
+    cursor:grabbing;
+  }
+  .toast.dismissing{
+    opacity:0;
+    transform:translateY(-25%) scale(.9);
+    transition:
+      transform .3s ease,
+      opacity .26s ease,
+      max-height .3s ease .05s,
+      padding .3s ease .05s,
+      margin .3s ease .05s;
+    max-height:0;
+    padding-top:0;
+    padding-bottom:0;
+    margin-top:-8px;
+  }
+  .toast-icon{
+    width:26px;
+    height:26px;
+    flex-shrink:0;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg, rgba(91,157,255,.35), rgba(74,134,232,.22));
+    border:1px solid rgba(140,180,255,.4);
+    font-size:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+    color:#e8f1ff;
+  }
+  .toast-body{
+    flex:1;
+    min-width:0;
+    line-height:1.35;
+    word-wrap:break-word;
+    overflow-wrap:break-word;
+  }
+  .toast-close{
+    width:22px;height:22px;
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+    border:none;
+    color:rgba(255,255,255,.7);
+    font-size:11px;
+    cursor:pointer;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+    transition:background .15s ease;
+  }
+  .toast-close:active{background:rgba(255,255,255,.18)}
 
   /* ═══ QUICK-BET DRAG ═══ */
   #bp{
@@ -541,7 +648,7 @@
     opacity:0;
   }
 
-  /* ═══ STORY RINGS — simple, sharp, matte outline ═══ */
+  /* ═══ STORY RINGS ═══ */
   .story-ring{
     position:fixed;
     left:0;top:0;
@@ -847,7 +954,7 @@
   <span>10</span>
 </div>
 
-<div id="notif"></div>
+<div id="toast-container"></div>
 
 <script>
 (function(){
@@ -897,8 +1004,137 @@
   const $=s=>document.querySelector(s);
   const $$=s=>Array.prototype.slice.call(document.querySelectorAll(s));
 
-  let notifTimer=null;
-  function showNotif(text){const n=$('#notif');if(!n)return;n.textContent=text;n.classList.add('show');clearTimeout(notifTimer);notifTimer=setTimeout(()=>n.classList.remove('show'),2200)}
+  /* ═══════════════════════════════════════════════════════
+     TOAST NOTIFICATIONS — Telegram liquid glass + swipe to dismiss
+     ═══════════════════════════════════════════════════════ */
+  const toastContainer = document.getElementById('toast-container');
+  const MAX_TOASTS = 3;
+  const TOAST_DURATION = 4200;
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function dismissToast(t){
+    if(!t || t.classList.contains('dismissing')) return;
+    if(t._autoTimer){ clearTimeout(t._autoTimer); t._autoTimer = null; }
+    t.classList.add('dismissing');
+    t.classList.remove('show');
+    setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 340);
+  }
+
+  function attachSwipe(t){
+    let dragging = false, pid = null;
+    let startX = 0, startY = 0, curDx = 0, curDy = 0;
+
+    t.addEventListener('pointerdown', e => {
+      if(e.target.closest('.toast-close')) return;
+      dragging = true;
+      pid = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      curDx = 0;
+      curDy = 0;
+      t.classList.add('swiping');
+      try { t.setPointerCapture(e.pointerId); } catch(_) {}
+    });
+
+    t.addEventListener('pointermove', e => {
+      if(!dragging || e.pointerId !== pid) return;
+      curDx = e.clientX - startX;
+      curDy = e.clientY - startY;
+      const absX = Math.abs(curDx), absY = Math.abs(curDy);
+      let tx = 0, ty = 0;
+      if(absX > absY){
+        tx = curDx;
+        ty = curDy * 0.22;
+      } else if(curDy < 0){
+        tx = curDx * 0.25;
+        ty = curDy;
+      } else {
+        tx = curDx * 0.32;
+        ty = curDy * 0.32;
+      }
+      const rot = Math.max(-14, Math.min(14, tx * 0.08));
+      const op = Math.max(0.25, 1 - Math.max(absX, Math.abs(ty)) / 240);
+      t.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+      t.style.opacity = op;
+    }, {passive: true});
+
+    const endDrag = e => {
+      if(!dragging) return;
+      dragging = false;
+      t.classList.remove('swiping');
+
+      const absX = Math.abs(curDx), absY = Math.abs(curDy);
+      const shouldDismiss = absX > 90 || curDy < -70;
+
+      if(shouldDismiss){
+        if(t._autoTimer){ clearTimeout(t._autoTimer); t._autoTimer = null; }
+        const isHorizontal = absX > absY;
+        if(isHorizontal){
+          const dir = Math.sign(curDx) || 1;
+          t.style.transition = 'transform .32s cubic-bezier(.4,0,.6,1), opacity .26s ease, max-height .28s ease, padding .28s ease, margin .28s ease';
+          t.style.transform = `translate(${dir * (window.innerWidth + 60)}px, ${curDy}px) rotate(${dir * 18}deg)`;
+          t.style.opacity = 0;
+        } else {
+          const dir = curDy < 0 ? -1 : 1;
+          t.style.transition = 'transform .32s cubic-bezier(.4,0,.6,1), opacity .26s ease, max-height .28s ease, padding .28s ease, margin .28s ease';
+          t.style.transform = `translate(0px, ${dir * 200}px) scale(.85)`;
+          t.style.opacity = 0;
+        }
+        t.classList.add('dismissing');
+        setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 340);
+      } else {
+        t.style.transition = '';
+        t.style.transform = '';
+        t.style.opacity = '';
+        if(t._autoTimer) clearTimeout(t._autoTimer);
+        t._autoTimer = setTimeout(() => dismissToast(t), TOAST_DURATION);
+      }
+      curDx = 0; curDy = 0;
+    };
+
+    t.addEventListener('pointerup', endDrag);
+    t.addEventListener('pointercancel', endDrag);
+  }
+
+  function showNotif(text, opts){
+    opts = opts || {};
+    if(!toastContainer) return;
+
+    const existing = toastContainer.querySelectorAll('.toast:not(.dismissing)');
+    if(existing.length >= MAX_TOASTS){
+      dismissToast(existing[0]);
+    }
+
+    const t = document.createElement('div');
+    t.className = 'toast';
+    const iconChar = opts.icon || '◆';
+    t.innerHTML =
+      '<div class="toast-icon">' + escapeHtml(iconChar) + '</div>' +
+      '<div class="toast-body"></div>' +
+      '<button class="toast-close" type="button" aria-label="Dismiss">✕</button>';
+    t.querySelector('.toast-body').textContent = text == null ? '' : String(text);
+
+    toastContainer.appendChild(t);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => t.classList.add('show'));
+    });
+
+    const dur = opts.duration || TOAST_DURATION;
+    t._autoTimer = setTimeout(() => dismissToast(t), dur);
+
+    t.querySelector('.toast-close').addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      dismissToast(t);
+    });
+
+    attachSwipe(t);
+  }
 
   const RIPPLE_SEL='button, .quick-btn, .layout-tile, .round-tile, .swatch, .setting, .top-entry, .stat-card, .panel-user';
   document.addEventListener('pointerdown',e=>{
@@ -1309,7 +1545,10 @@
     glowPhase:0,puckVx:0,puckVy:0,
     zoomCenterX:0,zoomCenterY:0,zoomCenterFixed:false,
     wallPulses:[],
-    prevRenderX:0,prevRenderY:0,lastFrameTime:0,peakSpeed:0,zoomFired:false
+    prevRenderX:0,prevRenderY:0,lastFrameTime:0,peakSpeed:0,zoomFired:false,
+    countdownLastSecond:-1,
+    countdownPulseStart:0,
+    confetti:[]
   };
 
   function getAnonymousColor(id){let h=0;const s=String(id);for(let i=0;i<s.length;i++){h=s.charCodeAt(i)+((h<<5)-h);h&=h}return'hsl('+Math.abs(h%360)+',70%,50%)'}
@@ -1337,6 +1576,11 @@
       if(snapshot.puck.vx!==undefined){iceState.puckVx=snapshot.puck.vx;iceState.puckVy=snapshot.puck.vy}
     }
     if(snapshot.gameState!=='idle'||snapshot.players.length>0)iceState.idlePuckInitialized=false;
+    if(snapshot.gameState==='countdown'&&prev!=='countdown'){
+      iceState.countdownLastSecond=-1;
+      iceState.countdownPulseStart=0;
+      iceCountdownTimer.classList.remove('cinematic','urgent','tick');
+    }
     if(snapshot.gameState==='spinning'&&prev!=='spinning'){iceState.puckVisible=true;iceState.puckPopStart=performance.now();iceState.puckScale=0;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false}
     if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false}
     if(snapshot.gameState==='finished'&&prev!=='finished'){
@@ -1349,7 +1593,7 @@
         iceState.zoomDuration=1.1;
       }
     }
-    if(snapshot.gameState==='idle'&&prev!=='idle'){iceState.puckVisible=false;iceState.puckScale=1;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.pfpPop.clear();iceState.showOwnerName=false;iceState.currentOwnerName='';iceState.idlePuckInitialized=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.zoomCenterX=0;iceState.zoomCenterY=0;iceState.wallPulses=[];iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false}
+    if(snapshot.gameState==='idle'&&prev!=='idle'){iceState.puckVisible=false;iceState.puckScale=1;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.pfpPop.clear();iceState.showOwnerName=false;iceState.currentOwnerName='';iceState.idlePuckInitialized=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.zoomCenterX=0;iceState.zoomCenterY=0;iceState.wallPulses=[];iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.confetti=[]}
     const seen=new Set();
     snapshot.players.forEach(sp=>{
       seen.add(sp.id);
@@ -1401,9 +1645,35 @@
     if(amount>iceState.bestWin.amount){iceState.bestWin={amount,pfp,name};updateIceBestWinPanel(iceState.bestWin)}
     addTransaction('win',amount,'Ice Win vs '+name);
   }
+
+  function spawnSliceConfetti(p){
+    const now=performance.now();
+    const cx=(p.x1+p.x2)/2;
+    const cy=(p.y1+p.y2)/2;
+    const count=16;
+    for(let i=0;i<count;i++){
+      const ang=(Math.PI*2*i/count)+(Math.random()-0.5)*0.5;
+      const spd=60+Math.random()*90;
+      iceState.confetti.push({
+        x:cx,y:cy,
+        vx:Math.cos(ang)*spd,
+        vy:Math.sin(ang)*spd-40,
+        rot:Math.random()*Math.PI*2,
+        vrot:(Math.random()-0.5)*12,
+        w:3+Math.random()*4,
+        h:1.5+Math.random()*2,
+        color:Math.random()<0.4?'#ffffff':lightenColor(p.color,55),
+        born:now,
+        life:1100+Math.random()*400
+      });
+    }
+  }
+
   function handleIceRoundEnd(payload){
     if(!payload){hideIceWinPanelAndReset();return}
     iceState.winnerId=payload.winnerId;
+    const winnerPlayer=iceState.players.find(p=>p.id===payload.winnerId);
+    if(winnerPlayer)spawnSliceConfetti(winnerPlayer);
     addIceWinToHistory(payload.winnerName,payload.winnerPfp,payload.winnings);
     refreshLeaderboard();
     if(payload.winnerId===state.userId){state.balance+=payload.winnings;state.wins++;state.winStreak++}
@@ -1560,6 +1830,24 @@
     iceCtx.save();iceCtx.strokeStyle='rgba(255,255,255,.28)';iceCtx.lineWidth=1.2;iceCtx.lineJoin='round';iceCtx.stroke(innerPath);iceCtx.restore();
     iceCtx.save();iceCtx.strokeStyle='rgba(140,180,255,.10)';iceCtx.lineWidth=6;iceCtx.lineJoin='round';iceCtx.stroke(innerPath);iceCtx.restore();
 
+    if(iceState.gameState==='countdown' && iceState.countdownPulseStart){
+      const age=(performance.now()-iceState.countdownPulseStart)/1000;
+      if(age<0.9){
+        const t=age/0.9;
+        const e=1-Math.pow(1-t,3);
+        const alpha=(1-e)*0.75;
+        const blur=8+e*55;
+        iceCtx.save();
+        iceCtx.shadowColor='rgba(255,255,255,'+alpha+')';
+        iceCtx.shadowBlur=blur;
+        iceCtx.strokeStyle='rgba(255,255,255,'+(alpha*0.6)+')';
+        iceCtx.lineWidth=2+(1-e)*3;
+        iceCtx.lineJoin='round';
+        iceCtx.stroke(path);
+        iceCtx.restore();
+      }
+    }
+
     if(iceState.gameState==='idle'){
       iceState.glowPhase+=.03;
       const pulse=.3+.7*(.5+.5*Math.sin(iceState.glowPhase));
@@ -1593,7 +1881,6 @@
       rpy=iceState.puckPrevY+(puck.y-iceState.puckPrevY)*t;
     }
 
-    /* ZOOM TRIGGER — simpler, more reliable: fires once the puck has slowed way down */
     if(iceState.gameState==='sliding'){
       if(iceState.lastFrameTime>0){
         const dt=(now-iceState.lastFrameTime)/1000;
@@ -1603,7 +1890,6 @@
           if(spd>iceState.peakSpeed)iceState.peakSpeed=spd;
           const elapsed=(now-iceState.slideStartTime)/1000;
 
-          /* Zoom in when puck has clearly slowed (below 30% of peak, and below 1.5 px/ms absolute) */
           if(!iceState.zoomFired && elapsed > 0.6 && spd < 1.5 && spd < iceState.peakSpeed * 0.30){
             iceState.zoomCenterX = puck.x;
             iceState.zoomCenterY = puck.y;
@@ -1614,7 +1900,6 @@
             iceState.zoomFired = true;
             iceState.zoomDuration = 0.55;
           }
-          /* Zoom out once the puck essentially stopped */
           if(iceState.zoomFired && !iceState.zoomOutTriggered && spd < 0.4){
             iceState.zoomOutTriggered = true;
             iceState.isZoomingOut = true;
@@ -1628,7 +1913,6 @@
       iceState.prevRenderX=rpx;iceState.prevRenderY=rpy;iceState.lastFrameTime=now;
     }
 
-    /* camera follows puck while zoom is on */
     if(iceState.zoomCenterFixed
        && iceState.gameState==='sliding'
        && !iceState.isZoomingOut){
@@ -1693,6 +1977,30 @@
       iceCtx.restore();
       iceCtx.restore();
     });
+
+    if(iceState.confetti.length){
+      const nowC=performance.now();
+      iceState.confetti=iceState.confetti.filter(c=>{
+        const age=(nowC-c.born)/1000;
+        if(age*1000>=c.life)return false;
+        c.vy+=320*(1/60);
+        c.x+=c.vx*(1/60);
+        c.y+=c.vy*(1/60);
+        c.rot+=c.vrot*(1/60);
+        c.vx*=0.985;
+        const lifeT=age*1000/c.life;
+        const alpha=1-Math.pow(lifeT,2);
+        iceCtx.save();
+        iceCtx.globalAlpha=alpha;
+        iceCtx.translate(c.x*s,c.y*s);
+        iceCtx.rotate(c.rot);
+        iceCtx.fillStyle=c.color;
+        iceCtx.fillRect(-c.w*s/2,-c.h*s/2,c.w*s,c.h*s);
+        iceCtx.restore();
+        return true;
+      });
+    }
+
     iceCtx.restore();
 
     const pn=performance.now();
@@ -1779,6 +2087,22 @@
       const secs=Math.floor(remaining),ms=Math.floor((remaining-secs)*100);
       iceCountdownTimer.textContent=secs+'.'+String(ms).padStart(2,'0');
       iceTimerProgress.style.width=(Math.min(1,elapsed/10)*100)+'%';
+
+      const inCinematic=remaining<=3.05&&remaining>0;
+      iceCountdownTimer.classList.toggle('cinematic',inCinematic);
+      iceCountdownTimer.classList.toggle('urgent',remaining<=1.05&&remaining>0);
+
+      if(inCinematic&&secs!==iceState.countdownLastSecond){
+        iceState.countdownLastSecond=secs;
+        iceState.countdownPulseStart=now;
+        iceCountdownTimer.classList.remove('tick');
+        void iceCountdownTimer.offsetWidth;
+        iceCountdownTimer.classList.add('tick');
+        haptic(secs<=1?'heavy':'medium');
+      }
+      if(!inCinematic&&iceState.countdownLastSecond!==-1){
+        iceState.countdownLastSecond=-1;
+      }
     }
     updateIceTopPanelVisibility();
     renderIce();
@@ -1795,7 +2119,6 @@
   soundToggle.addEventListener('change',()=>{state.soundEnabled=soundToggle.checked});
   bounceLightsToggle.addEventListener('change',()=>{state.bounceLightsEnabled=bounceLightsToggle.checked});
 
-  /* STORY RINGS */
   const storyRingsToggle=document.getElementById('story-rings-toggle');
   function spawnStoryRing(x,y,size){
     const ring=document.createElement('span');
@@ -1866,7 +2189,7 @@
     try{
       const r=await fetch(SERVER_URL+'/redeem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,userId:state.userId})});
       const d=await r.json();
-      if(d.ok){localStorage.setItem(key,'1');state.balance=d.newBalance;updateBalance();promoMsg.textContent='✅ +'+d.amount+' added';promoMsg.style.color='var(--green)';inp.value='';addTransaction('win',d.amount,'Promo Bonus');haptic('medium')}
+      if(d.ok){localStorage.setItem(key,'1');state.balance=d.newBalance;updateBalance();promoMsg.textContent='✅ +'+d.amount+' added';promoMsg.style.color='var(--green)';inp.value='';addTransaction('win',d.amount,'Promo Bonus');haptic('medium');showNotif('Promo applied · +'+d.amount,{icon:'🎁'})}
       else{promoMsg.textContent=d.error||'Invalid code';promoMsg.style.color='var(--red)'}
     }catch(e){promoMsg.textContent='Network error';promoMsg.style.color='var(--red)'}
     finally{promoBtn.disabled=false;promoBtn.textContent='Redeem'}
@@ -1976,7 +2299,6 @@
   $$('.layout-tile').forEach(t=>t.addEventListener('click',()=>{haptic('light');applyLayout(t.dataset.layoutTile)}));
   const ls=$('#layout-switch');if(ls)ls.addEventListener('change',()=>{haptic('light');applyLayout(ls.checked?'panel':'simple')});
 
-  /* QUICK-BET DRAG */
   (function(){
     const bp=document.getElementById('bp');
     const chip=document.getElementById('bet-drag-chip');
