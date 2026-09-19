@@ -34,7 +34,14 @@
   html[data-theme="silver"]{--bg-base:#d6d6d6;--surface:rgba(0,0,0,.05);--surface2:rgba(0,0,0,.09);--surface3:rgba(0,0,0,.14);--border:rgba(0,0,0,.12);--border2:rgba(0,0,0,.20);--text:#111;--text2:#444;--text3:#777}
   html[data-theme="silver"] body{color:var(--text)}
 
-  html,body{height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;background:var(--bg-base,#000);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;transition:background .4s ease;touch-action:manipulation}
+  html,body{
+    height:100%;height:100dvh;overflow:hidden;
+    overscroll-behavior:none;
+    -webkit-overflow-scrolling:touch;
+    background:var(--bg-base,#000);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;transition:background .4s ease;touch-action:manipulation
+  }
   body{position:fixed;inset:0;width:100%}
 
   .ripple-effect{position:absolute;border-radius:50%;pointer-events:none;z-index:9;border:5px solid rgba(255,255,255,.42);filter:blur(3px);transform:scale(0.2);opacity:0;animation:ripplePop .62s cubic-bezier(.34,1.56,.64,1) forwards;mix-blend-mode:screen}
@@ -68,7 +75,14 @@
   html[data-theme="silver"] #app::after{background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.15), rgba(0,0,0,.35) 70%)}
   #app > *{position:relative;z-index:1}
 
-  #topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:calc(18px + var(--safe-top)) 10px 10px;z-index:12;gap:8px;pointer-events:none}
+  #topbar{
+    position:absolute;
+    top:0;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:calc(18px + var(--safe-top)) 10px 10px;
+    z-index:12;gap:8px;
+    pointer-events:none;
+  }
   #topbar > *{pointer-events:auto}
   #tl{display:flex;align-items:center;gap:6px;min-width:0}
   #user-info{display:flex;align-items:center;gap:6px;min-width:0;padding-left:2px}
@@ -84,7 +98,17 @@
 
   #main{flex:1;position:relative;overflow:hidden}
 
-  .tab-page{position:absolute;top:0;left:0;right:0;bottom:0;display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;opacity:0;visibility:hidden;transform:translateX(30px);transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s ease,visibility .35s ease;will-change:transform,opacity}
+  .tab-page{
+    position:absolute;top:0;left:0;right:0;bottom:0;
+    display:block;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    opacity:0;visibility:hidden;transform:translateX(30px);
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s ease,visibility .35s ease;
+    will-change:transform,opacity;
+  }
   .tab-page::-webkit-scrollbar{width:4px}
   .tab-page::-webkit-scrollbar-track{background:transparent}
   .tab-page::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
@@ -95,7 +119,10 @@
   #ice-page.active{display:flex}
   #ice-page:not(.active){display:block}
 
-  #ice-arena-wrap{flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:calc(28px + var(--safe-top)) 8px 0;min-height:0;flex-shrink:0;touch-action:none}
+  #ice-arena-wrap{
+    flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+    padding:calc(28px + var(--safe-top)) 8px 0;min-height:0;flex-shrink:0;touch-action:none
+  }
   #ice-canvas{width:100%;aspect-ratio:1/1;max-width:100%;max-height:100%;border-radius:24px;background:transparent;touch-action:none;display:block;flex-shrink:0;border:none;contain:paint}
 
   #ice-top-panel{position:absolute;top:calc(76px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100%);width:92%;max-width:420px;background:linear-gradient(135deg,rgba(40,50,80,.72),rgba(18,24,40,.82));backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(180,210,255,.22);border-radius:18px;padding:7px 12px 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:10;box-shadow:0 12px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.20);transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;opacity:0;pointer-events:none}
@@ -749,9 +776,8 @@
   const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
   const IS_LOW_END = CORES <= 4 || MEM <= 3 || (IS_TOUCH && window.devicePixelRatio >= 3);
   if(IS_LOW_END) document.body.classList.add('perf-lite');
-  // ── PATCH 1: harder DPR reduction for phones ─────────
   const PERF = {
-    dpr: IS_LOW_END ? 1.0 : (IS_TOUCH ? 1.25 : Math.min(window.devicePixelRatio || 1, 1.5)),
+    dpr: IS_LOW_END ? 1.25 : (IS_TOUCH ? 1.5 : Math.min(window.devicePixelRatio || 1, 2)),
     shadows: !IS_LOW_END,
     confetti: !IS_LOW_END,
     storyRings: !IS_LOW_END,
@@ -976,7 +1002,7 @@
           if(best.amount>0){iceState.bestWin=best;updateIceBestWinPanel(best)}
         }
         if(res.icePlayers&&Array.isArray(res.icePlayers)){
-          iceState.players=res.icePlayers.map(p=>({id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,x1:p.x1,y1:p.y1,x2:p.x2,y2:p.y2,dx1:p.x1,dy1:p.y1,dx2:p.x2,dy2:p.y2,color:p.color,bet:p.bet,_sprite:null,_spriteKey:null,_avatarSprite:null,_avatarKey:null}));
+          iceState.players=res.icePlayers.map(p=>({id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,x1:p.x1,y1:p.y1,x2:p.x2,y2:p.y2,dx1:p.x1,dy1:p.y1,dx2:p.x2,dy2:p.y2,color:p.color,bet:p.bet,_sprite:null,_spriteKey:null}));
           iceState.pot=res.icePot||0;iceState.players.forEach(p=>loadIcePlayerPFP(p));
         }
         applyIdentity();updateBalance();updateProfile();refreshLeaderboard();refreshCardUI();
@@ -1194,52 +1220,15 @@
     c.restore();
     c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.08);c.strokeStyle='rgba(255,255,255,0.04)';c.arc(x,y,r-rim*.2,-0.6,0.6);c.stroke();c.restore();
   }
-  // ── PATCH 2: richer puck look ────────────────────────
-  const PUCK_OPTS={rimRatio:.36,outerRatio:.42,rimAlpha:1.0,outerAlpha:.22,innerGlow:.14,cross:true,crossAlpha:.30,crossWidth:2.2};
-  // ── PATCH 3: smarter sprite DPR ──────────────────────
-  const PUCK_SPRITE_DPR = Math.min(2, Math.max(1.25, PERF.dpr + 0.5));
+  const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.09,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:2.2};
+  const PUCK_SPRITE_DPR=PERF.dpr > 1.25 ? 2 : 1.5;
   const PUCK_CACHE_MAX=60,PUCK_CACHE=new Map();
   function getPuckSprite(rc){const r=Math.max(1,Math.round(rc));const c=PUCK_CACHE.get(r);if(c)return c;const pad=Math.ceil(r*.35)+4;const css=(r+pad)*2;const px=Math.ceil(css*PUCK_SPRITE_DPR);const cv=document.createElement('canvas');cv.width=px;cv.height=px;const g=cv.getContext('2d');g.scale(PUCK_SPRITE_DPR,PUCK_SPRITE_DPR);drawLiquidGlassPuck(g,css/2,css/2,r,PUCK_OPTS);const sp={canvas:cv,cssSize:css,offset:css/2};PUCK_CACHE.set(r,sp);if(PUCK_CACHE.size>PUCK_CACHE_MAX){const fk=PUCK_CACHE.keys().next().value;PUCK_CACHE.delete(fk)}return sp}
   function drawPuckSprite(ctx,px,py,rc){const r=Math.max(1,Math.round(rc));const sp=getPuckSprite(r);if(!sp)return;ctx.drawImage(sp.canvas,px-sp.offset,py-sp.offset,sp.cssSize,sp.cssSize)}
 
   const pfpCache=new Map();
   function generateDefaultAvatar(initial,ci){const size=128;const c=document.createElement('canvas');c.width=size;c.height=size;const ctx2=c.getContext('2d');const colors=['#e74c3c','#2ecc71','#3498db','#f1c40f','#9b59b6','#e67e22','#1abc9c','#e84393'];const col=colors[ci%colors.length];const grad=ctx2.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);grad.addColorStop(0,lightenColor(col,60));grad.addColorStop(1,col);ctx2.beginPath();ctx2.arc(size/2,size/2,size/2-2,0,Math.PI*2);ctx2.fillStyle=grad;ctx2.fill();const letter=(initial||'?').charAt(0).toUpperCase();ctx2.fillStyle='rgba(255,255,255,0.95)';ctx2.font='bold '+(size*.48)+'px system-ui, sans-serif';ctx2.textAlign='center';ctx2.textBaseline='middle';ctx2.fillText(letter,size/2,size/2+3);const img=new Image();img.src=c.toDataURL('image/png');return img}
-  function loadIcePlayerPFP(p){const src=p.pfp||state.defaultAvatar;if(pfpCache.has(src)){const c=pfpCache.get(src);if(c.loaded&&c.img){p.pfpImg=c.img;return}}const img=new Image();let a=0;img.onload=()=>{pfpCache.set(src,{img,loaded:true});p.pfpImg=img;p._avatarKey=null};img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};pfpCache.set(src,{img:null,loaded:false});img.src=src}
-
-  // ── PATCH 4: circular avatar sprite cache ───────────
-  function getAvatarSprite(p, r, isAnon) {
-    const rr = Math.max(4, Math.round(r));
-    const mode = isAnon ? 'anon' : 'img';
-    const key = rr + '|' + mode + '|' + (p.color || '') + '|' + (p.pfp || '_') + '|' + (p.pfpImg && p.pfpImg.complete ? 1 : 0);
-    if (p._avatarKey === key && p._avatarSprite) return p._avatarSprite;
-    const dpr = PERF.dpr;
-    const css = Math.ceil(rr * 2 + 4);
-    const cv = document.createElement('canvas');
-    cv.width = Math.ceil(css * dpr);
-    cv.height = Math.ceil(css * dpr);
-    const g = cv.getContext('2d');
-    g.scale(dpr, dpr);
-    const cx = css / 2, cy = css / 2;
-    g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2); g.clip();
-    if (isAnon) {
-      g.fillStyle = getAnonymousColor(state.userId);
-      g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
-      g.fillStyle = '#fff';
-      g.font = 'bold ' + (rr * 1.6) + 'px system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillText((state.anonymousName || 'A').charAt(0).toUpperCase(), cx, cy);
-    } else if (p.pfpImg && p.pfpImg.complete && p.pfpImg.naturalWidth > 0) {
-      g.drawImage(p.pfpImg, cx - rr, cy - rr, rr * 2, rr * 2);
-    } else {
-      g.fillStyle = p.color || '#555';
-      g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
-    }
-    const sp = { canvas: cv, cssSize: css, offset: css / 2 };
-    p._avatarSprite = sp;
-    p._avatarKey = key;
-    return sp;
-  }
+  function loadIcePlayerPFP(p){const src=p.pfp||state.defaultAvatar;if(pfpCache.has(src)){const c=pfpCache.get(src);if(c.loaded&&c.img){p.pfpImg=c.img;return}}const img=new Image();let a=0;img.onload=()=>{pfpCache.set(src,{img,loaded:true});p.pfpImg=img};img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};pfpCache.set(src,{img:null,loaded:false});img.src=src}
 
   let rinkCache=null, rinkCacheSize=0;
   let cachedPerimeterPath=null, cachedPerimeterSize=0;
@@ -1424,8 +1413,7 @@
         local={id:sp.id,name:sp.name,pfp:sp.pfp,pfpImg:generateDefaultAvatar(sp.name?sp.name.charAt(0):'?',ci),
           x1:sp.x1,y1:sp.y1,x2:sp.x2,y2:sp.y2,
           dx1:sp.x1,dy1:sp.y1,dx2:sp.x2,dy2:sp.y2,
-          color:sp.color,bet:sp.bet,_sprite:null,_spriteKey:null,
-          _avatarSprite:null,_avatarKey:null};
+          color:sp.color,bet:sp.bet,_sprite:null,_spriteKey:null};
         iceState.players.push(local);loadIcePlayerPFP(local);
         iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
       }else{
@@ -1605,82 +1593,23 @@
     },5000);
   }
 
-  // ── PATCH 5a: player shape hash (rounded / tri1 / tri2) ──
-  function getPlayerShape(p) {
-    let h = 0;
-    const s = String(p.id);
-    for (let i = 0; i < s.length; i++) { h = s.charCodeAt(i) + ((h << 5) - h); h &= h; }
-    const r = Math.abs(h) % 100;
-    if (r < 55) return 'rect';
-    if (r < 78) return 'tri1';
-    return 'tri2';
-  }
-
-  // ── PATCH 5b: rounded + inset + triangle tile sprite ──
   function getPlayerTileSprite(p, w, h) {
-    const rw = Math.max(2, Math.round(w));
-    const rh = Math.max(2, Math.round(h));
-    const shape = getPlayerShape(p);
-    const key = rw + ':' + rh + ':' + p.color + ':' + shape + ':v8';
+    const rw = Math.max(1, Math.round(w));
+    const rh = Math.max(1, Math.round(h));
+    const key = rw + ':' + rh + ':' + p.color;
     if (p._spriteKey === key && p._sprite) return p._sprite;
-
     const dpr = PERF.dpr;
     const cv = document.createElement('canvas');
     cv.width = Math.ceil(rw * dpr);
     cv.height = Math.ceil(rh * dpr);
     const c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const ins = Math.min(5, Math.floor(rw / 6), Math.floor(rh / 6));
-    const ix = ins, iy = ins, iw = rw - ins * 2, ih = rh - ins * 2;
-    if (iw <= 2 || ih <= 2) { p._sprite = cv; p._spriteKey = key; return cv; }
-
-    const rad = Math.min(12, Math.min(iw, ih) * 0.32);
-    const path = new Path2D();
-    path.moveTo(ix + rad, iy);
-    path.lineTo(ix + iw - rad, iy);
-    path.quadraticCurveTo(ix + iw, iy, ix + iw, iy + rad);
-    path.lineTo(ix + iw, iy + ih - rad);
-    path.quadraticCurveTo(ix + iw, iy + ih, ix + iw - rad, iy + ih);
-    path.lineTo(ix + rad, iy + ih);
-    path.quadraticCurveTo(ix, iy + ih, ix, iy + ih - rad);
-    path.lineTo(ix, iy + rad);
-    path.quadraticCurveTo(ix, iy, ix + rad, iy);
-    path.closePath();
-
-    const fg = c.createLinearGradient(ix, iy, ix + iw, iy + ih);
+    const fg = c.createLinearGradient(0, 0, rw, rh);
     fg.addColorStop(0, lightenColor(p.color, 35));
     fg.addColorStop(0.5, p.color);
     fg.addColorStop(1, lightenColor(p.color, 20));
-
-    c.save();
-    c.clip(path);
     c.fillStyle = fg;
-    c.fillRect(ix, iy, iw, ih);
-
-    if (shape !== 'rect') {
-      c.fillStyle = 'rgba(0,0,0,0.42)';
-      c.beginPath();
-      if (shape === 'tri1') {
-        c.moveTo(ix + iw, iy);
-        c.lineTo(ix + iw, iy + ih);
-        c.lineTo(ix, iy + ih);
-      } else {
-        c.moveTo(ix, iy);
-        c.lineTo(ix, iy + ih);
-        c.lineTo(ix + iw, iy + ih);
-      }
-      c.closePath();
-      c.fill();
-    }
-    c.restore();
-
-    c.save();
-    c.strokeStyle = 'rgba(255,255,255,0.14)';
-    c.lineWidth = 1;
-    c.stroke(path);
-    c.restore();
-
+    c.fillRect(0, 0, rw, rh);
     p._sprite = cv;
     p._spriteKey = key;
     return cv;
@@ -1816,44 +1745,42 @@
       p.dx2 += (p.x2 - p.dx2) * k;
       p.dy2 += (p.y2 - p.dy2) * k;
 
-      // ── PATCH 6: pixel-snapped tile coords ──────────
-      const x1 = Math.round(p.dx1 * s);
-      const y1 = Math.round(p.dy1 * s);
-      const x2 = Math.round(p.dx2 * s);
-      const y2 = Math.round(p.dy2 * s);
-      const segW = x2 - x1, segH = y2 - y1;
-      if (segW <= 2 || segH <= 2) return;
-      const isWinner = (iceState.gameState === 'finished' && iceState.winnerId === p.id);
+      const x1=p.dx1*s,y1=p.dy1*s,x2=p.dx2*s,y2=p.dy2*s;
+      const segW=x2-x1,segH=y2-y1;
+      if (segW <= 0 || segH <= 0) return;
+      const isWinner=(iceState.gameState==='finished'&&iceState.winnerId===p.id);
 
       const sprite = getPlayerTileSprite(p, segW, segH);
-      iceCtx.globalAlpha = isWinner ? 1 : 0.96;
+      iceCtx.globalAlpha = isWinner ? 1 : 0.92;
       iceCtx.drawImage(sprite, x1, y1, segW, segH);
       if (isWinner) {
         iceCtx.save();
-        iceCtx.globalAlpha = 0.30;
+        iceCtx.globalAlpha = 0.35;
         iceCtx.fillStyle = '#ffffff';
         iceCtx.fillRect(x1, y1, segW, segH);
         iceCtx.restore();
       }
       iceCtx.globalAlpha = 1;
 
-      // ── PATCH 4b: cached avatar sprite (no more clip()) ──
-      const avatarR = Math.min(segW, segH) * 0.30;
-      let pfpScale = 1;
-      const pd = iceState.pfpPop.get(p.id);
-      if (pd) {
-        const e = (now - pd.startTime) / 1000;
-        const pr = Math.min(e / (pd.duration / 1000), 1);
-        if (pr < 1) pfpScale = Math.min(1.2, Math.max(0, easeOutBack(pr)));
-        else iceState.pfpPop.delete(p.id);
-      }
-      const drawR = Math.max(5, avatarR * pfpScale);
-      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
-      const isMe = p.id === state.userId;
-      const isAnon = isMe && state.anonymous;
-      const hidePfp = isMe && state.hidePfp;
-      const av = getAvatarSprite(p, drawR, isAnon || hidePfp);
-      iceCtx.drawImage(av.canvas, cx - av.offset, cy - av.offset, av.cssSize, av.cssSize);
+      const avatarR=Math.min(segW,segH)*.32;
+      let pfpScale=1;const pd=iceState.pfpPop.get(p.id);
+      if(pd){const e=(now-pd.startTime)/1000,pr=Math.min(e/(pd.duration/1000),1);if(pr<1){pfpScale=Math.min(1.2,Math.max(0,easeOutBack(pr)))}else iceState.pfpPop.delete(p.id)}
+      const drawR=avatarR*pfpScale;
+      const cx=(x1+x2)/2,cy=(y1+y2)/2;
+
+      iceCtx.save();
+      iceCtx.beginPath();iceCtx.arc(cx,cy,drawR,0,Math.PI*2);iceCtx.closePath();iceCtx.clip();
+      const isMe=p.id===state.userId,isAnon=isMe&&state.anonymous,hidePfp=isMe&&state.hidePfp;
+      if(isAnon||hidePfp){
+        iceCtx.fillStyle=getAnonymousColor(state.userId);
+        iceCtx.fillRect(cx-drawR,cy-drawR,drawR*2,drawR*2);
+        iceCtx.fillStyle='#fff';iceCtx.font='bold '+(drawR*.8)+'px system-ui, sans-serif';
+        iceCtx.textAlign='center';iceCtx.textBaseline='middle';
+        iceCtx.fillText((state.anonymousName||'A').charAt(0).toUpperCase(),cx,cy);
+      }else if(p.pfpImg&&p.pfpImg.complete&&p.pfpImg.naturalWidth>0){
+        iceCtx.drawImage(p.pfpImg,cx-drawR,cy-drawR,drawR*2,drawR*2);
+      }else{iceCtx.fillStyle=p.color||'#555';iceCtx.fillRect(cx-drawR,cy-drawR,drawR*2,drawR*2)}
+      iceCtx.restore();
     });
 
     if(iceState.confetti.length){
