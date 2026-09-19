@@ -354,7 +354,7 @@ function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
 
   const totalPts = ICE_PERIMETER.length;
-  const subSteps = 300;
+  const subSteps = 8;                // was 300 — massively reduces CPU load
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
   const puckRadius = 10;
@@ -396,8 +396,7 @@ function updateIcePhysics(dt) {
           if (vn < 0) {
             puck.vx -= (1 + RESTITUTION) * vn * nx;
             puck.vy -= (1 + RESTITUTION) * vn * ny;
-            puck.vx += (Math.random() - 0.5) * 0.02;
-            puck.vy += (Math.random() - 0.5) * 0.02;
+            // (random jitter removed for smoothness)
 
             // ── emit wall-bounce pulse ──
             const nowMs = Date.now();
@@ -453,7 +452,12 @@ function broadcastIceState() {
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX,
     spinStartY: iceRoom.spinStartY,
-    puck: { x: iceRoom.puck.x, y: iceRoom.puck.y },
+    puck: {
+      x: iceRoom.puck.x,
+      y: iceRoom.puck.y,
+      vx: iceRoom.puck.vx,
+      vy: iceRoom.puck.vy,
+    },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
       x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2,
@@ -718,7 +722,7 @@ function updatePhysics(dt) {
   });
 }
 
-const TICK_HZ = 30;
+const TICK_HZ = 60;
 let lastTick = Date.now();
 setInterval(() => {
   const now = Date.now();
