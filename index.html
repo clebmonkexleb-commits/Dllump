@@ -138,7 +138,7 @@
   #ice-countdown-timer.tick{animation:countTick .38s cubic-bezier(.34,1.56,.64,1)}
   @keyframes countTick{0%{transform:scale(1)}40%{transform:scale(1.32)}100%{transform:scale(1)}}
   #ice-timer-progress-wrap{width:100%;height:2px;border-radius:2px;background:rgba(180,210,255,.15);overflow:hidden}
-  #ice-timer-progress{height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,#b8d2ff,#fff);transition:width .1s linear}
+  #ice-timer-progress{height:100%;width:100%;border-radius:2px;background:linear-gradient(90deg,#b8d2ff,#fff);transform:scaleX(0);transform-origin:left center;will-change:transform}
 
   #ice-last-game-panel,#ice-best-win-panel{position:absolute;top:calc(76px + var(--safe-top));padding:7px 12px 7px 7px;background:linear-gradient(135deg,rgba(40,50,80,.68),rgba(18,24,40,.78));backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(180,210,255,.18);border-radius:14px;display:flex;align-items:center;gap:7px;z-index:6;box-shadow:0 8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);pointer-events:none;font-size:11px;color:rgba(200,220,250,.7);min-height:36px}
   #ice-last-game-panel{left:8px}
@@ -455,6 +455,36 @@
   body.perf-lite .tab-inner{ backdrop-filter:none; }
   body.perf-lite .ice-auto-bet-toggle{ backdrop-filter:none; }
   body.perf-lite .bet-drag-chip{ backdrop-filter:blur(10px); }
+
+  /* ICE-LIVE: kill backdrop-filter while the puck is animating.
+     These panels sit over a constantly repainting canvas, so every frame
+     forced a full re-blur of the backdrop. Gradients are compensated so
+     the look barely changes. */
+  body.ice-live #ice-top-panel,
+  body.ice-live #ice-last-game-panel,
+  body.ice-live #ice-best-win-panel,
+  body.ice-live #ice-bet-overlay,
+  body.ice-live #tabs .tab-inner,
+  body.ice-live .ice-auto-bet-toggle,
+  body.ice-live #ice-auto-bet-panel{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  body.ice-live #ice-last-game-panel,
+  body.ice-live #ice-best-win-panel{
+    background:linear-gradient(135deg,rgba(40,50,80,.90),rgba(18,24,40,.95));
+  }
+  body.ice-live #ice-top-panel,
+  body.ice-live #ice-bet-overlay,
+  body.ice-live #ice-auto-bet-panel{
+    background:linear-gradient(135deg,rgba(40,50,80,.90),rgba(18,24,40,.96));
+  }
+  body.ice-live #tabs .tab-inner{ background:rgba(255,255,255,.10); }
+
+  body.perf-lite .tab-inner{
+    backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+    background:rgba(255,255,255,.10);
+  }
 
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
@@ -939,6 +969,8 @@
   const iceTopPanel=document.getElementById('ice-top-panel');
   const iceCountdownTimer=document.getElementById('ice-countdown-timer');
   const iceTimerProgress=document.getElementById('ice-timer-progress');
+  const iceTimerSection=document.getElementById('ice-timer-section');
+  const iceTimerProgressWrap=document.getElementById('ice-timer-progress-wrap');
   const iceStatsPlayers=document.getElementById('ice-stats-players');
   const iceStatsPot=document.getElementById('ice-stats-pot');
   const iceLastGamePfp=document.getElementById('ice-last-game-pfp');
@@ -1002,7 +1034,7 @@
           if(best.amount>0){iceState.bestWin=best;updateIceBestWinPanel(best)}
         }
         if(res.icePlayers&&Array.isArray(res.icePlayers)){
-          iceState.players=res.icePlayers.map(p=>({id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,x1:p.x1,y1:p.y1,x2:p.x2,y2:p.y2,dx1:p.x1,dy1:p.y1,dx2:p.x2,dy2:p.y2,color:p.color,bet:p.bet,_sprite:null,_spriteKey:null}));
+          iceState.players=res.icePlayers.map(p=>({id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,x1:p.x1,y1:p.y1,x2:p.x2,y2:p.y2,dx1:p.x1,dy1:p.y1,dx2:p.x2,dy2:p.y2,color:p.color,bet:p.bet,_sprite:null,_spriteKey:null,_pfpSrc:null,_avSprite:null,_avKey:null}));
           iceState.pot=res.icePot||0;iceState.players.forEach(p=>loadIcePlayerPFP(p));
         }
         applyIdentity();updateBalance();updateProfile();refreshLeaderboard();refreshCardUI();
@@ -1014,6 +1046,7 @@
     socket.on('disconnect',()=>setOnline(false));
     socket.on('connect_error',()=>setOnline(false));
     socket.on('iceState',s=>applyIceServerState(s));
+    socket.on('icePuck',d=>{if(d&&d.g==='sliding')pushPuckSnapshot(d.x,d.y,d.vx,d.vy)});
     socket.on('iceRoundEnd',p=>handleIceRoundEnd(p));
     socket.on('icePuckBounce',d=>{if(!d||!state.bounceLightsEnabled)return;iceState.wallPulses.push({x:d.x,y:d.y,intensity:d.intensity||.6,startTime:performance.now(),duration:700});if(iceState.wallPulses.length>6)iceState.wallPulses.shift()});
     socket.on('notification',d=>{if(d?.message)showNotif(d.message)});
@@ -1221,14 +1254,40 @@
     c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.08);c.strokeStyle='rgba(255,255,255,0.04)';c.arc(x,y,r-rim*.2,-0.6,0.6);c.stroke();c.restore();
   }
   const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.09,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:2.2};
-  const PUCK_SPRITE_DPR=PERF.dpr > 1.25 ? 2 : 1.5;
-  const PUCK_CACHE_MAX=60,PUCK_CACHE=new Map();
-  function getPuckSprite(rc){const r=Math.max(1,Math.round(rc));const c=PUCK_CACHE.get(r);if(c)return c;const pad=Math.ceil(r*.35)+4;const css=(r+pad)*2;const px=Math.ceil(css*PUCK_SPRITE_DPR);const cv=document.createElement('canvas');cv.width=px;cv.height=px;const g=cv.getContext('2d');g.scale(PUCK_SPRITE_DPR,PUCK_SPRITE_DPR);drawLiquidGlassPuck(g,css/2,css/2,r,PUCK_OPTS);const sp={canvas:cv,cssSize:css,offset:css/2};PUCK_CACHE.set(r,sp);if(PUCK_CACHE.size>PUCK_CACHE_MAX){const fk=PUCK_CACHE.keys().next().value;PUCK_CACHE.delete(fk)}return sp}
-  function drawPuckSprite(ctx,px,py,rc){const r=Math.max(1,Math.round(rc));const sp=getPuckSprite(r);if(!sp)return;ctx.drawImage(sp.canvas,px-sp.offset,py-sp.offset,sp.cssSize,sp.cssSize)}
+
+  // Single fixed puck sprite — scaled via drawImage.
+  const PUCK_BASE_R = 40;
+  const PUCK_PAD    = Math.ceil(PUCK_BASE_R*0.35)+4;
+  const PUCK_HALF_RATIO = (PUCK_BASE_R+PUCK_PAD)/PUCK_BASE_R;
+  const puckSprite = (function(){
+    const dpr = Math.min(2, PERF.dpr||1);
+    const cssSize = (PUCK_BASE_R+PUCK_PAD)*2;
+    const cv = document.createElement('canvas');
+    cv.width  = Math.ceil(cssSize*dpr);
+    cv.height = Math.ceil(cssSize*dpr);
+    const g = cv.getContext('2d');
+    g.setTransform(dpr,0,0,dpr,0,0);
+    drawLiquidGlassPuck(g, cssSize/2, cssSize/2, PUCK_BASE_R, PUCK_OPTS);
+    return cv;
+  })();
+  function drawPuckSprite(ctx,px,py,rc){
+    if(rc<=0.5) return;
+    const h = rc*PUCK_HALF_RATIO;
+    ctx.drawImage(puckSprite, px-h, py-h, h*2, h*2);
+  }
 
   const pfpCache=new Map();
   function generateDefaultAvatar(initial,ci){const size=128;const c=document.createElement('canvas');c.width=size;c.height=size;const ctx2=c.getContext('2d');const colors=['#e74c3c','#2ecc71','#3498db','#f1c40f','#9b59b6','#e67e22','#1abc9c','#e84393'];const col=colors[ci%colors.length];const grad=ctx2.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);grad.addColorStop(0,lightenColor(col,60));grad.addColorStop(1,col);ctx2.beginPath();ctx2.arc(size/2,size/2,size/2-2,0,Math.PI*2);ctx2.fillStyle=grad;ctx2.fill();const letter=(initial||'?').charAt(0).toUpperCase();ctx2.fillStyle='rgba(255,255,255,0.95)';ctx2.font='bold '+(size*.48)+'px system-ui, sans-serif';ctx2.textAlign='center';ctx2.textBaseline='middle';ctx2.fillText(letter,size/2,size/2+3);const img=new Image();img.src=c.toDataURL('image/png');return img}
-  function loadIcePlayerPFP(p){const src=p.pfp||state.defaultAvatar;if(pfpCache.has(src)){const c=pfpCache.get(src);if(c.loaded&&c.img){p.pfpImg=c.img;return}}const img=new Image();let a=0;img.onload=()=>{pfpCache.set(src,{img,loaded:true});p.pfpImg=img};img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};pfpCache.set(src,{img:null,loaded:false});img.src=src}
+  function loadIcePlayerPFP(p){
+    const src=p.pfp||state.defaultAvatar;
+    p._pfpSrc = src;
+    if(pfpCache.has(src)){const c=pfpCache.get(src);if(c.loaded&&c.img){p.pfpImg=c.img;return}}
+    const img=new Image();let a=0;
+    img.onload=()=>{pfpCache.set(src,{img,loaded:true});p.pfpImg=img};
+    img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};
+    pfpCache.set(src,{img:null,loaded:false});
+    img.src=src;
+  }
 
   let rinkCache=null, rinkCacheSize=0;
   let cachedPerimeterPath=null, cachedPerimeterSize=0;
@@ -1413,14 +1472,12 @@
         local={id:sp.id,name:sp.name,pfp:sp.pfp,pfpImg:generateDefaultAvatar(sp.name?sp.name.charAt(0):'?',ci),
           x1:sp.x1,y1:sp.y1,x2:sp.x2,y2:sp.y2,
           dx1:sp.x1,dy1:sp.y1,dx2:sp.x2,dy2:sp.y2,
-          color:sp.color,bet:sp.bet,_sprite:null,_spriteKey:null};
+          color:sp.color,bet:sp.bet,_sprite:null,_spriteKey:null,_pfpSrc:null,_avSprite:null,_avKey:null};
         iceState.players.push(local);loadIcePlayerPFP(local);
         iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
       }else{
         if(Math.abs(local.bet-sp.bet)>5)iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
         local.x1=sp.x1;local.y1=sp.y1;local.x2=sp.x2;local.y2=sp.y2;local.color=sp.color;local.bet=sp.bet;
-        const key=Math.round(sp.x2-sp.x1)+':'+Math.round(sp.y2-sp.y1)+':'+sp.color;
-        if(local._spriteKey && local._spriteKey !== key) local._sprite=null;
       }
       local.name=sp.name;
     });
@@ -1429,28 +1486,67 @@
     updateIceStatsBar();updateIceBetUI();updateIceWaitingText();updateIceBetOverlayVisibility();updateIceTopPanelVisibility();
   }
 
-  function updateIceBetOverlayVisibility(){
-    const hide=(iceState.gameState==='spinning'||iceState.gameState==='sliding'||iceState.gameState==='finished');
-    iceBetOverlayWrap.classList.toggle('hidden',hide);
-  }
-  function updateIceStatsBar(){iceStatsPlayers.textContent=iceState.players.length;iceStatsPot.textContent=iceState.pot}
-  function updateIceWaitingText(){if(iceState.players.length>=1)iceWaitingText.style.display='none';else iceWaitingText.style.display='block';if(iceState.gameState==='spinning'||iceState.gameState==='sliding'||iceState.gameState==='finished')iceWaitingText.style.display='none'}
+  // ---- dirty-checked UI updaters ----
+  let _topPanelShown=null, _timerMode=null;
   function updateIceTopPanelVisibility(){
-    const show=(iceState.gameState==='countdown'||iceState.gameState==='spinning'||iceState.gameState==='sliding'||iceState.gameState==='finished');
-    iceTopPanel.classList.toggle('show',show);
-    const ts=$('#ice-timer-section');
-    if(iceState.gameState==='countdown'){ts.style.display='flex';iceCountdownTimer.style.display='block';$('#ice-timer-progress-wrap').style.display='block'}
-    else{ts.style.display='none';iceCountdownTimer.style.display='none';$('#ice-timer-progress-wrap').style.display='none'}
+    const gs=iceState.gameState;
+    const show=(gs==='countdown'||gs==='spinning'||gs==='sliding'||gs==='finished');
+    if(show!==_topPanelShown){ _topPanelShown=show; iceTopPanel.classList.toggle('show',show); }
+    const cd=(gs==='countdown');
+    if(cd!==_timerMode){
+      _timerMode=cd;
+      iceTimerSection.style.display = cd?'flex':'none';
+      iceCountdownTimer.style.display = cd?'block':'none';
+      iceTimerProgressWrap.style.display = cd?'block':'none';
+    }
   }
+
+  let _statPlayers=-1,_statPot=-1;
+  function updateIceStatsBar(){
+    const n=iceState.players.length;
+    if(n!==_statPlayers){ _statPlayers=n; iceStatsPlayers.textContent=n; }
+    const p=iceState.pot;
+    if(p!==_statPot){ _statPot=p; iceStatsPot.textContent=p; }
+  }
+
+  let _waitingShown=null;
+  function updateIceWaitingText(){
+    const gs=iceState.gameState;
+    const busy=(gs==='spinning'||gs==='sliding'||gs==='finished');
+    const show=!busy && iceState.players.length<1;
+    if(show!==_waitingShown){ _waitingShown=show; iceWaitingText.style.display=show?'block':'none'; }
+  }
+
+  let _iceLive=null;
+  let _betOverlayHidden=null;
+  function updateIceBetOverlayVisibility(){
+    const gs=iceState.gameState;
+    const hide=(gs==='spinning'||gs==='sliding'||gs==='finished');
+    if(hide!==_betOverlayHidden){
+      _betOverlayHidden=hide;
+      iceBetOverlayWrap.classList.toggle('hidden',hide);
+    }
+    const live=(gs==='sliding'||gs==='spinning');
+    if(live!==_iceLive){ _iceLive=live; document.body.classList.toggle('ice-live',live); }
+  }
+
+  let _betBtnLabel='',_betDisabled=null,_betShown=null;
   function updateIceBetUI(){
     const existing=iceState.players.find(p=>p.id===state.userId);
     const inGame=!!existing;
     const canBet=(iceState.gameState==='idle'||iceState.gameState==='countdown');
-    iceBetBtn.textContent=canBet?(inGame?'increase':'join'):(inGame?'in game':'waiting');
-    iceBetBtn.disabled=!canBet;iceBetInput.disabled=!canBet;iceAllInBtn.disabled=!canBet;
-    iceCurrentBetDisplay.textContent=existing?existing.bet:'0';
-    if(iceBetInput.dataset.empty==='true'){iceBetInput.value=10;delete iceBetInput.dataset.empty}
+    const label=canBet?(inGame?'increase':'join'):(inGame?'in game':'waiting');
+    if(label!==_betBtnLabel){ _betBtnLabel=label; iceBetBtn.textContent=label; }
+    const dis=!canBet;
+    if(dis!==_betDisabled){
+      _betDisabled=dis;
+      iceBetBtn.disabled=dis; iceBetInput.disabled=dis; iceAllInBtn.disabled=dis;
+    }
+    const bet=existing?existing.bet:0;
+    if(bet!==_betShown){ _betShown=bet; iceCurrentBetDisplay.textContent=bet; }
+    if(iceBetInput.dataset.empty==='true'){ iceBetInput.value=10; delete iceBetInput.dataset.empty; }
   }
+
   function updateIceLastGamePanel(e){iceLastGamePfp.src=e.pfp||state.defaultAvatar;iceLastGameAmount.textContent='+'+(e.amount||0)}
   function updateIceBestWinPanel(b){iceBestWinPfp.src=b.pfp||state.defaultAvatar;iceBestWinAmount.textContent='+'+(b.amount||0)}
   function addIceWinToHistory(name,pfp,amount){
@@ -1593,25 +1689,57 @@
     },5000);
   }
 
-  function getPlayerTileSprite(p, w, h) {
-    const rw = Math.max(1, Math.round(w));
-    const rh = Math.max(1, Math.round(h));
-    const key = rw + ':' + rh + ':' + p.color;
-    if (p._spriteKey === key && p._sprite) return p._sprite;
-    const dpr = PERF.dpr;
+  // ---- sprite caches ----
+  const TILE_SPRITE_PX = 128;
+  const tileSpriteCache = new Map();
+  function getTileSprite(color){
+    let cv = tileSpriteCache.get(color);
+    if(cv) return cv;
+    cv = document.createElement('canvas');
+    cv.width = TILE_SPRITE_PX;
+    cv.height = TILE_SPRITE_PX;
+    const g = cv.getContext('2d');
+    const fg = g.createLinearGradient(0,0,TILE_SPRITE_PX,TILE_SPRITE_PX);
+    fg.addColorStop(0,   lightenColor(color,35));
+    fg.addColorStop(0.5, color);
+    fg.addColorStop(1,   lightenColor(color,20));
+    g.fillStyle = fg;
+    g.fillRect(0,0,TILE_SPRITE_PX,TILE_SPRITE_PX);
+    tileSpriteCache.set(color,cv);
+    return cv;
+  }
+
+  const AVATAR_SPRITE_PX = 96;
+  function getAvatarSprite(p){
+    const isMe  = (p.id===state.userId);
+    const anon  = isMe && state.anonymous;
+    const hide  = isMe && state.hidePfp;
+    const ready = !!(p.pfpImg && p.pfpImg.complete && p.pfpImg.naturalWidth>0);
+    let key;
+    if(anon||hide)      key = 'anon|'+state.userId+'|'+(state.anonymousName||'A');
+    else if(ready)      key = 'img|'+(p._pfpSrc||p.pfp||'default');
+    else                key = 'solid|'+p.color;
+    if(p._avKey===key && p._avSprite) return p._avSprite;
+
+    const S = AVATAR_SPRITE_PX, R = S/2;
     const cv = document.createElement('canvas');
-    cv.width = Math.ceil(rw * dpr);
-    cv.height = Math.ceil(rh * dpr);
-    const c = cv.getContext('2d');
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const fg = c.createLinearGradient(0, 0, rw, rh);
-    fg.addColorStop(0, lightenColor(p.color, 35));
-    fg.addColorStop(0.5, p.color);
-    fg.addColorStop(1, lightenColor(p.color, 20));
-    c.fillStyle = fg;
-    c.fillRect(0, 0, rw, rh);
-    p._sprite = cv;
-    p._spriteKey = key;
+    cv.width = S; cv.height = S;
+    const g = cv.getContext('2d');
+    g.beginPath(); g.arc(R,R,R,0,Math.PI*2); g.clip();
+    if(anon||hide){
+      g.fillStyle = getAnonymousColor(state.userId);
+      g.fillRect(0,0,S,S);
+      g.fillStyle = '#fff';
+      g.font = 'bold '+(S*0.4)+'px system-ui,sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText((state.anonymousName||'A').charAt(0).toUpperCase(), R, R+1);
+    } else if(ready){
+      g.drawImage(p.pfpImg,0,0,S,S);
+    } else {
+      g.fillStyle = p.color || '#555';
+      g.fillRect(0,0,S,S);
+    }
+    p._avSprite = cv; p._avKey = key;
     return cv;
   }
 
@@ -1737,51 +1865,54 @@
     }
     const speed=Math.sqrt(Math.pow(rpx-iceState.puckPrevX,2)+Math.pow(rpy-iceState.puckPrevY,2));
 
-    iceCtx.save();iceCtx.clip(path);
-    iceState.players.forEach(p=>{
+    // Player tiles — roundRect clip, sprite tiles, sprite avatars.
+    iceCtx.save();
+    if(iceCtx.roundRect){
+      iceCtx.beginPath();
+      iceCtx.roundRect(0,0,w,w,iceState.cornerRadius*s);
+      iceCtx.clip();
+    } else {
+      iceCtx.clip(path);
+    }
+
+    for(let pi=0; pi<iceState.players.length; pi++){
+      const p = iceState.players[pi];
       const k = 0.22;
       p.dx1 += (p.x1 - p.dx1) * k;
       p.dy1 += (p.y1 - p.dy1) * k;
       p.dx2 += (p.x2 - p.dx2) * k;
       p.dy2 += (p.y2 - p.dy2) * k;
 
-      const x1=p.dx1*s,y1=p.dy1*s,x2=p.dx2*s,y2=p.dy2*s;
-      const segW=x2-x1,segH=y2-y1;
-      if (segW <= 0 || segH <= 0) return;
-      const isWinner=(iceState.gameState==='finished'&&iceState.winnerId===p.id);
+      const x1 = p.dx1*s, y1 = p.dy1*s, x2 = p.dx2*s, y2 = p.dy2*s;
+      const segW = x2-x1, segH = y2-y1;
+      if(segW <= 0 || segH <= 0) continue;
 
-      const sprite = getPlayerTileSprite(p, segW, segH);
+      const isWinner = (iceState.gameState==='finished' && iceState.winnerId===p.id);
+
       iceCtx.globalAlpha = isWinner ? 1 : 0.92;
-      iceCtx.drawImage(sprite, x1, y1, segW, segH);
-      if (isWinner) {
-        iceCtx.save();
+      iceCtx.drawImage(getTileSprite(p.color), x1, y1, segW, segH);
+      if(isWinner){
         iceCtx.globalAlpha = 0.35;
         iceCtx.fillStyle = '#ffffff';
         iceCtx.fillRect(x1, y1, segW, segH);
-        iceCtx.restore();
       }
       iceCtx.globalAlpha = 1;
 
-      const avatarR=Math.min(segW,segH)*.32;
-      let pfpScale=1;const pd=iceState.pfpPop.get(p.id);
-      if(pd){const e=(now-pd.startTime)/1000,pr=Math.min(e/(pd.duration/1000),1);if(pr<1){pfpScale=Math.min(1.2,Math.max(0,easeOutBack(pr)))}else iceState.pfpPop.delete(p.id)}
-      const drawR=avatarR*pfpScale;
-      const cx=(x1+x2)/2,cy=(y1+y2)/2;
+      const avatarR = Math.min(segW,segH) * .32;
+      let pfpScale = 1;
+      const pd = iceState.pfpPop.get(p.id);
+      if(pd){
+        const e = (now - pd.startTime)/1000;
+        const pr = Math.min(e/(pd.duration/1000), 1);
+        if(pr < 1) pfpScale = Math.max(0, Math.min(1.2, easeOutBack(pr)));
+        else iceState.pfpPop.delete(p.id);
+      }
+      const drawR = avatarR * pfpScale;
+      if(drawR <= 0.5) continue;
 
-      iceCtx.save();
-      iceCtx.beginPath();iceCtx.arc(cx,cy,drawR,0,Math.PI*2);iceCtx.closePath();iceCtx.clip();
-      const isMe=p.id===state.userId,isAnon=isMe&&state.anonymous,hidePfp=isMe&&state.hidePfp;
-      if(isAnon||hidePfp){
-        iceCtx.fillStyle=getAnonymousColor(state.userId);
-        iceCtx.fillRect(cx-drawR,cy-drawR,drawR*2,drawR*2);
-        iceCtx.fillStyle='#fff';iceCtx.font='bold '+(drawR*.8)+'px system-ui, sans-serif';
-        iceCtx.textAlign='center';iceCtx.textBaseline='middle';
-        iceCtx.fillText((state.anonymousName||'A').charAt(0).toUpperCase(),cx,cy);
-      }else if(p.pfpImg&&p.pfpImg.complete&&p.pfpImg.naturalWidth>0){
-        iceCtx.drawImage(p.pfpImg,cx-drawR,cy-drawR,drawR*2,drawR*2);
-      }else{iceCtx.fillStyle=p.color||'#555';iceCtx.fillRect(cx-drawR,cy-drawR,drawR*2,drawR*2)}
-      iceCtx.restore();
-    });
+      const cx = (x1+x2)/2, cy = (y1+y2)/2;
+      iceCtx.drawImage(getAvatarSprite(p), cx-drawR, cy-drawR, drawR*2, drawR*2);
+    }
 
     if(iceState.confetti.length){
       const nowC=performance.now();
@@ -1879,6 +2010,8 @@
     if(zoomActive)iceCtx.restore();
   }
 
+  let _cdCine=false,_cdUrg=false;
+  let _lastTimerText='';
   let lastFrameTs=0;
   function renderLoop(ts){
     requestAnimationFrame(renderLoop);
@@ -1891,11 +2024,13 @@
       const elapsed=(now-iceState.countdownStartTime)/1000;
       const remaining=Math.max(0,10-elapsed);
       const secs=Math.floor(remaining),ms=Math.floor((remaining-secs)*100);
-      iceCountdownTimer.textContent=secs+'.'+String(ms).padStart(2,'0');
-      iceTimerProgress.style.width=(Math.min(1,elapsed/10)*100)+'%';
+      const txt=secs+'.'+String(ms).padStart(2,'0');
+      if(txt!==_lastTimerText){ _lastTimerText=txt; iceCountdownTimer.textContent=txt; }
+      iceTimerProgress.style.transform='scaleX('+Math.min(1,elapsed/10)+')';
       const inCinematic=remaining<=3.05&&remaining>0;
-      iceCountdownTimer.classList.toggle('cinematic',inCinematic);
-      iceCountdownTimer.classList.toggle('urgent',remaining<=1.05&&remaining>0);
+      const urgent=remaining<=1.05&&remaining>0;
+      if(inCinematic!==_cdCine){ _cdCine=inCinematic; iceCountdownTimer.classList.toggle('cinematic',inCinematic); }
+      if(urgent!==_cdUrg){ _cdUrg=urgent; iceCountdownTimer.classList.toggle('urgent',urgent); }
       if(inCinematic&&secs!==iceState.countdownLastSecond){
         iceState.countdownLastSecond=secs;
         iceState.countdownPulseStart=now;
