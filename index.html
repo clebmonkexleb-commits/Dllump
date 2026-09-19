@@ -761,33 +761,22 @@
   const SERVER_URL = 'https://dllump-production-0a3d.up.railway.app';
   const WIN_GIFS = ['https://i.postimg.cc/9Frvpxhz/ezgif-3f0e907be807d1cc.gif','https://i.postimg.cc/rmQPRSzF/ezgif-20d222277768f496.gif','https://i.postimg.cc/NfyzL2tt/ezgif-2378686847977dc7.gif','https://i.postimg.cc/Gt6zvzCK/ezgif-258589f1cd2da73d.gif','https://i.postimg.cc/Dwr5bqMn/ezgif-26d5d53255cd286f.gif','https://i.postimg.cc/qvTSYBPx/ezgif-2529049603c6d1a9.gif','https://i.postimg.cc/4dqF1Xbk/ezgif-286c5293f9b85b07.gif'];
 
-  // Puck style (glass-bubble / realistic body from style lab)
   const PUCK_STYLE = {
     tint: '#ffffff',
-    haloStyle: 'glassBubble',
-    realisticBody: true,
-    rimRatio: 0.30,
-    rimAlpha: 1.0,
-    rim2Ratio: 0.16,
-    rim2Alpha: 0.42,
-    rim2Inset: 0.13,
-    outerRatio: 0.55,
-    outerAlpha: 0.50,
-    fillAlpha: 0.10,
-    innerGlow: 0.18,
-    shadow: 10,
-    crossAlpha: 0.20,
-    crossWidth: 2.0,
-    bodyLight: 0.75,
-    bodyDepth: 0.65,
-    specSize: 0.50,
+    rimRatio: 0.36,
+    rimAlpha: 0.95,
+    outerRatio: 0.32,
+    outerAlpha: 0.18,
+    innerGlow: 0.10,
+    crossAlpha: 0.28,
+    crossWidth: 2.2,
     showCross: true,
     showHighlights: true,
     showInnerGlow: true,
-    showRim2: true,
-    showSpec: true,
-    showRotation: true,
+    showRotation: true
   };
+
+  const TILE_INSET = 3;
 
   const tg = window.Telegram?.WebApp;
   if (tg) {
@@ -813,7 +802,6 @@
   const $ = s => document.querySelector(s);
   const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
 
-  // Toasts
   const toastContainer = document.getElementById('toast-container');
   const MAX_TOASTS = 3;
   const TOAST_DURATION = 4200;
@@ -829,15 +817,13 @@
     t.addEventListener('pointerdown', e => {
       if (e.target.closest('.toast-close')) return;
       dragging = true; pid = e.pointerId;
-      startX = e.clientX; startY = e.clientY;
-      curDx = 0; curDy = 0;
+      startX = e.clientX; startY = e.clientY; curDx = 0; curDy = 0;
       t.classList.add('swiping');
       try { t.setPointerCapture(e.pointerId); } catch(_) {}
     });
     t.addEventListener('pointermove', e => {
       if (!dragging || e.pointerId !== pid) return;
-      curDx = e.clientX - startX;
-      curDy = e.clientY - startY;
+      curDx = e.clientX - startX; curDy = e.clientY - startY;
       const absX = Math.abs(curDx), absY = Math.abs(curDy);
       let tx = 0, ty = 0;
       if (absX > absY) { tx = curDx; ty = curDy * 0.22; }
@@ -869,9 +855,7 @@
         t.classList.add('dismissing');
         setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 340);
       } else {
-        t.style.transition = '';
-        t.style.transform = '';
-        t.style.opacity = '';
+        t.style.transition = ''; t.style.transform = ''; t.style.opacity = '';
         if (t._autoTimer) clearTimeout(t._autoTimer);
         t._autoTimer = setTimeout(() => dismissToast(t), TOAST_DURATION);
       }
@@ -1147,8 +1131,7 @@
     }
     let html = '';
     state.topPlayers.forEach(p => {
-      const r = p.rank;
-      let rc = 'rank';
+      const r = p.rank; let rc = 'rank';
       if (r === 1) rc += ' gold'; else if (r === 2) rc += ' silver'; else if (r === 3) rc += ' bronze';
       const pfp = p.anonymous ? state.defaultAvatar : (p.pfp || state.defaultAvatar);
       html += '<div class="top-entry"><div class="' + rc + '">#' + r + '</div><img class="t-pfp" src="' + pfp + '" onerror="this.src=\'' + state.defaultAvatar + '\'"><div class="t-name">' + p.name + '</div><div class="t-wins">' + p.wins + ' wins</div><div class="t-score">' + p.score + '</div></div>';
@@ -1156,7 +1139,6 @@
     rankList.innerHTML = html;
   }
 
-  // Tabs
   const tabPages = { ice:$('#ice-page'), wallet:$('#wallet-page'), profile:$('#profile-page'), top:$('#top-page') };
   const tabOrder = ['ice','wallet','profile','top'];
   const tabBtns = $$('.tab');
@@ -1208,8 +1190,7 @@
     dragTab = false;
     indicator.classList.remove('dragging');
     indicator.classList.remove('grow');
-    const tw = tabWidth();
-    const mx = (tabBtns.length - 1) * tw;
+    const tw = tabWidth(); const mx = (tabBtns.length - 1) * tw;
     if (!tabMoved) {
       for (let i = 0; i < tabBtns.length; i++) tabBtns[i].classList.toggle('active', tabOrder[i] === current);
       updateIndicator(true);
@@ -1220,8 +1201,7 @@
     const dx = e.clientX - tabStartX;
     const bias = Math.max(-1, Math.min(1, dx / 200)) * (tw * .15);
     const ex = Math.max(0, Math.min(mx, tabStartPx + dx + bias));
-    const ti = Math.round(ex / tw);
-    const tt = tabOrder[ti];
+    const ti = Math.round(ex / tw); const tt = tabOrder[ti];
     if (tt !== current) switchTab(tt);
     else {
       for (let j = 0; j < tabBtns.length; j++) tabBtns[j].classList.toggle('active', tabOrder[j] === current);
@@ -1234,8 +1214,7 @@
     dragTab = false;
     indicator.classList.remove('dragging');
     indicator.classList.remove('grow');
-    updateIndicator(true);
-    tabDownTab = null;
+    updateIndicator(true); tabDownTab = null;
   });
 
   function switchTab(tab) {
@@ -1246,8 +1225,7 @@
     oldEl.classList.add('exit');
     setTimeout(() => oldEl.classList.remove('exit'), 350);
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    current = tab;
-    state.currentTab = tab;
+    current = tab; state.currentTab = tab;
     updateIndicator(true);
     requestAnimationFrame(() => {
       const np = tabPages[tab];
@@ -1275,184 +1253,23 @@
 
   const PUCK_RENDER_RADIUS = 17;
 
-  // Puck drawing
-  function drawSoftHalo(c, x, y, r) {
-    const outer = PUCK_STYLE.outerRatio * r;
-    if (outer <= 0 || PUCK_STYLE.outerAlpha <= 0) return;
-    c.save();
-    c.beginPath();
-    c.lineWidth = outer;
-    c.strokeStyle = hexToRgba(PUCK_STYLE.tint, PUCK_STYLE.outerAlpha);
-    c.lineCap = 'round';
-    c.arc(x, y, r + outer * 0.12, 0, Math.PI * 2);
-    c.stroke();
-    c.restore();
-  }
-  function drawRingHalo(c, x, y, r) {
-    const outer = PUCK_STYLE.outerRatio * r;
-    if (outer <= 0) return;
-    c.save();
-    c.beginPath();
-    c.lineWidth = Math.max(1, outer * 0.35);
-    c.strokeStyle = hexToRgba(PUCK_STYLE.tint, PUCK_STYLE.outerAlpha * 0.9);
-    c.lineCap = 'round';
-    c.arc(x, y, r + outer * 0.55, 0, Math.PI * 2);
-    c.stroke();
-    c.restore();
-  }
-  function drawDoubleRingHalo(c, x, y, r) {
-    const outer = PUCK_STYLE.outerRatio * r;
-    if (outer <= 0) return;
-    const gap = outer * 0.55;
-    c.save();
-    c.beginPath();
-    c.lineWidth = Math.max(1, outer * 0.28);
-    c.strokeStyle = hexToRgba(PUCK_STYLE.tint, PUCK_STYLE.outerAlpha * 0.95);
-    c.lineCap = 'round';
-    c.arc(x, y, r + gap * 0.85, 0, Math.PI * 2);
-    c.stroke();
-    c.beginPath();
-    c.lineWidth = Math.max(1, outer * 0.20);
-    c.strokeStyle = hexToRgba(PUCK_STYLE.tint, PUCK_STYLE.outerAlpha * 0.6);
-    c.arc(x, y, r + gap * 1.65, 0, Math.PI * 2);
-    c.stroke();
-    c.restore();
-  }
-  function drawGlassBubbleHalo(c, x, y, r) {
-    const alpha = PUCK_STYLE.outerAlpha;
-    if (alpha <= 0) return;
-    const size = PUCK_STYLE.outerRatio;
-    if (size <= 0) return;
-    const innerR = r + 1.5;
-    const outerR = r + size * r * 1.15;
-    const ringWidth = Math.max(2, outerR - innerR);
-    const tint = PUCK_STYLE.tint;
-
-    c.save();
-    const shell = c.createRadialGradient(x, y, innerR * 0.92, x, y, outerR);
-    shell.addColorStop(0,    hexToRgba(tint, alpha * 0.05));
-    shell.addColorStop(0.55, hexToRgba(tint, alpha * 0.35));
-    shell.addColorStop(0.82, hexToRgba(tint, alpha * 0.85));
-    shell.addColorStop(1,    hexToRgba(tint, 0));
-    c.fillStyle = shell;
-    c.beginPath();
-    c.arc(x, y, outerR, 0, Math.PI * 2);
-    c.fill();
-    c.restore();
-
-    c.save();
-    c.beginPath();
-    c.lineWidth = Math.max(1.5, ringWidth * 0.45);
-    const arcGrad = c.createLinearGradient(x - outerR * 0.8, y - outerR * 0.8, x + outerR * 0.2, y + outerR * 0.2);
-    arcGrad.addColorStop(0,   hexToRgba(tint, alpha * 1.05));
-    arcGrad.addColorStop(0.4, hexToRgba(tint, alpha * 0.55));
-    arcGrad.addColorStop(1,   hexToRgba(tint, 0));
-    c.strokeStyle = arcGrad;
-    c.lineCap = 'round';
-    c.arc(x, y, outerR - ringWidth * 0.28, Math.PI * 1.05, Math.PI * 1.72);
-    c.stroke();
-    c.restore();
-
-    c.save();
-    c.beginPath();
-    c.lineWidth = Math.max(1, ringWidth * 0.28);
-    c.strokeStyle = hexToRgba(tint, alpha * 0.35);
-    c.lineCap = 'round';
-    c.arc(x, y, outerR - ringWidth * 0.28, Math.PI * 0.18, Math.PI * 0.82);
-    c.stroke();
-    c.restore();
-
-    if (PUCK_STYLE.showSpec) {
-      const sX = x - outerR * 0.62;
-      const sY = y - outerR * 0.72;
-      const sR = Math.max(1.2, r * 0.06 * (0.6 + PUCK_STYLE.specSize));
-      c.save();
-      const sg = c.createRadialGradient(sX, sY, 0, sX, sY, sR * 3.5);
-      sg.addColorStop(0, 'rgba(255,255,255,0.95)');
-      sg.addColorStop(0.45, hexToRgba(tint, 0.45));
-      sg.addColorStop(1, hexToRgba(tint, 0));
-      c.fillStyle = sg;
-      c.beginPath();
-      c.arc(sX, sY, sR * 3.5, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
-    }
-
-    c.save();
-    c.beginPath();
-    c.lineWidth = 1;
-    c.strokeStyle = 'rgba(0,0,0,0.14)';
-    c.arc(x, y, innerR + 0.5, 0, Math.PI * 2);
-    c.stroke();
-    c.restore();
-  }
-  function drawHalo(c, x, y, r) {
-    switch (PUCK_STYLE.haloStyle) {
-      case 'soft':        drawSoftHalo(c, x, y, r); break;
-      case 'glassBubble': drawGlassBubbleHalo(c, x, y, r); break;
-      case 'ring':        drawRingHalo(c, x, y, r); break;
-      case 'doubleRing':  drawDoubleRingHalo(c, x, y, r); break;
-    }
-  }
-  function drawRealisticBody(c, x, y, r, rim) {
-    const bodyR = Math.max(2, r - rim * 0.5);
-    const tint = PUCK_STYLE.tint;
-    c.save();
-    const bg = c.createRadialGradient(x - bodyR * 0.35, y - bodyR * 0.42, bodyR * 0.05, x, y, bodyR * 1.15);
-    bg.addColorStop(0,    hexToRgba(tint, 0.28 * PUCK_STYLE.bodyLight));
-    bg.addColorStop(0.5,  hexToRgba(tint, 0.10 * PUCK_STYLE.bodyLight));
-    bg.addColorStop(0.85, hexToRgba(tint, 0.01));
-    bg.addColorStop(1,    hexToRgba(tint, 0.05));
-    c.fillStyle = bg;
-    c.beginPath(); c.arc(x, y, bodyR, 0, Math.PI * 2); c.fill();
-    c.restore();
-    c.save();
-    const sh = c.createRadialGradient(x, y - bodyR * 0.28, bodyR * 0.35, x, y, bodyR);
-    sh.addColorStop(0,    'rgba(0,0,0,0)');
-    sh.addColorStop(0.72, 'rgba(0,0,0,0)');
-    sh.addColorStop(1,    'rgba(0,0,0,' + (0.32 * PUCK_STYLE.bodyDepth) + ')');
-    c.fillStyle = sh;
-    c.beginPath(); c.arc(x, y, bodyR, 0, Math.PI * 2); c.fill();
-    c.restore();
-    c.save();
-    const shine = c.createRadialGradient(x - bodyR * 0.4, y - bodyR * 0.45, bodyR * 0.05, x - bodyR * 0.4, y - bodyR * 0.45, bodyR * 0.85);
-    shine.addColorStop(0,   hexToRgba(tint, 0.22 * PUCK_STYLE.bodyLight));
-    shine.addColorStop(0.6, hexToRgba(tint, 0.05 * PUCK_STYLE.bodyLight));
-    shine.addColorStop(1,   hexToRgba(tint, 0));
-    c.fillStyle = shine;
-    c.beginPath(); c.arc(x, y, bodyR, 0, Math.PI * 2); c.fill();
-    c.restore();
-  }
-
-  function drawLiquidGlassPuck(c, x, y, r, angle) {
-    const tint = PUCK_STYLE.tint;
+  function drawLiquidGlassPuck(c, x, y, r, opts) {
+    opts = opts || {};
     const scale = r / 36;
+    const tint = PUCK_STYLE.tint;
     const rim = PUCK_STYLE.rimRatio * r;
-    const rim2 = PUCK_STYLE.rim2Ratio * r;
+    const outer = PUCK_STYLE.outerRatio * r;
 
-    if (PUCK_STYLE.shadow > 0) {
+    if (outer > 0 && PUCK_STYLE.outerAlpha > 0) {
       c.save();
-      c.shadowColor = hexToRgba(tint, 0.85);
-      c.shadowBlur = PUCK_STYLE.shadow;
-      c.fillStyle = hexToRgba(tint, 0.001);
-      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+      c.beginPath();
+      c.lineWidth = outer;
+      c.strokeStyle = hexToRgba(tint, PUCK_STYLE.outerAlpha);
+      c.lineCap = 'round';
+      c.arc(x, y, r + outer * 0.12, 0, Math.PI * 2);
+      c.stroke();
       c.restore();
     }
-
-    drawHalo(c, x, y, r);
-
-    if (PUCK_STYLE.fillAlpha > 0) {
-      c.save();
-      const fg = c.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.05, x, y, r * 0.98);
-      fg.addColorStop(0,   hexToRgba(tint, PUCK_STYLE.fillAlpha * 0.85));
-      fg.addColorStop(0.6, hexToRgba(tint, PUCK_STYLE.fillAlpha * 0.35));
-      fg.addColorStop(1,   hexToRgba(tint, PUCK_STYLE.fillAlpha * 0.05));
-      c.fillStyle = fg;
-      c.beginPath(); c.arc(x, y, Math.max(0, r - rim * 0.4), 0, Math.PI * 2); c.fill();
-      c.restore();
-    }
-
-    if (PUCK_STYLE.realisticBody) drawRealisticBody(c, x, y, r, rim);
 
     if (rim > 0 && PUCK_STYLE.rimAlpha > 0) {
       c.save();
@@ -1468,30 +1285,21 @@
     if (rim > 0) {
       c.save();
       c.beginPath();
-      c.lineWidth = Math.max(1, rim * 0.32);
-      c.strokeStyle = 'rgba(0,0,0,0.16)';
+      c.lineWidth = Math.max(1, rim * 0.36);
+      c.strokeStyle = 'rgba(0,0,0,0.18)';
       c.lineCap = 'round';
       c.arc(x, y, r - rim * 0.9, 0, Math.PI * 2);
       c.stroke();
       c.restore();
     }
 
-    if (PUCK_STYLE.showRim2 && rim2 > 0 && PUCK_STYLE.rim2Alpha > 0) {
-      const r2 = Math.max(2, r - rim - rim2 * 0.5 - PUCK_STYLE.rim2Inset * r);
+    if (rim > 0) {
       c.save();
       c.beginPath();
-      c.lineWidth = rim2;
-      c.strokeStyle = hexToRgba(tint, PUCK_STYLE.rim2Alpha);
+      c.lineWidth = Math.max(1, rim * 0.12);
+      c.strokeStyle = 'rgba(255,255,255,0.12)';
       c.lineCap = 'round';
-      c.arc(x, y, r2, 0, Math.PI * 2);
-      c.stroke();
-      c.restore();
-      c.save();
-      c.beginPath();
-      c.lineWidth = Math.max(1, rim2 * 0.22);
-      c.strokeStyle = 'rgba(0,0,0,0.18)';
-      c.lineCap = 'round';
-      c.arc(x, y, Math.max(2, r2 - rim2 * 0.6), 0, Math.PI * 2);
+      c.arc(x, y, r - rim * 0.6, 0, Math.PI * 2);
       c.stroke();
       c.restore();
     }
@@ -1510,12 +1318,12 @@
 
     if (PUCK_STYLE.showInnerGlow && PUCK_STYLE.innerGlow > 0) {
       c.save();
-      const g = c.createRadialGradient(x - r * 0.2, y - r * 0.2, 1, x, y, r * 1.2);
+      const g = c.createRadialGradient(x - r * 0.18, y - r * 0.18, 1, x, y, r * 1.2);
       g.addColorStop(0,    hexToRgba(tint, PUCK_STYLE.innerGlow));
       g.addColorStop(0.35, hexToRgba(tint, PUCK_STYLE.innerGlow * 0.45));
       g.addColorStop(1,    hexToRgba(tint, 0));
       c.fillStyle = g;
-      c.beginPath(); c.arc(x, y, Math.max(2, r - rim * 0.6), 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(x, y, r - rim * 0.6, 0, Math.PI * 2); c.fill();
       c.restore();
     }
 
@@ -1523,7 +1331,7 @@
       const ca = [-2.35, -0.8, 2.35, 0.8];
       c.save();
       for (let i = 0; i < ca.length; i++) {
-        const a = ca[i] + (PUCK_STYLE.showRotation ? (angle || 0) : 0);
+        const a = ca[i] + (PUCK_STYLE.showRotation ? (opts.angle || 0) : 0);
         const px = x + Math.cos(a) * (r - rim / 2);
         const py = y + Math.sin(a) * (r - rim / 2);
         c.save();
@@ -1545,25 +1353,11 @@
       c.restore();
     }
 
-    if (PUCK_STYLE.showSpec && PUCK_STYLE.specSize > 0) {
-      const hx = x - r * 0.38;
-      const hy = y - r * 0.42;
-      const hr = Math.max(1, r * 0.08 * (0.6 + PUCK_STYLE.specSize));
-      c.save();
-      const hg = c.createRadialGradient(hx, hy, 0, hx, hy, hr * 2.4);
-      hg.addColorStop(0,   hexToRgba(tint, 0.85));
-      hg.addColorStop(0.5, hexToRgba(tint, 0.25));
-      hg.addColorStop(1,   hexToRgba(tint, 0));
-      c.fillStyle = hg;
-      c.beginPath(); c.arc(hx, hy, hr * 2.4, 0, Math.PI * 2); c.fill();
-      c.restore();
-    }
-
-    if (PUCK_STYLE.rimRatio > 0.05 && PUCK_STYLE.rimAlpha > 0.15) {
+    if (rim > 0 && PUCK_STYLE.rimAlpha > 0.15) {
       c.save();
       c.beginPath();
       c.lineWidth = Math.max(1, rim * 0.08);
-      c.strokeStyle = hexToRgba(tint, 0.05);
+      c.strokeStyle = hexToRgba(tint, 0.04);
       c.arc(x, y, r - rim * 0.2, -0.6, 0.6);
       c.stroke();
       c.restore();
@@ -1574,30 +1368,18 @@
   const PUCK_CACHE_MAX = 60;
   const PUCK_CACHE = new Map();
 
-  function puckSpritePadding(r) {
-    let extra = 0;
-    switch (PUCK_STYLE.haloStyle) {
-      case 'soft':        extra = PUCK_STYLE.outerRatio * 0.4; break;
-      case 'glassBubble': extra = PUCK_STYLE.outerRatio * 1.5; break;
-      case 'ring':        extra = PUCK_STYLE.outerRatio * 0.9; break;
-      case 'doubleRing':  extra = PUCK_STYLE.outerRatio * 2.2; break;
-    }
-    const shadow = PUCK_STYLE.shadow > 0 ? 0.4 : 0;
-    return Math.ceil(r * (0.35 + extra + shadow)) + 4;
-  }
-
   function getPuckSprite(rc) {
     const r = Math.max(1, Math.round(rc));
     const c = PUCK_CACHE.get(r);
     if (c) return c;
-    const pad = puckSpritePadding(r);
+    const pad = Math.ceil(r * 0.65) + 4;
     const css = (r + pad) * 2;
     const px = Math.ceil(css * PUCK_SPRITE_DPR);
     const cv = document.createElement('canvas');
     cv.width = px; cv.height = px;
     const g = cv.getContext('2d');
     g.scale(PUCK_SPRITE_DPR, PUCK_SPRITE_DPR);
-    drawLiquidGlassPuck(g, css / 2, css / 2, r, 0);
+    drawLiquidGlassPuck(g, css / 2, css / 2, r, { angle: 0 });
     const sp = { canvas: cv, cssSize: css, offset: css / 2 };
     PUCK_CACHE.set(r, sp);
     if (PUCK_CACHE.size > PUCK_CACHE_MAX) {
@@ -1606,7 +1388,7 @@
     }
     return sp;
   }
-  function drawPuckSprite(ctx, px, py, rc, angle) {
+  function drawPuckSprite(ctx, px, py, rc) {
     const r = Math.max(1, Math.round(rc));
     const sp = getPuckSprite(r);
     if (!sp) return;
@@ -1780,10 +1562,7 @@
     zoomCenterX:0, zoomCenterY:0, zoomCenterFixed:false,
     wallPulses:[],
     prevRenderX:0, prevRenderY:0, lastFrameTime:0, peakSpeed:0, zoomFired:false,
-    countdownLastSecond:-1,
-    countdownPulseStart:0,
-    confetti:[],
-    puckAngle:0
+    countdownLastSecond:-1, countdownPulseStart:0, confetti:[]
   };
 
   const puckBuffer = [];
@@ -1858,65 +1637,39 @@
       iceCountdownTimer.classList.remove('cinematic','urgent','tick');
     }
     if (snapshot.gameState === 'spinning' && prev !== 'spinning') {
-      iceState.puckVisible = true;
-      iceState.puckPopStart = performance.now();
-      iceState.puckScale = 0;
-      iceState.zoom = 1;
-      iceState.isZoomingIn = false;
-      iceState.isZoomingOut = false;
-      iceState.zoomLocked = false;
-      iceState.zoomOutTriggered = false;
-      iceState.winnerPuckPop = false;
-      iceState.zoomCenterFixed = false;
+      iceState.puckVisible = true; iceState.puckPopStart = performance.now();
+      iceState.puckScale = 0; iceState.zoom = 1;
+      iceState.isZoomingIn = false; iceState.isZoomingOut = false;
+      iceState.zoomLocked = false; iceState.zoomOutTriggered = false;
+      iceState.winnerPuckPop = false; iceState.zoomCenterFixed = false;
     }
     if (snapshot.gameState === 'sliding' && prev !== 'sliding') {
-      iceState.slideStartTime = performance.now();
-      iceState.zoom = 1;
-      iceState.isZoomingIn = false;
-      iceState.isZoomingOut = false;
-      iceState.zoomLocked = false;
-      iceState.zoomOutTriggered = false;
-      iceState.winnerPuckPop = false;
-      iceState.zoomCenterFixed = false;
-      iceState.prevRenderX = 0;
-      iceState.prevRenderY = 0;
-      iceState.lastFrameTime = 0;
-      iceState.peakSpeed = 0;
-      iceState.zoomFired = false;
+      iceState.slideStartTime = performance.now(); iceState.zoom = 1;
+      iceState.isZoomingIn = false; iceState.isZoomingOut = false;
+      iceState.zoomLocked = false; iceState.zoomOutTriggered = false;
+      iceState.winnerPuckPop = false; iceState.zoomCenterFixed = false;
+      iceState.prevRenderX = 0; iceState.prevRenderY = 0;
+      iceState.lastFrameTime = 0; iceState.peakSpeed = 0; iceState.zoomFired = false;
     }
     if (snapshot.gameState === 'finished' && prev !== 'finished') {
       if (iceState.zoom > 1.1 && !iceState.zoomOutTriggered) {
-        iceState.zoomOutTriggered = true;
-        iceState.isZoomingOut = true;
+        iceState.zoomOutTriggered = true; iceState.isZoomingOut = true;
         iceState.isZoomingIn = false;
         iceState.zoomStartTime = performance.now();
-        iceState.zoomTarget = 1;
-        iceState.zoomDuration = 1.1;
+        iceState.zoomTarget = 1; iceState.zoomDuration = 1.1;
       }
     }
     if (snapshot.gameState === 'idle' && prev !== 'idle') {
-      iceState.puckVisible = false;
-      iceState.puckScale = 1;
-      iceState.zoom = 1;
-      iceState.isZoomingIn = false;
-      iceState.isZoomingOut = false;
-      iceState.zoomLocked = false;
-      iceState.zoomOutTriggered = false;
-      iceState.pfpPop.clear();
-      iceState.showOwnerName = false;
-      iceState.currentOwnerName = '';
-      iceState.idlePuckInitialized = false;
-      iceState.winnerPuckPop = false;
-      iceState.zoomCenterFixed = false;
-      iceState.zoomCenterX = 0;
-      iceState.zoomCenterY = 0;
-      iceState.wallPulses = [];
-      iceState.prevRenderX = 0;
-      iceState.prevRenderY = 0;
-      iceState.lastFrameTime = 0;
-      iceState.peakSpeed = 0;
-      iceState.zoomFired = false;
-      iceState.confetti = [];
+      iceState.puckVisible = false; iceState.puckScale = 1; iceState.zoom = 1;
+      iceState.isZoomingIn = false; iceState.isZoomingOut = false;
+      iceState.zoomLocked = false; iceState.zoomOutTriggered = false;
+      iceState.pfpPop.clear(); iceState.showOwnerName = false;
+      iceState.currentOwnerName = ''; iceState.idlePuckInitialized = false;
+      iceState.winnerPuckPop = false; iceState.zoomCenterFixed = false;
+      iceState.zoomCenterX = 0; iceState.zoomCenterY = 0;
+      iceState.wallPulses = []; iceState.prevRenderX = 0; iceState.prevRenderY = 0;
+      iceState.lastFrameTime = 0; iceState.peakSpeed = 0;
+      iceState.zoomFired = false; iceState.confetti = [];
     }
     const seen = new Set();
     snapshot.players.forEach(sp => {
@@ -1947,11 +1700,8 @@
     });
     iceState.players = iceState.players.filter(p => seen.has(p.id));
     if (prev !== 'idle' && iceState.gameState === 'idle') { iceState.winnerId = null; iceWaitingText.style.display = 'block'; }
-    updateIceStatsBar();
-    updateIceBetUI();
-    updateIceWaitingText();
-    updateIceBetOverlayVisibility();
-    updateIceTopPanelVisibility();
+    updateIceStatsBar(); updateIceBetUI(); updateIceWaitingText();
+    updateIceBetOverlayVisibility(); updateIceTopPanelVisibility();
   }
 
   function updateIceBetOverlayVisibility() {
@@ -1988,9 +1738,7 @@
     const inGame = !!existing;
     const canBet = (iceState.gameState === 'idle' || iceState.gameState === 'countdown');
     iceBetBtn.textContent = canBet ? (inGame ? 'increase' : 'join') : (inGame ? 'in game' : 'waiting');
-    iceBetBtn.disabled = !canBet;
-    iceBetInput.disabled = !canBet;
-    iceAllInBtn.disabled = !canBet;
+    iceBetBtn.disabled = !canBet; iceBetInput.disabled = !canBet; iceAllInBtn.disabled = !canBet;
     iceCurrentBetDisplay.textContent = existing ? existing.bet : '0';
     if (iceBetInput.dataset.empty === 'true') { iceBetInput.value = 10; delete iceBetInput.dataset.empty; }
   }
@@ -2022,8 +1770,7 @@
       const ang = (Math.PI * 2 * i / 16) + (Math.random() - 0.5) * 0.5;
       const spd = 60 + Math.random() * 90;
       iceState.confetti.push({
-        x:cx, y:cy,
-        vx:Math.cos(ang) * spd, vy:Math.sin(ang) * spd - 40,
+        x:cx, y:cy, vx:Math.cos(ang) * spd, vy:Math.sin(ang) * spd - 40,
         rot:Math.random() * Math.PI * 2, vrot:(Math.random() - 0.5) * 12,
         w:3 + Math.random() * 4, h:1.5 + Math.random() * 2,
         color: Math.random() < 0.4 ? '#ffffff' : lightenColor(p.color, 55),
@@ -2040,16 +1787,12 @@
     addIceWinToHistory(payload.winnerName, payload.winnerPfp, payload.winnings);
     refreshLeaderboard();
     if (payload.winnerId === state.userId) {
-      state.balance += payload.winnings;
-      state.wins++;
-      state.winStreak++;
+      state.balance += payload.winnings; state.wins++; state.winStreak++;
     } else {
-      state.losses++;
-      state.winStreak = 0;
+      state.losses++; state.winStreak = 0;
       addTransaction('loss', -payload.winnings, 'Ice Loss vs ' + payload.winnerName);
     }
-    updateBalance();
-    updateProfile();
+    updateBalance(); updateProfile();
     iceWinGif.src = WIN_GIFS[Math.floor(Math.random() * WIN_GIFS.length)];
     iceWinAvatar.src = payload.winnerPfp || state.defaultAvatar;
     iceWinName.textContent = payload.winnerName + ' wins the rink!';
@@ -2066,13 +1809,9 @@
     iceWinPanel.classList.remove('show');
     if (window.iceWinTimeout) { clearTimeout(window.iceWinTimeout); window.iceWinTimeout = null; }
     if (window.iceWinPanelTimeout) { clearTimeout(window.iceWinPanelTimeout); window.iceWinPanelTimeout = null; }
-    iceState.winnerId = null;
-    iceState.winnerPuckPop = false;
-    updateIceWaitingText();
-    updateIceBetUI();
-    updateIceStatsBar();
-    updateIceBetOverlayVisibility();
-    updateIceTopPanelVisibility();
+    iceState.winnerId = null; iceState.winnerPuckPop = false;
+    updateIceWaitingText(); updateIceBetUI(); updateIceStatsBar();
+    updateIceBetOverlayVisibility(); updateIceTopPanelVisibility();
   }
   iceWinContinueBtn.addEventListener('click', () => { haptic('light'); hideIceWinPanelAndReset(); });
 
@@ -2084,15 +1823,10 @@
     if (v <= 0) { haptic('light'); return; }
     socket.emit('icePlaceBet', { amount:v }, res => {
       if (!res?.ok) { haptic('light'); return; }
-      state.balance = res.balance;
-      updateBalance();
-      updateProfile();
-      haptic('medium');
-      addTransaction('bet', -v, 'Ice Bet');
+      state.balance = res.balance; updateBalance(); updateProfile();
+      haptic('medium'); addTransaction('bet', -v, 'Ice Bet');
     });
-    iceBetInput.value = '';
-    iceBetInput.blur();
-    updateIceBetUI();
+    iceBetInput.value = ''; iceBetInput.blur(); updateIceBetUI();
   }
   iceBetBtn.addEventListener('click', () => placeIceBet(iceBetInput.value));
   iceAllInBtn.addEventListener('click', () => { iceBetInput.value = state.balance; placeIceBet(state.balance); });
@@ -2102,8 +1836,7 @@
   });
   iceBetInput.addEventListener('blur', () => {
     if (iceBetInput.dataset.empty === 'true' || iceBetInput.value === '') {
-      iceBetInput.value = 10;
-      delete iceBetInput.dataset.empty;
+      iceBetInput.value = 10; delete iceBetInput.dataset.empty;
     }
     let v = parseInt(iceBetInput.value);
     if (isNaN(v) || v < 10) v = 10;
@@ -2114,16 +1847,13 @@
   let iceBetCollapsed = false;
   iceBetToggleBtn.addEventListener('click', e => {
     if (!iceBetCollapsed) {
-      e.stopPropagation();
-      haptic('light');
-      iceBetCollapsed = true;
-      iceBetOverlay.classList.add('collapsed');
+      e.stopPropagation(); haptic('light');
+      iceBetCollapsed = true; iceBetOverlay.classList.add('collapsed');
     }
   });
   iceBetOverlay.addEventListener('click', e => {
     if (!iceBetCollapsed) return;
-    haptic('light');
-    iceBetCollapsed = false;
+    haptic('light'); iceBetCollapsed = false;
     iceBetOverlay.classList.remove('collapsed');
   });
 
@@ -2155,8 +1885,7 @@
     e.stopPropagation();
     const checked = !iceAutoSwitch.checked;
     iceAutoSwitch.checked = checked;
-    toggleIceAutoBet(checked);
-    haptic('light');
+    toggleIceAutoBet(checked); haptic('light');
   });
   iceAutoSwitch.addEventListener('change', () => toggleIceAutoBet(iceAutoSwitch.checked));
 
@@ -2167,8 +1896,7 @@
     if (!mainSpan) {
       mainSpan = document.createElement('span');
       mainSpan.textContent = el.textContent.trim();
-      el.innerHTML = '';
-      el.appendChild(mainSpan);
+      el.innerHTML = ''; el.appendChild(mainSpan);
     }
     const text = mainSpan.textContent;
     mainSpan.innerHTML = '';
@@ -2192,8 +1920,7 @@
     setInterval(() => {
       const spans = mainSpan.querySelectorAll('.waiting-letter');
       spans.forEach((s, i) => {
-        s.style.animation = 'none';
-        s.offsetHeight;
+        s.style.animation = 'none'; s.offsetHeight;
         s.style.animation = 'letterBounce 1.2s cubic-bezier(0.34,1.56,0.64,1) forwards';
         s.style.animationDelay = (i * .08) + 's';
         s.classList.remove('light');
@@ -2208,7 +1935,7 @@
   function getPlayerTileSprite(p, w, h) {
     const rw = Math.max(1, Math.round(w));
     const rh = Math.max(1, Math.round(h));
-    const key = rw + ':' + rh + ':' + p.color;
+    const key = rw + ':' + rh + ':' + p.color + ':v2';
     if (p._spriteKey === key && p._sprite) return p._sprite;
     const dpr = PERF.dpr;
     const cv = document.createElement('canvas');
@@ -2216,12 +1943,37 @@
     cv.height = Math.ceil(rh * dpr);
     const c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const rad = Math.min(rw, rh) * 0.10;
+    const cut = Math.min(rw, rh) * 0.10;
+    const path = new Path2D();
+    path.moveTo(rad, 0);
+    path.lineTo(rw - cut, 0);
+    path.lineTo(rw, cut);
+    path.lineTo(rw, rh - rad);
+    path.quadraticCurveTo(rw, rh, rw - rad, rh);
+    path.lineTo(rad, rh);
+    path.quadraticCurveTo(0, rh, 0, rh - rad);
+    path.lineTo(0, rad);
+    path.quadraticCurveTo(0, 0, rad, 0);
+    path.closePath();
+
+    c.save();
+    c.clip(path);
     const fg = c.createLinearGradient(0, 0, rw, rh);
     fg.addColorStop(0, lightenColor(p.color, 35));
     fg.addColorStop(0.5, p.color);
     fg.addColorStop(1, lightenColor(p.color, 20));
     c.fillStyle = fg;
     c.fillRect(0, 0, rw, rh);
+    c.restore();
+
+    c.save();
+    c.strokeStyle = 'rgba(255,255,255,0.12)';
+    c.lineWidth = 1;
+    c.stroke(path);
+    c.restore();
+
     p._sprite = cv;
     p._spriteKey = key;
     return cv;
@@ -2302,8 +2054,7 @@
       if (y + r > w - margin) { y = w - margin - r; vy = -vy; }
       iceState.idlePuck.x = x; iceState.idlePuck.y = y;
       iceState.idlePuck.vx = vx; iceState.idlePuck.vy = vy;
-      iceState.puckAngle += 0.02;
-      drawPuckSprite(iceCtx, x, y, PUCK_RENDER_RADIUS * s, iceState.puckAngle);
+      drawPuckSprite(iceCtx, x, y, PUCK_RENDER_RADIUS * s);
       if (iceState.players.length === 0) { if (zoomActive) iceCtx.restore(); return; }
     }
 
@@ -2363,10 +2114,8 @@
       iceState.zoomCenterX += (cX - iceState.zoomCenterX) * 0.11;
       iceState.zoomCenterY += (cY - iceState.zoomCenterY) * 0.11;
       if (p >= 1) {
-        iceState.isZoomingOut = false;
-        iceState.zoom = 1;
-        iceState.zoomLocked = false;
-        iceState.zoomOutTriggered = false;
+        iceState.isZoomingOut = false; iceState.zoom = 1;
+        iceState.zoomLocked = false; iceState.zoomOutTriggered = false;
         iceState.zoomCenterFixed = false;
       }
     }
@@ -2383,8 +2132,6 @@
     }
     const speed = Math.sqrt(Math.pow(rpx - iceState.puckPrevX, 2) + Math.pow(rpy - iceState.puckPrevY, 2));
 
-    // Player segments — clip inside the rink, overlap by 0.5px to remove seams
-    const GAP_FIX = 0.5;
     const lerpK = 0.22;
     iceCtx.save();
     iceCtx.clip(path);
@@ -2394,15 +2141,17 @@
       p.dx2 += (p.x2 - p.dx2) * lerpK;
       p.dy2 += (p.y2 - p.dy2) * lerpK;
 
-      let x1 = p.dx1 * s - GAP_FIX, y1 = p.dy1 * s - GAP_FIX;
-      let x2 = p.dx2 * s + GAP_FIX, y2 = p.dy2 * s + GAP_FIX;
+      const x1 = p.dx1 * s + TILE_INSET;
+      const y1 = p.dy1 * s + TILE_INSET;
+      const x2 = p.dx2 * s - TILE_INSET;
+      const y2 = p.dy2 * s - TILE_INSET;
 
       const segW = x2 - x1, segH = y2 - y1;
-      if (segW <= 0 || segH <= 0) return;
+      if (segW <= 2 || segH <= 2) return;
 
       const isWinner = (iceState.gameState === 'finished' && iceState.winnerId === p.id);
       const sprite = getPlayerTileSprite(p, segW, segH);
-      iceCtx.globalAlpha = isWinner ? 1 : 0.92;
+      iceCtx.globalAlpha = isWinner ? 1 : 0.94;
       iceCtx.drawImage(sprite, x1, y1, segW, segH);
       if (isWinner) {
         iceCtx.save();
@@ -2413,7 +2162,7 @@
       }
       iceCtx.globalAlpha = 1;
 
-      const avatarR = Math.min(segW, segH) * 0.32;
+      const avatarR = Math.min(segW, segH) * 0.30;
       let pfpScale = 1;
       const pd = iceState.pfpPop.get(p.id);
       if (pd) {
@@ -2422,7 +2171,7 @@
         if (pr < 1) pfpScale = Math.min(1.2, Math.max(0, easeOutBack(pr)));
         else iceState.pfpPop.delete(p.id);
       }
-      const drawR = Math.max(6, avatarR * pfpScale);
+      const drawR = Math.max(5, avatarR * pfpScale);
       const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
 
       const isMe = p.id === state.userId;
@@ -2436,8 +2185,7 @@
         iceCtx.fillRect(cx - drawR, cy - drawR, drawR * 2, drawR * 2);
         iceCtx.fillStyle = '#fff';
         iceCtx.font = 'bold ' + (drawR * .8) + 'px system-ui, sans-serif';
-        iceCtx.textAlign = 'center';
-        iceCtx.textBaseline = 'middle';
+        iceCtx.textAlign = 'center'; iceCtx.textBaseline = 'middle';
         iceCtx.fillText((state.anonymousName || 'A').charAt(0).toUpperCase(), cx, cy);
         iceCtx.restore();
       } else {
@@ -2538,8 +2286,7 @@
       if (iceState.gameState === 'spinning') { px = iceState.spinStartX * s; py = iceState.spinStartY * s; }
       else { px = rpx * s; py = rpy * s; }
       const r = PUCK_RENDER_RADIUS * s * total;
-      iceState.puckAngle = (iceState.puckAngle || 0) + 0.015;
-      drawPuckSprite(iceCtx, px, py, r, iceState.puckAngle);
+      drawPuckSprite(iceCtx, px, py, r);
 
       const isSlow = speed < 2 && iceState.gameState === 'sliding';
       let ownerName = '';
@@ -2627,10 +2374,8 @@
     if (!PERF.storyRings) return;
     const ring = document.createElement('span');
     ring.className = 'story-ring';
-    ring.style.width = size + 'px';
-    ring.style.height = size + 'px';
-    ring.style.left = x + 'px';
-    ring.style.top = y + 'px';
+    ring.style.width = size + 'px'; ring.style.height = size + 'px';
+    ring.style.left = x + 'px'; ring.style.top = y + 'px';
     document.body.appendChild(ring);
     setTimeout(() => { if (ring.parentNode) ring.parentNode.removeChild(ring); }, 600);
   }
@@ -2690,9 +2435,7 @@
     if (!state.userId) { promoMsg.textContent = 'Not logged in.'; promoMsg.style.color = 'var(--red)'; return; }
     const key = 'dllump_promo_' + state.userId;
     if (localStorage.getItem(key) === '1') { promoMsg.textContent = 'Already used a promo.'; promoMsg.style.color = 'var(--red)'; return; }
-    promoBtn.disabled = true;
-    promoBtn.textContent = '...';
-    promoMsg.textContent = '';
+    promoBtn.disabled = true; promoBtn.textContent = '...'; promoMsg.textContent = '';
     try {
       const r = await fetch(SERVER_URL + '/redeem', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
@@ -2701,24 +2444,18 @@
       const d = await r.json();
       if (d.ok) {
         localStorage.setItem(key, '1');
-        state.balance = d.newBalance;
-        updateBalance();
-        promoMsg.textContent = '✅ +' + d.amount + ' added';
-        promoMsg.style.color = 'var(--green)';
+        state.balance = d.newBalance; updateBalance();
+        promoMsg.textContent = '✅ +' + d.amount + ' added'; promoMsg.style.color = 'var(--green)';
         inp.value = '';
         addTransaction('win', d.amount, 'Promo Bonus');
-        haptic('medium');
-        showNotif('Promo applied · +' + d.amount);
+        haptic('medium'); showNotif('Promo applied · +' + d.amount);
       } else {
-        promoMsg.textContent = d.error || 'Invalid code';
-        promoMsg.style.color = 'var(--red)';
+        promoMsg.textContent = d.error || 'Invalid code'; promoMsg.style.color = 'var(--red)';
       }
     } catch(e) {
-      promoMsg.textContent = 'Network error';
-      promoMsg.style.color = 'var(--red)';
+      promoMsg.textContent = 'Network error'; promoMsg.style.color = 'var(--red)';
     } finally {
-      promoBtn.disabled = false;
-      promoBtn.textContent = 'Redeem';
+      promoBtn.disabled = false; promoBtn.textContent = 'Redeem';
     }
   });
 
@@ -2740,8 +2477,7 @@
         s.style.animationDelay = (Math.random() * 3) + 's';
         s.style.animationDuration = (2 + Math.random() * 3) + 's';
         const sz = Math.random() * 1.6 + .5;
-        s.style.width = sz + 'px';
-        s.style.height = sz + 'px';
+        s.style.width = sz + 'px'; s.style.height = sz + 'px';
         starsContainer.appendChild(s);
       }
     }
@@ -2769,8 +2505,7 @@
       const tf = flipped ? 180 : 0;
       flipProgress += (tf - flipProgress) * .085;
       const tX = baseRotX + dragOffX, tY = baseRotY + dragOffY + flipProgress;
-      rotX += (tX - rotX) * .18;
-      rotY += (tY - rotY) * .18;
+      rotX += (tX - rotX) * .18; rotY += (tY - rotY) * .18;
       card.style.transform = 'rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg)';
       if (glare) {
         const gx = 50 + (rotY / MAX) * 42, gy = 50 - (rotX / MAX) * 42;
@@ -2795,8 +2530,7 @@
     container.addEventListener('pointerdown', e => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       dragging = true; moved = false;
-      downTime = performance.now();
-      pid = e.pointerId;
+      downTime = performance.now(); pid = e.pointerId;
       lastX = e.clientX; lastY = e.clientY;
       velX = 0; velY = 0;
       try { container.setPointerCapture(e.pointerId); } catch(_) {}
@@ -2834,16 +2568,14 @@
   let panelOpen = false;
   function openPanel() {
     if (layoutMode !== 'panel' || panelOpen) return;
-    panelOpen = true;
-    haptic('medium');
+    panelOpen = true; haptic('medium');
     panel.classList.add('open');
     panelBackdrop.classList.add('show');
     panelHint.classList.add('hidden');
   }
   function closePanel() {
     if (!panelOpen) return;
-    panelOpen = false;
-    haptic('light');
+    panelOpen = false; haptic('light');
     panel.classList.remove('open');
     panelBackdrop.classList.remove('show');
     if (layoutMode === 'panel') panelHint.classList.remove('hidden');
@@ -2931,8 +2663,7 @@
       if (e.button !== undefined && e.button !== 0) return;
       if (!canBetNow()) return;
       if (holding || dragging) return;
-      holding = true;
-      holdPointerId = e.pointerId;
+      holding = true; holdPointerId = e.pointerId;
       startX = e.clientX; startY = e.clientY;
       bpRect = bp.getBoundingClientRect();
       bp.classList.add('charging');
@@ -2940,9 +2671,7 @@
       clearTimeout(holdTimer);
       holdTimer = setTimeout(() => {
         if (!holding) return;
-        holding = false;
-        dragging = true;
-        bouncedOut = false;
+        holding = false; dragging = true; bouncedOut = false;
         haptic('medium');
         bp.classList.remove('charging');
         bp.classList.add('charged');
@@ -2955,8 +2684,7 @@
       if (holding) {
         const dx = e.clientX - startX, dy = e.clientY - startY;
         if (Math.sqrt(dx * dx + dy * dy) > 10) {
-          holding = false;
-          clearTimeout(holdTimer);
+          holding = false; clearTimeout(holdTimer);
           bp.classList.remove('charging');
         }
         return;
