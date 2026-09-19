@@ -352,7 +352,7 @@ async function endIceGame() {
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
   const totalPts = ICE_PERIMETER.length;
-  const subSteps = 12;
+  const subSteps = 8;
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
   const puckRadius = 10;
@@ -717,7 +717,7 @@ function updatePhysics(dt) {
   });
 }
 
-const TICK_HZ = 120;
+const TICK_HZ = 60;
 let lastTick = Date.now();
 setInterval(() => {
   const now = Date.now();
