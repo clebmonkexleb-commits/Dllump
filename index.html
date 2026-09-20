@@ -418,6 +418,13 @@
   .toast-close{position:absolute;top:50%;right:12px;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;transition:background .15s ease;}
   .toast-close:active{ background:rgba(255,255,255,.18); }
 
+  /* ---- success toast variant ---- */
+  .toast.toast-success{padding-left:60px;background:linear-gradient(135deg, rgba(30,80,55,.82), rgba(14,40,30,.9));border-color:rgba(120,220,160,.35)}
+  .toast.toast-success .toast-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4ade80,#22c55e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,197,94,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+  .toast.toast-success .toast-icon svg{width:20px;height:20px;stroke:#032a10;fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(255,255,255,.4))}
+  .toast.toast-success .toast-main{font-size:13.5px;font-weight:800;color:#fff}
+  .toast.toast-success .toast-sub{font-size:11.5px;font-weight:600;color:rgba(200,240,220,.75);margin-top:1px}
+
   #bp{ touch-action:none; transition:transform .22s ease, box-shadow .25s ease; }
   #bp.charging{ transform:scale(1.06); box-shadow:0 0 0 0 rgba(240,208,128,.45); animation:bpChargePulse .85s ease-in-out infinite; }
   @keyframes bpChargePulse{ 0%,100%{box-shadow:0 0 0 0 rgba(240,208,128,.35)} 50%{box-shadow:0 0 0 7px rgba(240,208,128,0)} }
@@ -456,6 +463,208 @@
   body.perf-lite .ice-auto-bet-toggle{ backdrop-filter:none; }
   body.perf-lite .bet-drag-chip{ backdrop-filter:blur(10px); }
 
+  /* ============================================================
+     TRANSFER SYSTEM
+     ============================================================ */
+  .wallet-actions{display:flex;gap:8px;margin:-4px 0 12px}
+  .wallet-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;border-radius:14px;border:.5px solid var(--border2);background:var(--surface);color:var(--text);font-family:inherit;font-weight:800;font-size:13px;letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;transition:transform .2s var(--ease-spring),background .2s ease}
+  .wallet-action-btn:active{transform:scale(.97)}
+  .wallet-action-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .wallet-action-btn.primary{background:linear-gradient(135deg,#6da9ff,#4a86e8);border-color:rgba(140,180,255,.55);color:#fff;box-shadow:0 6px 18px rgba(91,157,255,.35)}
+
+  .tr-overlay{
+    position:fixed;inset:0;z-index:9998;
+    max-width:440px;margin:0 auto;
+    background:var(--bg-base);
+    display:none;flex-direction:column;
+    overflow:hidden;
+    opacity:0;transform:translateX(100%);
+    transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;
+  }
+  .tr-overlay::before{
+    content:'';position:absolute;top:-40px;left:-40px;right:-40px;bottom:-40px;z-index:0;
+    background-image:url('https://i.postimg.cc/ncz4Kznn/photo-5202192649983563686-y.jpg');
+    background-size:cover;background-position:center;
+    filter:blur(24px) brightness(.42) saturate(.85);opacity:.65;pointer-events:none;
+  }
+  .tr-overlay::after{
+    content:'';position:absolute;inset:0;z-index:0;
+    background:radial-gradient(circle at 30% 20%, rgba(0,0,0,.30), rgba(0,0,0,.78) 70%);
+    pointer-events:none;
+  }
+  .tr-overlay > *{position:relative;z-index:1}
+  .tr-overlay.show{ display:flex;opacity:1;transform:translateX(0); }
+
+  .tr-page{display:none;flex-direction:column;flex:1;min-height:0;padding:calc(16px + var(--safe-top)) 18px calc(20px + var(--safe-bottom))}
+  .tr-page.active{display:flex;animation:trPageIn .35s var(--ease-spring)}
+  @keyframes trPageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  .tr-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-shrink:0}
+  .tr-back{width:36px;height:36px;border-radius:50%;border:.5px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s var(--ease-spring),background .2s ease}
+  .tr-back:active{transform:scale(.92);background:var(--surface3)}
+  .tr-back svg{width:16px;height:16px}
+  .tr-title{font-size:20px;font-weight:800;letter-spacing:-.4px;color:var(--text)}
+
+  .tr-compose-card{
+    background:linear-gradient(135deg,rgba(40,50,80,.72),rgba(18,24,40,.86));
+    border:1px solid rgba(180,210,255,.20);
+    border-radius:22px;
+    padding:20px 22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
+    margin-bottom:16px;
+    position:relative;overflow:hidden;
+    text-align:center;
+  }
+  .tr-compose-card::before{
+    content:'';position:absolute;top:-30%;left:-20%;width:80%;height:100%;
+    background:radial-gradient(ellipse, rgba(140,180,255,.25), transparent 70%);
+    pointer-events:none;
+  }
+  .tr-balance-label{font-size:9.5px;font-weight:800;letter-spacing:3px;color:rgba(200,220,250,.55);text-transform:uppercase;margin-bottom:6px;position:relative}
+  .tr-balance-value{display:flex;align-items:center;justify-content:center;gap:8px;font-size:32px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-1px;position:relative}
+  .tr-balance-value img{width:26px;height:26px;object-fit:contain}
+
+  .tr-form{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+  .tr-field{display:flex;flex-direction:column;gap:6px}
+  .tr-field label{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+  .tr-field input{
+    width:100%;padding:14px 16px;border-radius:14px;
+    border:.5px solid var(--border2);background:var(--surface2);
+    color:var(--text);font-family:inherit;font-size:16px;font-weight:700;
+    outline:none;transition:border-color .2s ease,background .2s ease;
+    -webkit-user-select:text;user-select:text
+  }
+  .tr-field input:focus{border-color:rgba(140,180,255,.6);background:var(--surface3)}
+  .tr-field input::placeholder{color:var(--text3);font-weight:600}
+  .tr-field.amount input{font-size:22px;font-weight:800;letter-spacing:-.4px;padding:16px 18px;text-align:center;font-variant-numeric:tabular-nums}
+  .tr-field.amount{position:relative}
+  .tr-field.amount::after{content:'◆';position:absolute;right:18px;bottom:15px;font-size:14px;color:rgba(240,208,128,.75);pointer-events:none}
+
+  #tr-submit{
+    width:100%;padding:15px 0;border-radius:16px;
+    border:1px solid rgba(140,180,255,.35);
+    background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);
+    color:#fff;font-family:inherit;font-weight:800;font-size:15px;
+    cursor:pointer;letter-spacing:.3px;
+    box-shadow:0 10px 28px rgba(91,157,255,.4);
+    position:relative;overflow:hidden;
+    transition:transform .2s var(--ease-spring),box-shadow .2s ease
+  }
+  #tr-submit:active{transform:scale(.97);box-shadow:0 6px 18px rgba(91,157,255,.5)}
+
+  .tr-error{min-height:18px;margin-top:10px;font-size:12px;font-weight:700;color:var(--red);text-align:center;letter-spacing:.2px}
+
+  /* --- paper receipt --- */
+  .tr-paper-wrap{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    padding:4px 0 20px;perspective:1100px;min-height:0
+  }
+  .tr-paper{
+    position:relative;width:100%;max-width:350px;
+    background:linear-gradient(180deg, #f8f3e4 0%, #efe6d0 100%);
+    color:#1a1a1a;
+    padding:22px 24px 18px;
+    border-radius:0;
+    box-shadow:
+      0 28px 60px rgba(0,0,0,.7),
+      0 10px 26px rgba(0,0,0,.5),
+      0 0 0 1px rgba(0,0,0,.06),
+      inset 0 1px 0 rgba(255,255,255,.85);
+    transform: rotate(-1.2deg) perspective(1100px) translateZ(0);
+    font-family:'Courier New','SF Mono',monospace;
+    animation:paperIn .55s cubic-bezier(.34,1.56,.64,1)
+  }
+  @keyframes paperIn{
+    0%{opacity:0;transform:rotate(-6deg) translateY(30px) scale(.88)}
+    100%{opacity:1;transform:rotate(-1.2deg) translateY(0) scale(1)}
+  }
+  .tr-paper::before{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:8px;
+    background:repeating-linear-gradient(90deg, transparent 0 6px, #efe6d0 6px 12px);
+    -webkit-mask:radial-gradient(circle at 6px 0, transparent 5px, #000 5.5px);
+    mask:radial-gradient(circle at 6px 0, transparent 5px, #000 5.5px);
+    -webkit-mask-size:12px 8px;mask-size:12px 8px;
+    -webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;
+    pointer-events:none
+  }
+  .paper-head{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+  .paper-brand{font-size:14px;font-weight:900;letter-spacing:4px;color:#0a1a2a}
+  .paper-type{font-size:8.5px;font-weight:700;letter-spacing:3px;color:rgba(10,26,42,.55)}
+  .paper-date{position:absolute;top:22px;right:24px;font-size:9.5px;font-weight:700;color:rgba(10,26,42,.55);letter-spacing:.3px}
+  .paper-divider{height:0;border-top:1px dashed rgba(10,26,42,.30);margin:12px 0}
+  .paper-body{display:flex;flex-direction:column;gap:10px}
+  .paper-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .paper-label{font-size:9px;font-weight:800;letter-spacing:2px;color:rgba(10,26,42,.55)}
+  .paper-value{font-size:14px;font-weight:800;color:#0a1a2a;word-break:break-all;text-align:right}
+  .paper-amount{font-size:22px;font-weight:900;letter-spacing:-.5px;color:#0a1a2a}
+  .paper-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-top:6px}
+  .paper-signature-box{
+    position:relative;flex:1;height:70px;
+    border-bottom:1.5px dashed rgba(10,26,42,.45);
+    min-width:0
+  }
+  #tr-sig-canvas{
+    width:100%;height:100%;display:block;touch-action:none;
+    cursor:crosshair
+  }
+  .paper-signature-label{
+    position:absolute;left:0;bottom:-14px;font-size:8px;font-weight:800;
+    letter-spacing:2.2px;color:rgba(10,26,42,.50)
+  }
+  .paper-sender{text-align:right;flex-shrink:0;max-width:44%}
+  .paper-sender-label{font-size:8px;font-weight:800;letter-spacing:2.2px;color:rgba(10,26,42,.50);margin-bottom:2px}
+  .paper-sender-name{font-size:12px;font-weight:800;color:#0a1a2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+  .paper-arrow{
+    position:absolute;top:-32px;left:50%;transform:translateX(-50%) rotate(0deg);
+    width:32px;height:32px;color:#d4435c;
+    animation:arrowBounce 1.35s ease-in-out infinite;
+    transition:opacity .3s ease, transform .3s ease;
+    pointer-events:none;filter:drop-shadow(0 3px 6px rgba(212,67,92,.4))
+  }
+  .paper-arrow svg{width:100%;height:100%;display:block}
+  .paper-arrow.hidden{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.5)}
+  @keyframes arrowBounce{
+    0%,100%{transform:translateX(-50%) translateY(0)}
+    50%{transform:translateX(-50%) translateY(7px)}
+  }
+
+  #tr-continue{
+    width:100%;padding:15px 0;border-radius:16px;
+    border:1px solid rgba(140,180,255,.35);
+    background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.4);font-family:inherit;font-weight:800;font-size:15px;
+    letter-spacing:.3px;cursor:not-allowed;
+    margin-top:14px;
+    transition:background .3s ease, color .3s ease, box-shadow .3s ease, transform .2s var(--ease-spring), border-color .3s ease
+  }
+  #tr-continue.enabled{
+    background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);
+    color:#fff;cursor:pointer;
+    box-shadow:0 10px 28px rgba(91,157,255,.5), 0 0 0 1px rgba(140,180,255,.3) inset;
+    border-color:rgba(140,180,255,.65);
+    animation:continueReady .6s cubic-bezier(.34,1.56,.64,1)
+  }
+  #tr-continue.enabled:active{transform:scale(.97)}
+  @keyframes continueReady{
+    0%{transform:scale(.96)}
+    60%{transform:scale(1.03)}
+    100%{transform:scale(1)}
+  }
+
+  @media (max-width:400px){
+    .tr-paper{max-width:320px;padding:18px 18px 14px}
+    .paper-brand{font-size:12px;letter-spacing:3px}
+    .paper-date{font-size:8.5px;right:18px;top:18px}
+    .paper-amount{font-size:19px}
+    .tr-paper-wrap{padding:2px 0 14px}
+  }
+  @media (max-height:640px){
+    .tr-paper{padding:16px 20px 12px}
+    .paper-signature-box{height:58px}
+    .paper-arrow{top:-26px;width:26px;height:26px}
+  }
+
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
     #un{max-width:88px;font-size:12px}
@@ -483,6 +692,8 @@
   @media (prefers-reduced-motion:reduce){
     .card-aura,.card-shine,#di{animation:none !important}
     .tab-indicator{transition-duration:.15s !important}
+    .paper-arrow{animation:none}
+    #tr-continue.enabled{animation:none}
   }
 </style>
 </head>
@@ -554,6 +765,12 @@
 
     <div class="tab-page" id="wallet-page">
       <div class="page-head"><div class="eyebrow">BALANCE</div><div class="page-title">Wallet</div></div>
+      <div class="wallet-actions">
+        <button class="wallet-action-btn primary" id="wallet-transfer-btn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+          <span>Transfer</span>
+        </button>
+      </div>
       <div class="card-scene">
         <div class="card-aura"></div>
         <div class="card-stars" id="card-stars"></div>
@@ -744,6 +961,84 @@
   <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
   <span>10</span>
 </div>
+
+<!-- ================= TRANSFER OVERLAY ================= -->
+<div id="transfer-overlay" class="tr-overlay">
+  <!-- Stage 1: compose -->
+  <div class="tr-page active" id="tr-compose-page">
+    <div class="tr-head">
+      <button class="tr-back" id="tr-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="tr-title">Transfer</div>
+    </div>
+    <div class="tr-compose-card">
+      <div class="tr-balance-label">Available balance</div>
+      <div class="tr-balance-value">
+        <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
+        <span id="tr-balance-num">0</span>
+      </div>
+    </div>
+    <div class="tr-form">
+      <div class="tr-field">
+        <label>Recipient username</label>
+        <input id="tr-username" type="text" placeholder="@username" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
+      </div>
+      <div class="tr-field amount">
+        <label>Amount</label>
+        <input id="tr-amount" type="text" placeholder="0" inputmode="numeric" enterkeyhint="done">
+      </div>
+    </div>
+    <button id="tr-submit" type="button">Transfer</button>
+    <div class="tr-error" id="tr-error"></div>
+  </div>
+
+  <!-- Stage 2: sign -->
+  <div class="tr-page" id="tr-sign-page">
+    <div class="tr-head">
+      <button class="tr-back" id="tr-sign-back" type="button" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="tr-title">Sign to confirm</div>
+    </div>
+    <div class="tr-paper-wrap">
+      <div class="tr-paper" id="tr-paper">
+        <div class="paper-head">
+          <div class="paper-brand">DLLUMP</div>
+          <div class="paper-type">TRANSFER RECEIPT</div>
+          <div class="paper-date" id="paper-date">—</div>
+        </div>
+        <div class="paper-divider"></div>
+        <div class="paper-body">
+          <div class="paper-row">
+            <span class="paper-label">TO</span>
+            <span class="paper-value" id="paper-to">@username</span>
+          </div>
+          <div class="paper-row">
+            <span class="paper-label">AMOUNT</span>
+            <span class="paper-value paper-amount" id="paper-amount">0 ◆</span>
+          </div>
+        </div>
+        <div class="paper-divider"></div>
+        <div class="paper-foot">
+          <div class="paper-signature-box">
+            <canvas id="tr-sig-canvas"></canvas>
+            <div class="paper-signature-label">SIGNATURE</div>
+            <div class="paper-arrow" id="paper-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>
+            </div>
+          </div>
+          <div class="paper-sender">
+            <div class="paper-sender-label">SENDER</div>
+            <div class="paper-sender-name" id="paper-sender">@player</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="tr-continue" type="button" disabled>Continue</button>
+  </div>
+</div>
+<!-- ==================================================== -->
 
 <div id="toast-container"></div>
 
@@ -1819,9 +2114,6 @@
     const path=cachedPerimeterPath;
     if(!path) return;
 
-    // zoom is applied only when the camera is locked (zoomCenterFixed).
-    // threshold lowered to 1.001 so save/restore are always paired and
-    // the zoom-out animation is smooth all the way down to 1.0.
     let zoomActive = iceState.zoomCenterFixed && iceState.zoom > 1.001;
     if(zoomActive){
       const csx=iceState.zoomCenterX*s,csy=iceState.zoomCenterY*s;
@@ -1891,11 +2183,9 @@
           if(spd>iceState.peakSpeed)iceState.peakSpeed=spd;
           const elapsed=(now-iceState.slideStartTime)/1000;
 
-          // Near-stop detection: count frames where the puck is very slow.
           if(spd < 0.35) iceState.nearStopFrames++;
           else iceState.nearStopFrames = 0;
 
-          // Zoom in ONLY once, right before the puck stops, at a fixed point.
           if(!iceState.zoomFired && elapsed > 0.6 && iceState.nearStopFrames >= 4){
             iceState.zoomCenterX = rpx;
             iceState.zoomCenterY = rpy;
@@ -1910,8 +2200,6 @@
       }
       iceState.prevRenderX=rpx;iceState.prevRenderY=rpy;iceState.lastFrameTime=now;
     }
-
-    // NOTE: no camera tracking. Zoom center is fixed once zoom fires.
 
     if(iceState.isZoomingOut){
       const elapsed=(now-iceState.zoomStartTime)/1000,p=Math.min(elapsed/iceState.zoomDuration,1),e=easeInOutCubic(p);
@@ -2461,6 +2749,272 @@
     });
     document.addEventListener('pointercancel',cleanup);
   })();
+
+  /* ============================================================
+     TRANSFER SYSTEM
+     ============================================================ */
+  const trOverlay       = document.getElementById('transfer-overlay');
+  const trComposePage   = document.getElementById('tr-compose-page');
+  const trSignPage      = document.getElementById('tr-sign-page');
+  const trClose         = document.getElementById('tr-close');
+  const trSignBack      = document.getElementById('tr-sign-back');
+  const trBalanceNum    = document.getElementById('tr-balance-num');
+  const trUsernameInput = document.getElementById('tr-username');
+  const trAmountInput   = document.getElementById('tr-amount');
+  const trSubmit        = document.getElementById('tr-submit');
+  const trError         = document.getElementById('tr-error');
+  const paperTo         = document.getElementById('paper-to');
+  const paperAmount     = document.getElementById('paper-amount');
+  const paperDate       = document.getElementById('paper-date');
+  const paperSender     = document.getElementById('paper-sender');
+  const paperArrow      = document.getElementById('paper-arrow');
+  const trSigCanvas     = document.getElementById('tr-sig-canvas');
+  const trContinue      = document.getElementById('tr-continue');
+
+  let trTransferData = null;
+  let trSigned       = false;
+  let trDrawing      = false;
+  let trDrawnPoints  = 0;
+  let trPending      = false;
+  const trSigCtx = trSigCanvas.getContext('2d');
+
+  function trShowPage(which){
+    if(which === 'compose'){
+      trComposePage.classList.add('active');
+      trSignPage.classList.remove('active');
+    } else {
+      trComposePage.classList.remove('active');
+      trSignPage.classList.add('active');
+    }
+  }
+
+  function resizeSigCanvas(){
+    const rect = trSigCanvas.getBoundingClientRect();
+    if(rect.width < 2 || rect.height < 2) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    trSigCanvas.width  = Math.round(rect.width  * dpr);
+    trSigCanvas.height = Math.round(rect.height * dpr);
+    trSigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    trSigCtx.lineWidth   = 2.2;
+    trSigCtx.lineCap     = 'round';
+    trSigCtx.lineJoin    = 'round';
+    trSigCtx.strokeStyle = '#0a1a2a';
+  }
+
+  function trClearSig(){
+    const r = trSigCanvas.getBoundingClientRect();
+    trSigCtx.clearRect(0, 0, r.width, r.height);
+    trSigned = false;
+    trDrawnPoints = 0;
+    trContinue.disabled = true;
+    trContinue.classList.remove('enabled');
+    paperArrow.classList.remove('hidden');
+  }
+
+  function trReset(){
+    trTransferData = null;
+    trPending      = false;
+    trDrawing      = false;
+    trUsernameInput.value = '';
+    trAmountInput.value   = '';
+    trError.textContent   = '';
+    trContinue.textContent = 'Continue';
+    trClearSig();
+    trShowPage('compose');
+  }
+
+  function openTransfer(){
+    if(!state.userId){ showNotif('Please sign in first'); return; }
+    trBalanceNum.textContent = Math.floor(state.balance).toLocaleString();
+    trReset();
+    trOverlay.style.display = 'flex';
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        trOverlay.classList.add('show');
+      });
+    });
+    haptic('medium');
+  }
+
+  function closeTransfer(){
+    trOverlay.classList.remove('show');
+    haptic('light');
+    setTimeout(()=>{
+      trOverlay.style.display = 'none';
+      trReset();
+    }, 420);
+  }
+
+  // signature drawing
+  function trSigPos(e){
+    const rect = trSigCanvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  trSigCanvas.addEventListener('pointerdown', e => {
+    if(trPending) return;
+    e.preventDefault();
+    trDrawing = true;
+    try { trSigCanvas.setPointerCapture(e.pointerId); } catch(_) {}
+    const p = trSigPos(e);
+    trSigCtx.beginPath();
+    trSigCtx.moveTo(p.x, p.y);
+  });
+
+  trSigCanvas.addEventListener('pointermove', e => {
+    if(!trDrawing) return;
+    e.preventDefault();
+    const p = trSigPos(e);
+    trSigCtx.lineTo(p.x, p.y);
+    trSigCtx.stroke();
+    trDrawnPoints++;
+    if(!trSigned && trDrawnPoints > 12){
+      trSigned = true;
+      trContinue.disabled = false;
+      trContinue.classList.add('enabled');
+      paperArrow.classList.add('hidden');
+      haptic('light');
+    }
+  });
+
+  function trEndSig(e){
+    if(!trDrawing) return;
+    trDrawing = false;
+    try { trSigCanvas.releasePointerCapture(e.pointerId); } catch(_) {}
+  }
+  trSigCanvas.addEventListener('pointerup', trEndSig);
+  trSigCanvas.addEventListener('pointercancel', trEndSig);
+  trSigCanvas.addEventListener('pointerleave', trEndSig);
+
+  // submit → validate → move to sign page
+  trSubmit.addEventListener('click', () => {
+    if(trPending) return;
+    const rawUser = trUsernameInput.value.trim();
+    const rawAmt  = trAmountInput.value.trim();
+    const clean   = rawUser.replace(/^@/, '').toLowerCase();
+    const amount  = Math.floor(Number(rawAmt) || 0);
+
+    trError.textContent = '';
+
+    if(!clean || clean.length < 3){
+      trError.textContent = 'Enter a valid username';
+      haptic('light'); return;
+    }
+    if(clean === (state.username || '').toLowerCase()){
+      trError.textContent = 'Cannot transfer to yourself';
+      haptic('light'); return;
+    }
+    if(!Number.isFinite(amount) || amount <= 0){
+      trError.textContent = 'Enter a valid amount';
+      haptic('light'); return;
+    }
+    if(amount > state.balance){
+      trError.textContent = 'Insufficient balance';
+      haptic('light'); return;
+    }
+
+    trTransferData = { username: clean, amount };
+
+    paperTo.textContent     = '@' + clean;
+    paperAmount.textContent = amount.toLocaleString() + ' ◆';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    paperDate.textContent   = dateStr + ' · ' + timeStr;
+    paperSender.textContent = '@' + (state.username || 'player');
+
+    trShowPage('sign');
+    haptic('medium');
+
+    requestAnimationFrame(()=>{
+      resizeSigCanvas();
+      setTimeout(resizeSigCanvas, 60);
+    });
+  });
+
+  trSignBack.addEventListener('click', () => {
+    if(trPending) return;
+    trShowPage('compose');
+    haptic('light');
+  });
+
+  // continue → perform transfer
+  trContinue.addEventListener('click', async () => {
+    if(!trSigned || trPending || !trTransferData) return;
+    trPending = true;
+    trContinue.disabled = true;
+    trContinue.textContent = '...';
+    try {
+      const r = await fetch(SERVER_URL + '/api/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromUserId: state.userId,
+          toUsername: trTransferData.username,
+          amount:     trTransferData.amount,
+        }),
+      });
+      const d = await r.json();
+      if(d.ok){
+        const amt = trTransferData.amount;
+        const to  = trTransferData.username;
+        state.balance = d.newBalance;
+        updateBalance();
+        addTransaction('bet', -amt, 'Transfer to @' + to);
+        closeTransfer();
+        showTransferSuccess(amt, to);
+        haptic('heavy');
+      } else {
+        trError.textContent = d.error || 'Transfer failed';
+        trShowPage('compose');
+        trPending = false;
+        trContinue.textContent = 'Continue';
+        haptic('light');
+      }
+    } catch(err){
+      trError.textContent = 'Network error';
+      trShowPage('compose');
+      trPending = false;
+      trContinue.textContent = 'Continue';
+      haptic('light');
+    }
+  });
+
+  trClose.addEventListener('click', closeTransfer);
+
+  // success toast with SVG checkmark icon
+  function showTransferSuccess(amount, username){
+    if(!toastContainer) return;
+    const existing = toastContainer.querySelectorAll('.toast:not(.dismissing)');
+    if(existing.length >= MAX_TOASTS) dismissToast(existing[0]);
+    const t = document.createElement('div');
+    t.className = 'toast toast-success';
+    t.innerHTML =
+      '<div class="toast-icon">' +
+        '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '</div>' +
+      '<div class="toast-text">' +
+        '<div class="toast-main">Transferred ' + amount.toLocaleString() + ' ◆</div>' +
+        '<div class="toast-sub">to @' + username + '</div>' +
+      '</div>' +
+      '<button class="toast-close" type="button" aria-label="Dismiss">✕</button>';
+    toastContainer.appendChild(t);
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=> t.classList.add('show')); });
+    const closeBtn = t.querySelector('.toast-close');
+    closeBtn.addEventListener('pointerdown', e => { e.stopPropagation(); dismissToast(t); });
+    t._autoTimer = setTimeout(()=>dismissToast(t), 5000);
+    attachSwipe(t);
+  }
+
+  const walletTransferBtn = document.getElementById('wallet-transfer-btn');
+  if(walletTransferBtn) walletTransferBtn.addEventListener('click', openTransfer);
+
+  window.addEventListener('resize', () => {
+    if(trOverlay.classList.contains('show') && trSignPage.classList.contains('active')){
+      resizeSigCanvas();
+    }
+  });
+  /* ============================================================ */
 
   function init(){
     if(tg?.initDataUnsafe?.user){const u=tg.initDataUnsafe.user;state.username=u.username||u.first_name||'player';state.pfp=u.photo_url||''}
