@@ -112,7 +112,7 @@ function getPlayer(id) { return room.players.find(p => p.id === id); }
 
 const ICE_SIZE = ARENA_SIZE;
 const ICE_CORNER_RADIUS = ARENA_SIZE * 0.045;
-const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 300);
+const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 400);
 const ICE_FIELD_SCALE = 0.92;
 
 function createIceRoom(id) {
@@ -199,8 +199,6 @@ function polyArea(poly) {
   return Math.abs(a) * 0.5;
 }
 
-// Split convex polygon by infinite line through A->B.
-// Returns [side1, side2]. Either may be empty.
 function splitPolygon(poly, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay;
   const side = p => dx * (p.y - ay) - dy * (p.x - ax);
@@ -228,7 +226,6 @@ function splitPolygon(poly, ax, ay, bx, by) {
 }
 
 function pickCut(poly, box, targetRatio) {
-  // Try several random cuts, keep the one closest to targetRatio (area split).
   const totalArea = polyArea(poly);
   if (totalArea <= 0) return null;
   const minArea = totalArea * 0.15;
@@ -241,17 +238,14 @@ function pickCut(poly, box, targetRatio) {
     let ax, ay, bx, by;
 
     if (roll < 0.30) {
-      // Horizontal cut
       const y = box.y + box.h * (0.2 + Math.random() * 0.6);
       ax = box.x - 10; ay = y;
       bx = box.x + box.w + 10; by = y;
     } else if (roll < 0.60) {
-      // Vertical cut
       const x = box.x + box.w * (0.2 + Math.random() * 0.6);
       ax = x; ay = box.y - 10;
       bx = x; by = box.y + box.h + 10;
     } else {
-      // Diagonal cut — favor through two non-adjacent polygon vertices
       const n = poly.length;
       let picked = false;
       if (n >= 4) {
@@ -266,7 +260,6 @@ function pickCut(poly, box, targetRatio) {
         if (candidates.length > 0) {
           const i2 = candidates[Math.floor(Math.random() * candidates.length)];
           const v1 = poly[i1], v2 = poly[i2];
-          // Line through the two vertices, slightly extended beyond
           const vdx = v2.x - v1.x, vdy = v2.y - v1.y;
           const len = Math.hypot(vdx, vdy) || 1;
           const ex = (vdx / len) * 500;
@@ -277,7 +270,6 @@ function pickCut(poly, box, targetRatio) {
         }
       }
       if (!picked) {
-        // Fallback: random angle through a point in the box
         const angle = Math.random() * Math.PI;
         const cx = box.x + box.w * (0.3 + Math.random() * 0.4);
         const cy = box.y + box.h * (0.3 + Math.random() * 0.4);
@@ -302,7 +294,6 @@ function pickCut(poly, box, targetRatio) {
   }
 
   if (!best) {
-    // Last-resort horizontal fallback
     const y = box.y + box.h * targetRatio;
     const pieces = splitPolygon(poly, box.x - 10, y, box.x + box.w + 10, y);
     if (pieces[0].length >= 3 && pieces[1].length >= 3) return pieces;
@@ -370,7 +361,6 @@ function repartitionIceArena() {
   ];
   partitionPoly(shuffled, 0, shuffled.length, root);
 
-  // Scale around center to keep margin
   const half = ICE_SIZE / 2;
   const scale = ICE_FIELD_SCALE;
   players.forEach(p => {
@@ -508,6 +498,12 @@ async function endIceGame() {
   }, 3000);
 }
 
+/* ================================================================
+   ICE PHYSICS — deep-penetration collision resolution.
+   The puck always reflects off the deepest wall it's touching,
+   using one consistent normal, so corner bounces are smooth and
+   deterministic.
+   ================================================================ */
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
   const totalPts = ICE_PERIMETER.length;
@@ -520,15 +516,20 @@ function updateIcePhysics(dt) {
   const ROLLING_FRICTION = 0.985;
   const RESTITUTION      = 0.78;
   const HOLD_MS          = 3200;
+  const PR = puckRadius * puckRadius;
 
   for (let step = 0; step < subSteps; step++) {
     puck.x += puck.vx * subDt * 60;
     puck.y += puck.vy * subDt * 60;
 
     let iter = 0;
-    const maxIter = 15;
+    const maxIter = 8;
     while (iter < maxIter) {
-      let collided = false;
+      // Find deepest penetration against all segments
+      let deepestOverlap = 0;
+      let bestNx = 0, bestNy = 0;
+      let bestNearX = 0, bestNearY = 0;
+
       for (let i = 0; i < totalPts; i++) {
         const j = (i + 1) % totalPts;
         const ax = ICE_PERIMETER[i].x, ay = ICE_PERIMETER[i].y;
@@ -541,35 +542,45 @@ function updateIcePhysics(dt) {
         t = Math.max(0, Math.min(1, t));
         const nearX = ax + t * dx, nearY = ay + t * dy;
         const distX = puck.x - nearX, distY = puck.y - nearY;
-        const dist = Math.sqrt(distX * distX + distY * distY);
+        const distSq = distX * distX + distY * distY;
 
-        if (dist < puckRadius && dist > 0.0001) {
-          const nx = distX / dist, ny = distY / dist;
+        if (distSq < PR && distSq > 0.000001) {
+          const dist = Math.sqrt(distSq);
           const overlap = puckRadius - dist;
-          puck.x += nx * overlap;
-          puck.y += ny * overlap;
-
-          const vn = puck.vx * nx + puck.vy * ny;
-          if (vn < 0) {
-            puck.vx -= (1 + RESTITUTION) * vn * nx;
-            puck.vy -= (1 + RESTITUTION) * vn * ny;
-            const nowMs = Date.now();
-            if (nowMs - iceRoom.lastBounceTime > 80) {
-              iceRoom.lastBounceTime = nowMs;
-              const speedAtHit = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-              if (speedAtHit > 1.5) {
-                io.emit('icePuckBounce', {
-                  x: nearX, y: nearY,
-                  intensity: Math.min(1, speedAtHit / 20),
-                });
-              }
-            }
+          if (overlap > deepestOverlap) {
+            deepestOverlap = overlap;
+            bestNx = distX / dist;
+            bestNy = distY / dist;
+            bestNearX = nearX;
+            bestNearY = nearY;
           }
-          collided = true;
-          break;
         }
       }
-      if (!collided) break;
+
+      if (deepestOverlap <= 0.0001) break;
+
+      // Push out along the deepest normal
+      puck.x += bestNx * deepestOverlap;
+      puck.y += bestNy * deepestOverlap;
+
+      // Reflect velocity once, using that single normal
+      const vn = puck.vx * bestNx + puck.vy * bestNy;
+      if (vn < 0) {
+        puck.vx -= (1 + RESTITUTION) * vn * bestNx;
+        puck.vy -= (1 + RESTITUTION) * vn * bestNy;
+
+        const nowMs = Date.now();
+        if (nowMs - iceRoom.lastBounceTime > 80) {
+          iceRoom.lastBounceTime = nowMs;
+          const speedAtHit = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
+          if (speedAtHit > 1.5) {
+            io.emit('icePuckBounce', {
+              x: bestNearX, y: bestNearY,
+              intensity: Math.min(1, speedAtHit / 20),
+            });
+          }
+        }
+      }
       iter++;
     }
 
