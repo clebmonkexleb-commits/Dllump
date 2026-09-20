@@ -630,6 +630,10 @@
           <label class="switch"><input type="checkbox" id="bounce-lights-toggle"><span class="slider"></span></label>
         </div>
         <div class="setting">
+          <div class="left"><div class="icon">▣</div><div><div class="label">Field Highlight</div><div class="sub">White outline &amp; corner blicks</div></div></div>
+          <label class="switch"><input type="checkbox" id="field-highlight-toggle"><span class="slider"></span></label>
+        </div>
+        <div class="setting">
           <div class="left"><div class="icon">🌫</div><div><div class="label">Blur Background</div><div class="sub">Soft-focus backdrop</div></div></div>
           <label class="switch"><input type="checkbox" id="bg-blur-toggle" checked><span class="slider"></span></label>
         </div>
@@ -928,7 +932,8 @@
     transactions:[],maxTx:20,
     memberSince:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
     soundEnabled:false,bounceLightsEnabled:false,currentTab:'ice',
-    storyRingsEnabled:false
+    storyRingsEnabled:false,
+    fieldHighlightEnabled:false
   };
   let SERVER_ARENA_SIZE=400;
 
@@ -1008,9 +1013,12 @@
         if(res.icePlayers&&Array.isArray(res.icePlayers)){
           iceState.players=res.icePlayers.map(p=>{
             const local={id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,poly:p.poly||null,
-              color:p.color,bet:p.bet,_pfpSrc:null,_avSprite:null,_avKey:null,
-              cx:0,cy:0,inR:0};
-            refreshPolyMeta(local);
+              _displayPoly:null,_targetPoly:null,
+              color:p.color,bet:p.bet,_pfpSrc:null,_avSprite:null,_avKey:null};
+            if(p.poly){
+              const r=resamplePoly(p.poly,16);
+              if(r){local._targetPoly=r;local._displayPoly=r.map(v=>({x:v.x,y:v.y}));}
+            }
             return local;
           });
           iceState.pot=res.icePot||0;iceState.players.forEach(p=>loadIcePlayerPFP(p));
@@ -1233,22 +1241,27 @@
   }
   const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
 
-  const PUCK_BASE_R = 48;
+  // Higher base radius for a sharp, anti-aliased downsample
+  const PUCK_BASE_R = 96;
   const PUCK_PAD    = Math.ceil(PUCK_BASE_R*0.35)+4;
   const PUCK_HALF_RATIO = (PUCK_BASE_R+PUCK_PAD)/PUCK_BASE_R;
   const puckSprite = (function(){
-    const dpr = PERF.dpr;
+    const dpr = Math.max(2, Math.min(3, PERF.dpr || 2));
     const cssSize = (PUCK_BASE_R+PUCK_PAD)*2;
     const cv = document.createElement('canvas');
     cv.width  = Math.ceil(cssSize*dpr);
     cv.height = Math.ceil(cssSize*dpr);
     const g = cv.getContext('2d');
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
     g.setTransform(dpr,0,0,dpr,0,0);
     drawLiquidGlassPuck(g, cssSize/2, cssSize/2, PUCK_BASE_R, PUCK_OPTS);
     return cv;
   })();
   function drawPuckSprite(ctx,px,py,rc){
     if(rc<=0.5) return;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     const h = rc*PUCK_HALF_RATIO;
     ctx.drawImage(puckSprite, px-h, py-h, h*2, h*2);
   }
@@ -1266,27 +1279,40 @@
     img.src=src;
   }
 
-  // ---- polygon helpers ----
-  function pointInPoly(px, py, poly){
-    let inside = false;
-    for(let i=0, j=poly.length-1; i<poly.length; j=i++){
-      const xi=poly[i].x, yi=poly[i].y;
-      const xj=poly[j].x, yj=poly[j].y;
-      if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi) + xi)) inside=!inside;
+  // ---------- Polygon helpers ----------
+  function resamplePoly(poly, n){
+    if(!poly || poly.length < 3) return null;
+    const n0 = poly.length;
+    const cum = [0];
+    let total = 0;
+    for(let i=0;i<n0;i++){
+      const a=poly[i], b=poly[(i+1)%n0];
+      total += Math.hypot(b.x-a.x, b.y-a.y);
+      cum.push(total);
     }
-    return inside;
+    if(total <= 0) return null;
+    const out = [];
+    let seg = 0;
+    for(let i=0;i<n;i++){
+      const target = (i / n) * total;
+      while(seg < n0 - 1 && cum[seg + 1] < target) seg++;
+      const segLen = cum[seg + 1] - cum[seg];
+      const t = segLen > 0 ? (target - cum[seg]) / segLen : 0;
+      const a = poly[seg];
+      const b = poly[(seg + 1) % n0];
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
+    return out;
   }
 
-  function refreshPolyMeta(p){
-    if(!p.poly || p.poly.length < 3){ p.cx=0; p.cy=0; p.inR=0; return; }
-    const n = p.poly.length;
+  function polyMeta(poly){
+    const n = poly.length;
     let cx = 0, cy = 0;
-    for(const v of p.poly){ cx += v.x; cy += v.y; }
+    for(const v of poly){ cx += v.x; cy += v.y; }
     cx /= n; cy /= n;
     let minD = Infinity;
-    for(let i=0; i<n; i++){
-      const a = p.poly[i];
-      const b = p.poly[(i+1)%n];
+    for(let i=0;i<n;i++){
+      const a = poly[i], b = poly[(i+1)%n];
       const dx = b.x - a.x, dy = b.y - a.y;
       const lenSq = dx*dx + dy*dy;
       if(lenSq < 0.0001) continue;
@@ -1297,7 +1323,31 @@
       const d = Math.hypot(cx-nx, cy-ny);
       if(d < minD) minD = d;
     }
-    p.cx = cx; p.cy = cy; p.inR = minD;
+    return { cx, cy, inR: minD };
+  }
+
+  function pointInPoly(px, py, poly){
+    let inside = false;
+    for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+      const xi=poly[i].x, yi=poly[i].y;
+      const xj=poly[j].x, yj=poly[j].y;
+      if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi) + xi)) inside=!inside;
+    }
+    return inside;
+  }
+
+  function findBboxCorners(poly){
+    let tl=null, tr=null, bl=null, br=null;
+    let tlS=Infinity, trS=-Infinity, blS=Infinity, brS=-Infinity;
+    for(const v of poly){
+      const a = v.x + v.y;
+      const b = v.x - v.y;
+      if(a < tlS){ tlS = a; tl = v; }
+      if(a > brS){ brS = a; br = v; }
+      if(b > trS){ trS = b; tr = v; }
+      if(b < blS){ blS = b; bl = v; }
+    }
+    return [tl, tr, bl, br];
   }
 
   let rinkCache=null, rinkCacheSize=0;
@@ -1358,6 +1408,8 @@
     iceCanvas.width=Math.round(size*dpr);iceCanvas.height=Math.round(size*dpr);
     iceCanvas.style.width=size+'px';iceCanvas.style.height=size+'px';
     iceState.arenaSize=size;iceCtx.setTransform(dpr,0,0,dpr,0,0);
+    iceCtx.imageSmoothingEnabled = true;
+    iceCtx.imageSmoothingQuality = 'high';
     rinkCacheSize=0;
     cachedPerimeterPath=null;
     cachedPerimeterSize=0;
@@ -1481,18 +1533,26 @@
       if(!local){
         const ci=iceState.players.length%8;
         local={id:sp.id,name:sp.name,pfp:sp.pfp,pfpImg:generateDefaultAvatar(sp.name?sp.name.charAt(0):'?',ci),
-          poly:sp.poly,color:sp.color,bet:sp.bet,
-          cx:0,cy:0,inR:0,
+          poly:sp.poly||null,_displayPoly:null,_targetPoly:null,
+          color:sp.color,bet:sp.bet,
           _pfpSrc:null,_avSprite:null,_avKey:null};
-        refreshPolyMeta(local);
         iceState.players.push(local);loadIcePlayerPFP(local);
         iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
       }else{
         if(Math.abs(local.bet-sp.bet)>5)iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
-        local.poly=sp.poly;local.color=sp.color;local.bet=sp.bet;
-        refreshPolyMeta(local);
+        local.color=sp.color;local.bet=sp.bet;
       }
       local.name=sp.name;
+      local.poly = sp.poly || local.poly;
+      if(sp.poly){
+        const r=resamplePoly(sp.poly,16);
+        if(r){
+          local._targetPoly = r;
+          if(!local._displayPoly || local._displayPoly.length !== r.length){
+            local._displayPoly = r.map(v=>({x:v.x,y:v.y}));
+          }
+        }
+      }
     });
     iceState.players=iceState.players.filter(p=>seen.has(p.id));
     if(prev!=='idle'&&iceState.gameState==='idle'){iceState.winnerId=null;iceWaitingText.style.display='block'}
@@ -1568,8 +1628,12 @@
 
   function spawnSliceConfetti(p){
     if(!PERF.confetti) return;
+    const poly = p._displayPoly;
+    if(!poly || poly.length < 3) return;
+    let cx = 0, cy = 0;
+    for(const v of poly){ cx += v.x; cy += v.y; }
+    cx /= poly.length; cy /= poly.length;
     const now=performance.now();
-    const cx=p.cx, cy=p.cy;
     for(let i=0;i<16;i++){
       const ang=(Math.PI*2*i/16)+(Math.random()-0.5)*0.5;
       const spd=60+Math.random()*90;
@@ -1903,12 +1967,25 @@
       iceCtx.clip(path);
     }
 
+    const highlight = state.fieldHighlightEnabled;
+
+    // Pass 1: tiles + corner blicks + avatars
     for(let pi=0; pi<iceState.players.length; pi++){
       const p = iceState.players[pi];
-      const poly = p.poly;
+
+      // Lerp display polygon toward target
+      if(p._displayPoly && p._targetPoly && p._displayPoly.length === p._targetPoly.length){
+        const k = 0.22;
+        const dp = p._displayPoly, tp = p._targetPoly;
+        for(let i=0;i<dp.length;i++){
+          dp[i].x += (tp[i].x - dp[i].x) * k;
+          dp[i].y += (tp[i].y - dp[i].y) * k;
+        }
+      }
+      const poly = p._displayPoly;
       if(!poly || poly.length < 3) continue;
 
-      // Compute bbox in screen space
+      // bbox in screen space
       let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
       for(let i=0;i<poly.length;i++){
         const sx=poly[i].x*s, sy=poly[i].y*s;
@@ -1920,7 +1997,7 @@
 
       const isWinner = (iceState.gameState==='finished' && iceState.winnerId===p.id);
 
-      // Draw the polygon clipped to its shape with the gradient sprite
+      // Draw polygon clip + tile + blicks
       iceCtx.save();
       iceCtx.beginPath();
       iceCtx.moveTo(poly[0].x*s, poly[0].y*s);
@@ -1936,11 +2013,32 @@
         iceCtx.fillRect(minX, minY, segW, segH);
       }
       iceCtx.globalAlpha = 1;
+
+      // Corner blicks (only when highlight enabled)
+      if(highlight){
+        const corners = findBboxCorners(poly);
+        const blickR = Math.min(32 * s, Math.min(segW, segH) * 0.30);
+        for(const c of corners){
+          if(!c) continue;
+          const gx = c.x * s, gy = c.y * s;
+          const g = iceCtx.createRadialGradient(gx, gy, 0, gx, gy, blickR);
+          g.addColorStop(0,    'rgba(255,255,255,0.55)');
+          g.addColorStop(0.45, 'rgba(255,255,255,0.14)');
+          g.addColorStop(1,    'rgba(255,255,255,0)');
+          iceCtx.fillStyle = g;
+          iceCtx.beginPath();
+          iceCtx.arc(gx, gy, blickR, 0, Math.PI * 2);
+          iceCtx.fill();
+        }
+      }
+
       iceCtx.restore();
 
-      // Avatar at polygon centroid
-      const cx = p.cx * s;
-      const cy = p.cy * s;
+      // Avatar
+      const meta = polyMeta(poly);
+      const cx = meta.cx * s;
+      const cy = meta.cy * s;
+      const inR = meta.inR * s;
 
       let pfpScale = 1;
       const pd = iceState.pfpPop.get(p.id);
@@ -1951,13 +2049,28 @@
         else iceState.pfpPop.delete(p.id);
       }
 
-      // Radius: bounded by polygon inradius and bbox
-      const inR = (p.inR || 0) * s;
       const avatarR = Math.min(inR * 0.65, Math.min(segW, segH) * 0.32);
       const drawR = avatarR * pfpScale;
       if(drawR <= 0.5) continue;
 
       iceCtx.drawImage(getAvatarSprite(p, drawR*2), cx-drawR, cy-drawR, drawR*2, drawR*2);
+    }
+
+    // Pass 2: field outlines (only when highlight enabled)
+    if(highlight){
+      for(let pi=0; pi<iceState.players.length; pi++){
+        const p = iceState.players[pi];
+        const poly = p._displayPoly;
+        if(!poly || poly.length < 3) continue;
+        iceCtx.strokeStyle = 'rgba(255,255,255,0.80)';
+        iceCtx.lineWidth = 1.6;
+        iceCtx.lineJoin = 'round';
+        iceCtx.beginPath();
+        iceCtx.moveTo(poly[0].x*s, poly[0].y*s);
+        for(let i=1;i<poly.length;i++) iceCtx.lineTo(poly[i].x*s, poly[i].y*s);
+        iceCtx.closePath();
+        iceCtx.stroke();
+      }
     }
 
     if(iceState.confetti.length){
@@ -2101,6 +2214,17 @@
   });
   soundToggle.addEventListener('change',()=>{state.soundEnabled=soundToggle.checked});
   bounceLightsToggle.addEventListener('change',()=>{state.bounceLightsEnabled=bounceLightsToggle.checked});
+
+  const fieldHighlightToggle=document.getElementById('field-highlight-toggle');
+  if(fieldHighlightToggle){
+    try{ state.fieldHighlightEnabled = localStorage.getItem('dllump_field_highlight')==='1'; }catch(_){}
+    fieldHighlightToggle.checked = state.fieldHighlightEnabled;
+    fieldHighlightToggle.addEventListener('change',()=>{
+      state.fieldHighlightEnabled = fieldHighlightToggle.checked;
+      try{ localStorage.setItem('dllump_field_highlight', state.fieldHighlightEnabled?'1':'0'); }catch(_){}
+      haptic('light');
+    });
+  }
 
   const storyRingsToggle=document.getElementById('story-rings-toggle');
   function spawnStoryRing(x,y,size){
