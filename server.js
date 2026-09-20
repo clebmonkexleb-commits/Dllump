@@ -226,11 +226,12 @@ function splitPolygon(poly, ax, ay, bx, by) {
 }
 
 /* Binary-search the exact cut position for a given angle so the resulting
-   area split matches targetRatio. */
+   area split matches targetRatio. minArea is now 0.4% so tiny bettors get
+   genuinely tiny fields. */
 function pickCut(poly, box, targetRatio) {
   const totalArea = polyArea(poly);
   if (totalArea <= 0) return null;
-  const minArea = totalArea * 0.01;
+  const minArea = totalArea * 0.004;
 
   let best = null;
   let bestErr = Infinity;
@@ -314,7 +315,8 @@ function pickCut(poly, box, targetRatio) {
 }
 
 /* Always isolate the top-bet player first, giving them a piece whose area
-   is exactly their share of the group's total bet. */
+   is their share of the group's total bet. Clamp lowered to 1.5% / 98.5% so
+   tiny bettors can get tiny fields and a big bettor can dominate. */
 function partitionPoly(players, startIdx, endIdx, poly) {
   const count = endIdx - startIdx;
   if (count <= 0) return;
@@ -329,7 +331,7 @@ function partitionPoly(players, startIdx, endIdx, poly) {
     restBet += Math.max(players[i].bet, 1);
   }
   const ratio = topBet / (topBet + restBet);
-  const clampedRatio = Math.max(0.06, Math.min(0.94, ratio));
+  const clampedRatio = Math.max(0.015, Math.min(0.985, ratio));
 
   const box = bboxOf(poly);
   if (box.w < 2 || box.h < 2) {
@@ -350,7 +352,6 @@ function partitionPoly(players, startIdx, endIdx, poly) {
 function repartitionIceArena() {
   const players = iceRoom.players;
   if (players.length === 0) return;
-  // Sort by bet descending so the top bettor is always index 0 in every group.
   const sorted = [...players].sort((a, b) => b.bet - a.bet);
   const root = [
     { x: 0, y: 0 },
