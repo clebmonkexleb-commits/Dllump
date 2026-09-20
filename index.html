@@ -2353,30 +2353,47 @@
     }
 
     if(iceState.gameState==='sliding'){
-      if(iceState.lastFrameTime>0){
-        const dt=(now-iceState.lastFrameTime)/1000;
-        if(dt>.005&&dt<.5){
-          const dx=rpx-iceState.prevRenderX,dy=rpy-iceState.prevRenderY;
-          const spd=Math.sqrt(dx*dx+dy*dy)/dt;
-          if(spd>iceState.peakSpeed)iceState.peakSpeed=spd;
-          const elapsed=(now-iceState.slideStartTime)/1000;
+      const elapsedMs = now - iceState.slideStartTime;
 
-          if(spd < 0.35) iceState.nearStopFrames++;
-          else iceState.nearStopFrames = 0;
+      if(!iceState.zoomFired){
+        // Zoom starts this many ms BEFORE the puck is expected to rest
+        const ZOOM_LEAD_MS = 200;
+        // Measured launch -> rest time for the current physics
+        const EXPECTED_STOP_MS = 5440;
 
-          if(!iceState.zoomFired && elapsed > 0.6 && iceState.nearStopFrames >= 4){
-            iceState.zoomCenterX = rpx;
-            iceState.zoomCenterY = rpy;
-            iceState.zoomCenterFixed = true;
-            iceState.isZoomingIn = true;
-            iceState.zoomStartTime = now;
-            iceState.zoomTarget = 1.45;
-            iceState.zoomFired = true;
-            iceState.zoomDuration = 0.5;
-          }
+        let trigger = elapsedMs >= (EXPECTED_STOP_MS - ZOOM_LEAD_MS);
+
+        // Safety net: if the puck actually dies early (server velocity ~0),
+        // fire immediately so we don't miss the moment.
+        if(!trigger && puckBuffer.length){
+          const lastSnap = puckBuffer[puckBuffer.length - 1];
+          const sv = Math.hypot(lastSnap.vx || 0, lastSnap.vy || 0);
+          if(sv < 0.15) trigger = true;
+        }
+
+        if(trigger){
+          iceState.zoomCenterX = rpx;
+          iceState.zoomCenterY = rpy;
+          iceState.zoomCenterFixed = true;
+          iceState.isZoomingIn = true;
+          iceState.zoomStartTime = now;
+          iceState.zoomTarget = 1.45;
+          iceState.zoomFired = true;
+          iceState.zoomDuration = 0.5;
         }
       }
-      iceState.prevRenderX=rpx;iceState.prevRenderY=rpy;iceState.lastFrameTime=now;
+
+      // Keep the camera glued to the puck while we're still zooming in, so
+      // the zoom lands on the puck's real resting spot (not where it was
+      // 200ms earlier).
+      if(iceState.isZoomingIn){
+        iceState.zoomCenterX += (rpx - iceState.zoomCenterX) * 0.25;
+        iceState.zoomCenterY += (rpy - iceState.zoomCenterY) * 0.25;
+      }
+
+      iceState.prevRenderX = rpx;
+      iceState.prevRenderY = rpy;
+      iceState.lastFrameTime = now;
     }
 
     if(iceState.isZoomingOut){
