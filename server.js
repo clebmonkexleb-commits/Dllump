@@ -225,76 +225,87 @@ function splitPolygon(poly, ax, ay, bx, by) {
   return [A, B];
 }
 
+/* Binary-search the exact cut position for a given angle so the resulting
+   area split matches targetRatio. */
 function pickCut(poly, box, targetRatio) {
   const totalArea = polyArea(poly);
   if (totalArea <= 0) return null;
-  const minArea = totalArea * 0.15;
+  const minArea = totalArea * 0.01;
 
   let best = null;
   let bestErr = Infinity;
 
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const roll = Math.random();
-    let ax, ay, bx, by;
+  function tryAngle(baseAngle) {
+    const angle = baseAngle + (Math.random() - 0.5) * 0.20;
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+    const perpX = -dirY;
+    const perpY = dirX;
 
-    if (roll < 0.30) {
-      const y = box.y + box.h * (0.2 + Math.random() * 0.6);
-      ax = box.x - 10; ay = y;
-      bx = box.x + box.w + 10; by = y;
-    } else if (roll < 0.60) {
-      const x = box.x + box.w * (0.2 + Math.random() * 0.6);
-      ax = x; ay = box.y - 10;
-      bx = x; by = box.y + box.h + 10;
-    } else {
-      const n = poly.length;
-      let picked = false;
-      if (n >= 4) {
-        const i1 = Math.floor(Math.random() * n);
-        const candidates = [];
-        for (let i = 0; i < n; i++) {
-          if (i === i1) continue;
-          if (i === (i1 + 1) % n) continue;
-          if (i === (i1 - 1 + n) % n) continue;
-          candidates.push(i);
-        }
-        if (candidates.length > 0) {
-          const i2 = candidates[Math.floor(Math.random() * candidates.length)];
-          const v1 = poly[i1], v2 = poly[i2];
-          const vdx = v2.x - v1.x, vdy = v2.y - v1.y;
-          const len = Math.hypot(vdx, vdy) || 1;
-          const ex = (vdx / len) * 500;
-          const ey = (vdy / len) * 500;
-          ax = v1.x - ex; ay = v1.y - ey;
-          bx = v1.x + ex; by = v1.y + ey;
-          picked = true;
-        }
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    const range = Math.hypot(box.w, box.h) * 1.5;
+
+    let lo = -range;
+    let hi = range;
+    let localBest = null;
+    let localErr = Infinity;
+
+    for (let iter = 0; iter < 16; iter++) {
+      const mid = (lo + hi) / 2;
+      const px = cx + perpX * mid;
+      const py = cy + perpY * mid;
+      const ax = px - dirX * 1000;
+      const ay = py - dirY * 1000;
+      const bx = px + dirX * 1000;
+      const by = py + dirY * 1000;
+
+      const pieces = splitPolygon(poly, ax, ay, bx, by);
+      const A = pieces[0], B = pieces[1];
+
+      if (A.length < 3 || B.length < 3) {
+        if (mid > 0) hi = mid; else lo = mid;
+        continue;
       }
-      if (!picked) {
-        const angle = Math.random() * Math.PI;
-        const cx = box.x + box.w * (0.3 + Math.random() * 0.4);
-        const cy = box.y + box.h * (0.3 + Math.random() * 0.4);
-        const ddx = Math.cos(angle), ddy = Math.sin(angle);
-        ax = cx - ddx * 1000; ay = cy - ddy * 1000;
-        bx = cx + ddx * 1000; by = cy + ddy * 1000;
+
+      const aA = polyArea(A);
+      const aB = polyArea(B);
+      const tot = aA + aB;
+      if (tot < 0.0001) {
+        if (mid > 0) hi = mid; else lo = mid;
+        continue;
       }
+      const ratio = aA / tot;
+      const err = Math.abs(ratio - targetRatio);
+
+      if (err < localErr && aA >= minArea && aB >= minArea) {
+        localErr = err;
+        localBest = pieces;
+      }
+
+      if (ratio > targetRatio) lo = mid;
+      else hi = mid;
+
+      if (localErr < 0.008) break;
     }
 
-    const pieces = splitPolygon(poly, ax, ay, bx, by);
-    const p1 = pieces[0], p2 = pieces[1];
-    if (p1.length < 3 || p2.length < 3) continue;
-    const a1 = polyArea(p1), a2 = polyArea(p2);
-    if (a1 < minArea || a2 < minArea) continue;
-    const ratio = a1 / (a1 + a2);
-    const err = Math.abs(ratio - targetRatio);
-    if (err < bestErr) {
-      bestErr = err;
-      best = [p1, p2];
+    if (localErr < bestErr) {
+      bestErr = localErr;
+      best = localBest;
     }
-    if (err < 0.04) break;
   }
 
+  tryAngle(0);
+  tryAngle(Math.PI / 2);
+  tryAngle(Math.PI / 4);
+  tryAngle(-Math.PI / 4);
+  tryAngle(Math.PI / 6);
+  tryAngle(-Math.PI / 6);
+  tryAngle(Math.PI / 3);
+  tryAngle(-Math.PI / 3);
+
   if (!best) {
-    const y = box.y + box.h * targetRatio;
+    const y = box.y + box.h * (1 - targetRatio);
     const pieces = splitPolygon(poly, box.x - 10, y, box.x + box.w + 10, y);
     if (pieces[0].length >= 3 && pieces[1].length >= 3) return pieces;
     return null;
@@ -302,6 +313,8 @@ function pickCut(poly, box, targetRatio) {
   return best;
 }
 
+/* Always isolate the top-bet player first, giving them a piece whose area
+   is exactly their share of the group's total bet. */
 function partitionPoly(players, startIdx, endIdx, poly) {
   const count = endIdx - startIdx;
   if (count <= 0) return;
@@ -310,24 +323,13 @@ function partitionPoly(players, startIdx, endIdx, poly) {
     return;
   }
 
-  const cum = [];
-  let sum = 0;
-  for (let i = startIdx; i < endIdx; i++) {
-    sum += Math.max(players[i].bet, 1);
-    cum.push(sum);
+  const topBet = Math.max(players[startIdx].bet, 1);
+  let restBet = 0;
+  for (let i = startIdx + 1; i < endIdx; i++) {
+    restBet += Math.max(players[i].bet, 1);
   }
-  const r = Math.random() * sum;
-  let splitIdx = startIdx;
-  for (let i = 0; i < cum.length; i++) {
-    if (r <= cum[i]) { splitIdx = startIdx + i + 1; break; }
-  }
-  if (splitIdx <= startIdx) splitIdx = startIdx + 1;
-  if (splitIdx >= endIdx) splitIdx = endIdx - 1;
-
-  const leftBet = players.slice(startIdx, splitIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
-  const rightBet = players.slice(splitIdx, endIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
-  const ratio = leftBet / (leftBet + rightBet);
-  const clampedRatio = Math.max(0.18, Math.min(0.82, ratio));
+  const ratio = topBet / (topBet + restBet);
+  const clampedRatio = Math.max(0.06, Math.min(0.94, ratio));
 
   const box = bboxOf(poly);
   if (box.w < 2 || box.h < 2) {
@@ -341,25 +343,22 @@ function partitionPoly(players, startIdx, endIdx, poly) {
     return;
   }
 
-  partitionPoly(players, startIdx, splitIdx, pieces[0]);
-  partitionPoly(players, splitIdx, endIdx, pieces[1]);
+  partitionPoly(players, startIdx, startIdx + 1, pieces[0]);
+  partitionPoly(players, startIdx + 1, endIdx, pieces[1]);
 }
 
 function repartitionIceArena() {
   const players = iceRoom.players;
   if (players.length === 0) return;
-  const shuffled = [...players];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
+  // Sort by bet descending so the top bettor is always index 0 in every group.
+  const sorted = [...players].sort((a, b) => b.bet - a.bet);
   const root = [
     { x: 0, y: 0 },
     { x: ICE_SIZE, y: 0 },
     { x: ICE_SIZE, y: ICE_SIZE },
     { x: 0, y: ICE_SIZE }
   ];
-  partitionPoly(shuffled, 0, shuffled.length, root);
+  partitionPoly(sorted, 0, sorted.length, root);
 
   const half = ICE_SIZE / 2;
   const scale = ICE_FIELD_SCALE;
@@ -498,12 +497,6 @@ async function endIceGame() {
   }, 3000);
 }
 
-/* ================================================================
-   ICE PHYSICS — deep-penetration collision resolution.
-   The puck always reflects off the deepest wall it's touching,
-   using one consistent normal, so corner bounces are smooth and
-   deterministic.
-   ================================================================ */
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
   const totalPts = ICE_PERIMETER.length;
@@ -525,7 +518,6 @@ function updateIcePhysics(dt) {
     let iter = 0;
     const maxIter = 8;
     while (iter < maxIter) {
-      // Find deepest penetration against all segments
       let deepestOverlap = 0;
       let bestNx = 0, bestNy = 0;
       let bestNearX = 0, bestNearY = 0;
@@ -559,11 +551,9 @@ function updateIcePhysics(dt) {
 
       if (deepestOverlap <= 0.0001) break;
 
-      // Push out along the deepest normal
       puck.x += bestNx * deepestOverlap;
       puck.y += bestNy * deepestOverlap;
 
-      // Reflect velocity once, using that single normal
       const vn = puck.vx * bestNx + puck.vy * bestNy;
       if (vn < 0) {
         puck.vx -= (1 + RESTITUTION) * vn * bestNx;
