@@ -504,7 +504,7 @@ function updateIcePhysics(dt) {
   const subSteps = 8;
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
-  const puckRadius = 10;
+  const puckRadius = 14;
 
   const FRICTION_BASE    = 0.990;
   const ROLLING_FRICTION = 0.985;
