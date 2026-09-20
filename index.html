@@ -1410,7 +1410,8 @@
     prevRenderX:0,prevRenderY:0,lastFrameTime:0,peakSpeed:0,zoomFired:false,
     countdownLastSecond:-1,
     countdownPulseStart:0,
-    confetti:[]
+    confetti:[],
+    nearStopFrames:0
   };
 
   const puckBuffer = [];
@@ -1488,18 +1489,16 @@
       iceCountdownTimer.classList.remove('cinematic','urgent','tick');
     }
     if(snapshot.gameState==='spinning'&&prev!=='spinning'){iceState.puckVisible=true;iceState.puckPopStart=performance.now();iceState.puckScale=0;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false}
-    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false}
+    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.nearStopFrames=0}
     if(snapshot.gameState==='finished'&&prev!=='finished'){
-      if(iceState.zoom>1.1&&!iceState.zoomOutTriggered){
-        iceState.zoomOutTriggered=true;
-        iceState.isZoomingOut=true;
-        iceState.isZoomingIn=false;
-        iceState.zoomStartTime=performance.now();
-        iceState.zoomTarget=1;
-        iceState.zoomDuration=1.1;
-      }
+      iceState.zoomOutTriggered=true;
+      iceState.isZoomingOut=true;
+      iceState.isZoomingIn=false;
+      iceState.zoomStartTime=performance.now();
+      iceState.zoomTarget=1;
+      iceState.zoomDuration=1.1;
     }
-    if(snapshot.gameState==='idle'&&prev!=='idle'){iceState.puckVisible=false;iceState.puckScale=1;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.pfpPop.clear();iceState.showOwnerName=false;iceState.currentOwnerName='';iceState.idlePuckInitialized=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.zoomCenterX=0;iceState.zoomCenterY=0;iceState.wallPulses=[];iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.confetti=[]}
+    if(snapshot.gameState==='idle'&&prev!=='idle'){iceState.puckVisible=false;iceState.puckScale=1;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.pfpPop.clear();iceState.showOwnerName=false;iceState.currentOwnerName='';iceState.idlePuckInitialized=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.zoomCenterX=0;iceState.zoomCenterY=0;iceState.wallPulses=[];iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.confetti=[];iceState.nearStopFrames=0}
     const seen=new Set();
     snapshot.players.forEach(sp=>{
       seen.add(sp.id);
@@ -1888,23 +1887,21 @@
           const spd=Math.sqrt(dx*dx+dy*dy)/dt;
           if(spd>iceState.peakSpeed)iceState.peakSpeed=spd;
           const elapsed=(now-iceState.slideStartTime)/1000;
-          if(!iceState.zoomFired && elapsed > 0.6 && spd < 1.5 && spd < iceState.peakSpeed * 0.30){
+
+          // Near-stop detection: count frames where puck is very slow.
+          if(spd < 0.35) iceState.nearStopFrames++;
+          else iceState.nearStopFrames = 0;
+
+          // Zoom in ONLY when the puck is genuinely about to stop.
+          if(!iceState.zoomFired && elapsed > 0.6 && iceState.nearStopFrames >= 4){
             iceState.zoomCenterX = puck.x;
             iceState.zoomCenterY = puck.y;
             iceState.zoomCenterFixed = true;
             iceState.isZoomingIn = true;
             iceState.zoomStartTime = now;
-            iceState.zoomTarget = 1.35;
+            iceState.zoomTarget = 1.45;
             iceState.zoomFired = true;
-            iceState.zoomDuration = 0.55;
-          }
-          if(iceState.zoomFired && !iceState.zoomOutTriggered && spd < 0.4){
-            iceState.zoomOutTriggered = true;
-            iceState.isZoomingOut = true;
-            iceState.isZoomingIn = false;
-            iceState.zoomStartTime = now;
-            iceState.zoomTarget = 1;
-            iceState.zoomDuration = 1.1;
+            iceState.zoomDuration = 0.5;
           }
         }
       }
