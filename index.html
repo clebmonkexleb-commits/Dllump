@@ -1016,8 +1016,9 @@
               _displayPoly:null,_targetPoly:null,
               color:p.color,bet:p.bet,_pfpSrc:null,_avSprite:null,_avKey:null};
             if(p.poly){
-              const r=resamplePoly(p.poly,16);
-              if(r){local._targetPoly=r;local._displayPoly=r.map(v=>({x:v.x,y:v.y}));}
+              const copy = p.poly.map(v => ({ x: v.x, y: v.y }));
+              local._targetPoly  = copy;
+              local._displayPoly = copy.map(v => ({ x: v.x, y: v.y }));
             }
             return local;
           });
@@ -1241,7 +1242,6 @@
   }
   const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
 
-  // Higher base radius for a sharp, anti-aliased downsample
   const PUCK_BASE_R = 96;
   const PUCK_PAD    = Math.ceil(PUCK_BASE_R*0.35)+4;
   const PUCK_HALF_RATIO = (PUCK_BASE_R+PUCK_PAD)/PUCK_BASE_R;
@@ -1280,31 +1280,6 @@
   }
 
   // ---------- Polygon helpers ----------
-  function resamplePoly(poly, n){
-    if(!poly || poly.length < 3) return null;
-    const n0 = poly.length;
-    const cum = [0];
-    let total = 0;
-    for(let i=0;i<n0;i++){
-      const a=poly[i], b=poly[(i+1)%n0];
-      total += Math.hypot(b.x-a.x, b.y-a.y);
-      cum.push(total);
-    }
-    if(total <= 0) return null;
-    const out = [];
-    let seg = 0;
-    for(let i=0;i<n;i++){
-      const target = (i / n) * total;
-      while(seg < n0 - 1 && cum[seg + 1] < target) seg++;
-      const segLen = cum[seg + 1] - cum[seg];
-      const t = segLen > 0 ? (target - cum[seg]) / segLen : 0;
-      const a = poly[seg];
-      const b = poly[(seg + 1) % n0];
-      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-    }
-    return out;
-  }
-
   function polyMeta(poly){
     const n = poly.length;
     let cx = 0, cy = 0;
@@ -1545,12 +1520,14 @@
       local.name=sp.name;
       local.poly = sp.poly || local.poly;
       if(sp.poly){
-        const r=resamplePoly(sp.poly,16);
-        if(r){
-          local._targetPoly = r;
-          if(!local._displayPoly || local._displayPoly.length !== r.length){
-            local._displayPoly = r.map(v=>({x:v.x,y:v.y}));
-          }
+        const incoming = sp.poly.map(v => ({ x: v.x, y: v.y }));
+        if(!local._displayPoly || local._displayPoly.length !== incoming.length){
+          // Vertex count changed — snap. Keeps sharp corners.
+          local._targetPoly  = incoming;
+          local._displayPoly = incoming.map(v => ({ x: v.x, y: v.y }));
+        } else {
+          // Same count — just retarget; render loop lerps smoothly.
+          local._targetPoly = incoming;
         }
       }
     });
@@ -1973,7 +1950,7 @@
     for(let pi=0; pi<iceState.players.length; pi++){
       const p = iceState.players[pi];
 
-      // Lerp display polygon toward target
+      // Lerp display polygon toward target (only when vertex counts match)
       if(p._displayPoly && p._targetPoly && p._displayPoly.length === p._targetPoly.length){
         const k = 0.22;
         const dp = p._displayPoly, tp = p._targetPoly;
