@@ -717,11 +717,8 @@ function updatePhysics(dt) {
   });
 }
 
-// ---------------------------------------------------------------
-// Game loop — 60Hz physics, 20Hz full state, 60Hz puck stream
-// ---------------------------------------------------------------
 const TICK_HZ = 60;
-const STATE_EVERY = 3;          // full state @ 20Hz
+const STATE_EVERY = 3;
 let tickCount = 0;
 let lastTick = Date.now();
 
@@ -753,7 +750,6 @@ setInterval(() => {
 
     tickCount++;
 
-    // light 60Hz puck stream
     if (iceRoom.gameState === 'sliding') {
       io.emit('icePuck', {
         x: iceRoom.puck.x, y: iceRoom.puck.y,
@@ -761,7 +757,6 @@ setInterval(() => {
       });
     }
 
-    // full state at 20Hz, or immediately on a phase change
     if (iceRoom.gameState !== icePrev || tickCount % STATE_EVERY === 0) {
       broadcastState();
       broadcastIceState();
