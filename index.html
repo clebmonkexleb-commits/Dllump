@@ -1489,7 +1489,7 @@
       iceCountdownTimer.classList.remove('cinematic','urgent','tick');
     }
     if(snapshot.gameState==='spinning'&&prev!=='spinning'){iceState.puckVisible=true;iceState.puckPopStart=performance.now();iceState.puckScale=0;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false}
-    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.nearStopFrames=0}
+    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.nearStopFrames=0;iceState.zoomCenterX=0;iceState.zoomCenterY=0}
     if(snapshot.gameState==='finished'&&prev!=='finished'){
       iceState.zoomOutTriggered=true;
       iceState.isZoomingOut=true;
@@ -1819,8 +1819,11 @@
     const path=cachedPerimeterPath;
     if(!path) return;
 
-    let zoomActive=iceState.zoom>1.05;
-    if(zoomActive&&iceState.zoomCenterFixed){
+    // zoom is applied only when the camera is locked (zoomCenterFixed).
+    // threshold lowered to 1.001 so save/restore are always paired and
+    // the zoom-out animation is smooth all the way down to 1.0.
+    let zoomActive = iceState.zoomCenterFixed && iceState.zoom > 1.001;
+    if(zoomActive){
       const csx=iceState.zoomCenterX*s,csy=iceState.zoomCenterY*s;
       const tx=(half-csx)*iceState.zoom+half-half*iceState.zoom;
       const ty=(half-csy)*iceState.zoom+half-half*iceState.zoom;
@@ -1888,14 +1891,14 @@
           if(spd>iceState.peakSpeed)iceState.peakSpeed=spd;
           const elapsed=(now-iceState.slideStartTime)/1000;
 
-          // Near-stop detection: count frames where puck is very slow.
+          // Near-stop detection: count frames where the puck is very slow.
           if(spd < 0.35) iceState.nearStopFrames++;
           else iceState.nearStopFrames = 0;
 
-          // Zoom in ONLY when the puck is genuinely about to stop.
+          // Zoom in ONLY once, right before the puck stops, at a fixed point.
           if(!iceState.zoomFired && elapsed > 0.6 && iceState.nearStopFrames >= 4){
-            iceState.zoomCenterX = puck.x;
-            iceState.zoomCenterY = puck.y;
+            iceState.zoomCenterX = rpx;
+            iceState.zoomCenterY = rpy;
             iceState.zoomCenterFixed = true;
             iceState.isZoomingIn = true;
             iceState.zoomStartTime = now;
@@ -1908,11 +1911,7 @@
       iceState.prevRenderX=rpx;iceState.prevRenderY=rpy;iceState.lastFrameTime=now;
     }
 
-    if(iceState.zoomCenterFixed && iceState.gameState==='sliding' && !iceState.isZoomingOut){
-      const track=0.22;
-      iceState.zoomCenterX += (puck.x - iceState.zoomCenterX)*track;
-      iceState.zoomCenterY += (puck.y - iceState.zoomCenterY)*track;
-    }
+    // NOTE: no camera tracking. Zoom center is fixed once zoom fires.
 
     if(iceState.isZoomingOut){
       const elapsed=(now-iceState.zoomStartTime)/1000,p=Math.min(elapsed/iceState.zoomDuration,1),e=easeInOutCubic(p);
