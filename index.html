@@ -456,36 +456,6 @@
   body.perf-lite .ice-auto-bet-toggle{ backdrop-filter:none; }
   body.perf-lite .bet-drag-chip{ backdrop-filter:blur(10px); }
 
-  /* ICE-LIVE: kill backdrop-filter while the puck is animating.
-     These panels sit over a constantly repainting canvas, so every frame
-     forced a full re-blur of the backdrop. Gradients are compensated so
-     the look barely changes. */
-  body.ice-live #ice-top-panel,
-  body.ice-live #ice-last-game-panel,
-  body.ice-live #ice-best-win-panel,
-  body.ice-live #ice-bet-overlay,
-  body.ice-live #tabs .tab-inner,
-  body.ice-live .ice-auto-bet-toggle,
-  body.ice-live #ice-auto-bet-panel{
-    backdrop-filter:none !important;
-    -webkit-backdrop-filter:none !important;
-  }
-  body.ice-live #ice-last-game-panel,
-  body.ice-live #ice-best-win-panel{
-    background:linear-gradient(135deg,rgba(40,50,80,.90),rgba(18,24,40,.95));
-  }
-  body.ice-live #ice-top-panel,
-  body.ice-live #ice-bet-overlay,
-  body.ice-live #ice-auto-bet-panel{
-    background:linear-gradient(135deg,rgba(40,50,80,.90),rgba(18,24,40,.96));
-  }
-  body.ice-live #tabs .tab-inner{ background:rgba(255,255,255,.10); }
-
-  body.perf-lite .tab-inner{
-    backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
-    background:rgba(255,255,255,.10);
-  }
-
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
     #un{max-width:88px;font-size:12px}
@@ -804,16 +774,23 @@
   const CORES = navigator.hardwareConcurrency || 4;
   const MEM = navigator.deviceMemory || 4;
   const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
-  const IS_LOW_END = CORES <= 4 || MEM <= 3 || (IS_TOUCH && window.devicePixelRatio >= 3);
-  if(IS_LOW_END) document.body.classList.add('perf-lite');
+  const RAW_DPR = window.devicePixelRatio || 1;
+
+  // Only flag genuinely weak devices as low-end. High-DPR screens are NOT low-end
+  // — treating them as such is what produced the blurry canvas.
+  const IS_LOW_END = CORES <= 4 || MEM <= 3;
+
   const PERF = {
-    dpr: IS_LOW_END ? 1.25 : (IS_TOUCH ? 1.5 : Math.min(window.devicePixelRatio || 1, 2)),
+    // Render at (near) native resolution. Cap only to protect very high DPR
+    // screens from excessive memory.
+    dpr: Math.min(RAW_DPR, IS_LOW_END ? 2 : 3),
     shadows: !IS_LOW_END,
     confetti: !IS_LOW_END,
     storyRings: !IS_LOW_END,
     heavyEffects: !IS_LOW_END,
-    targetFrameMs: IS_LOW_END ? (1000/40) : 0
+    targetFrameMs: 0
   };
+  if(IS_LOW_END) document.body.classList.add('perf-lite');
 
   const SERVER_URL='https://dllump-production-0a3d.up.railway.app';
   const WIN_GIFS=['https://i.postimg.cc/9Frvpxhz/ezgif-3f0e907be807d1cc.gif','https://i.postimg.cc/rmQPRSzF/ezgif-20d222277768f496.gif','https://i.postimg.cc/NfyzL2tt/ezgif-2378686847977dc7.gif','https://i.postimg.cc/Gt6zvzCK/ezgif-258589f1cd2da73d.gif','https://i.postimg.cc/Dwr5bqMn/ezgif-26d5d53255cd286f.gif','https://i.postimg.cc/qvTSYBPx/ezgif-2529049603c6d1a9.gif','https://i.postimg.cc/4dqF1Xbk/ezgif-286c5293f9b85b07.gif'];
@@ -1255,12 +1232,13 @@
   }
   const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.09,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:2.2};
 
-  // Single fixed puck sprite — scaled via drawImage.
-  const PUCK_BASE_R = 40;
+  // Single fixed-size puck sprite at native DPR. PUCK_BASE_R is chosen larger
+  // than the puck is ever drawn, so drawImage always downsamples → sharp.
+  const PUCK_BASE_R = 48;
   const PUCK_PAD    = Math.ceil(PUCK_BASE_R*0.35)+4;
   const PUCK_HALF_RATIO = (PUCK_BASE_R+PUCK_PAD)/PUCK_BASE_R;
   const puckSprite = (function(){
-    const dpr = Math.min(2, PERF.dpr||1);
+    const dpr = PERF.dpr;
     const cssSize = (PUCK_BASE_R+PUCK_PAD)*2;
     const cv = document.createElement('canvas');
     cv.width  = Math.ceil(cssSize*dpr);
@@ -1486,7 +1464,7 @@
     updateIceStatsBar();updateIceBetUI();updateIceWaitingText();updateIceBetOverlayVisibility();updateIceTopPanelVisibility();
   }
 
-  // ---- dirty-checked UI updaters ----
+  // ---- dirty-checked UI updaters (skip DOM writes when nothing changed) ----
   let _topPanelShown=null, _timerMode=null;
   function updateIceTopPanelVisibility(){
     const gs=iceState.gameState;
@@ -1517,7 +1495,6 @@
     if(show!==_waitingShown){ _waitingShown=show; iceWaitingText.style.display=show?'block':'none'; }
   }
 
-  let _iceLive=null;
   let _betOverlayHidden=null;
   function updateIceBetOverlayVisibility(){
     const gs=iceState.gameState;
@@ -1526,8 +1503,6 @@
       _betOverlayHidden=hide;
       iceBetOverlayWrap.classList.toggle('hidden',hide);
     }
-    const live=(gs==='sliding'||gs==='spinning');
-    if(live!==_iceLive){ _iceLive=live; document.body.classList.toggle('ice-live',live); }
   }
 
   let _betBtnLabel='',_betDisabled=null,_betShown=null;
@@ -1689,57 +1664,80 @@
     },5000);
   }
 
-  // ---- sprite caches ----
-  const TILE_SPRITE_PX = 128;
+  // ---- size + color aware sprite caches, rendered at native DPR ----
+  // Round the requested size up to the nearest 32px and cache by (size, color).
+  // This keeps sprite rendering sharp while avoiding per-frame allocation.
   const tileSpriteCache = new Map();
-  function getTileSprite(color){
-    let cv = tileSpriteCache.get(color);
+  function getTileSprite(color, rw, rh){
+    const w = Math.max(32, Math.ceil(rw/32)*32);
+    const h = Math.max(32, Math.ceil(rh/32)*32);
+    const key = color + '|' + w + 'x' + h;
+    let cv = tileSpriteCache.get(key);
     if(cv) return cv;
+
+    const dpr = PERF.dpr;
     cv = document.createElement('canvas');
-    cv.width = TILE_SPRITE_PX;
-    cv.height = TILE_SPRITE_PX;
+    cv.width  = Math.ceil(w * dpr);
+    cv.height = Math.ceil(h * dpr);
     const g = cv.getContext('2d');
-    const fg = g.createLinearGradient(0,0,TILE_SPRITE_PX,TILE_SPRITE_PX);
-    fg.addColorStop(0,   lightenColor(color,35));
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const fg = g.createLinearGradient(0, 0, w, h);
+    fg.addColorStop(0,   lightenColor(color, 35));
     fg.addColorStop(0.5, color);
-    fg.addColorStop(1,   lightenColor(color,20));
+    fg.addColorStop(1,   lightenColor(color, 20));
     g.fillStyle = fg;
-    g.fillRect(0,0,TILE_SPRITE_PX,TILE_SPRITE_PX);
-    tileSpriteCache.set(color,cv);
+    g.fillRect(0, 0, w, h);
+
+    if(tileSpriteCache.size > 24){
+      tileSpriteCache.delete(tileSpriteCache.keys().next().value);
+    }
+    tileSpriteCache.set(key, cv);
     return cv;
   }
 
-  const AVATAR_SPRITE_PX = 96;
-  function getAvatarSprite(p){
+  const avatarSpriteCache = new Map();
+  function getAvatarSprite(p, targetPx){
     const isMe  = (p.id===state.userId);
     const anon  = isMe && state.anonymous;
     const hide  = isMe && state.hidePfp;
     const ready = !!(p.pfpImg && p.pfpImg.complete && p.pfpImg.naturalWidth>0);
-    let key;
-    if(anon||hide)      key = 'anon|'+state.userId+'|'+(state.anonymousName||'A');
-    else if(ready)      key = 'img|'+(p._pfpSrc||p.pfp||'default');
-    else                key = 'solid|'+p.color;
-    if(p._avKey===key && p._avSprite) return p._avSprite;
 
-    const S = AVATAR_SPRITE_PX, R = S/2;
-    const cv = document.createElement('canvas');
-    cv.width = S; cv.height = S;
+    const size = Math.max(48, Math.ceil(targetPx/32)*32);
+    let baseKey;
+    if(anon||hide) baseKey = 'anon|'+state.userId+'|'+(state.anonymousName||'A');
+    else if(ready) baseKey = 'img|'+(p._pfpSrc||p.pfp||'default');
+    else           baseKey = 'solid|'+p.color;
+    const key = baseKey + '|' + size;
+
+    let cv = avatarSpriteCache.get(key);
+    if(cv) return cv;
+
+    const dpr = PERF.dpr;
+    cv = document.createElement('canvas');
+    cv.width  = Math.ceil(size * dpr);
+    cv.height = Math.ceil(size * dpr);
     const g = cv.getContext('2d');
+    g.setTransform(dpr,0,0,dpr,0,0);
+    const R = size/2;
     g.beginPath(); g.arc(R,R,R,0,Math.PI*2); g.clip();
     if(anon||hide){
       g.fillStyle = getAnonymousColor(state.userId);
-      g.fillRect(0,0,S,S);
+      g.fillRect(0,0,size,size);
       g.fillStyle = '#fff';
-      g.font = 'bold '+(S*0.4)+'px system-ui,sans-serif';
-      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = 'bold '+(size*0.4)+'px system-ui,sans-serif';
+      g.textAlign='center'; g.textBaseline='middle';
       g.fillText((state.anonymousName||'A').charAt(0).toUpperCase(), R, R+1);
     } else if(ready){
-      g.drawImage(p.pfpImg,0,0,S,S);
+      g.drawImage(p.pfpImg, 0, 0, size, size);
     } else {
       g.fillStyle = p.color || '#555';
-      g.fillRect(0,0,S,S);
+      g.fillRect(0,0,size,size);
     }
-    p._avSprite = cv; p._avKey = key;
+
+    if(avatarSpriteCache.size > 48){
+      avatarSpriteCache.delete(avatarSpriteCache.keys().next().value);
+    }
+    avatarSpriteCache.set(key, cv);
     return cv;
   }
 
@@ -1865,7 +1863,7 @@
     }
     const speed=Math.sqrt(Math.pow(rpx-iceState.puckPrevX,2)+Math.pow(rpy-iceState.puckPrevY,2));
 
-    // Player tiles — roundRect clip, sprite tiles, sprite avatars.
+    // Player tiles — roundRect clip, sharp sprites.
     iceCtx.save();
     if(iceCtx.roundRect){
       iceCtx.beginPath();
@@ -1890,7 +1888,7 @@
       const isWinner = (iceState.gameState==='finished' && iceState.winnerId===p.id);
 
       iceCtx.globalAlpha = isWinner ? 1 : 0.92;
-      iceCtx.drawImage(getTileSprite(p.color), x1, y1, segW, segH);
+      iceCtx.drawImage(getTileSprite(p.color, segW, segH), x1, y1, segW, segH);
       if(isWinner){
         iceCtx.globalAlpha = 0.35;
         iceCtx.fillStyle = '#ffffff';
@@ -1911,7 +1909,7 @@
       if(drawR <= 0.5) continue;
 
       const cx = (x1+x2)/2, cy = (y1+y2)/2;
-      iceCtx.drawImage(getAvatarSprite(p), cx-drawR, cy-drawR, drawR*2, drawR*2);
+      iceCtx.drawImage(getAvatarSprite(p, drawR*2), cx-drawR, cy-drawR, drawR*2, drawR*2);
     }
 
     if(iceState.confetti.length){
