@@ -174,6 +174,186 @@ function stopAutoBot() {
   if (autoBotInterval) { clearInterval(autoBotInterval); autoBotInterval = null; }
 }
 
+/* ============================================================
+   POLYGON PARTITION — Portals-style angled segments
+   ============================================================ */
+
+function bboxOf(poly) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const v of poly) {
+    if (v.x < minX) minX = v.x;
+    if (v.y < minY) minY = v.y;
+    if (v.x > maxX) maxX = v.x;
+    if (v.y > maxY) maxY = v.y;
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function polyArea(poly) {
+  let a = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const p1 = poly[i];
+    const p2 = poly[(i + 1) % poly.length];
+    a += p1.x * p2.y - p2.x * p1.y;
+  }
+  return Math.abs(a) * 0.5;
+}
+
+// Split convex polygon by infinite line through A->B.
+// Returns [side1, side2]. Either may be empty.
+function splitPolygon(poly, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const side = p => dx * (p.y - ay) - dy * (p.x - ax);
+  const eps = 1e-7;
+  const A = [];
+  const B = [];
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % n];
+    const sa = side(a);
+    const sb = side(b);
+    if (sa >= -eps) A.push(a);
+    if (sa <= eps) B.push(a);
+    if ((sa > eps && sb < -eps) || (sa < -eps && sb > eps)) {
+      const t = sa / (sa - sb);
+      const ix = a.x + (b.x - a.x) * t;
+      const iy = a.y + (b.y - a.y) * t;
+      const ip = { x: ix, y: iy };
+      A.push(ip);
+      B.push(ip);
+    }
+  }
+  return [A, B];
+}
+
+function pickCut(poly, box, targetRatio) {
+  // Try several random cuts, keep the one closest to targetRatio (area split).
+  const totalArea = polyArea(poly);
+  if (totalArea <= 0) return null;
+  const minArea = totalArea * 0.15;
+
+  let best = null;
+  let bestErr = Infinity;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const roll = Math.random();
+    let ax, ay, bx, by;
+
+    if (roll < 0.30) {
+      // Horizontal cut
+      const y = box.y + box.h * (0.2 + Math.random() * 0.6);
+      ax = box.x - 10; ay = y;
+      bx = box.x + box.w + 10; by = y;
+    } else if (roll < 0.60) {
+      // Vertical cut
+      const x = box.x + box.w * (0.2 + Math.random() * 0.6);
+      ax = x; ay = box.y - 10;
+      bx = x; by = box.y + box.h + 10;
+    } else {
+      // Diagonal cut — favor through two non-adjacent polygon vertices
+      const n = poly.length;
+      let picked = false;
+      if (n >= 4) {
+        const i1 = Math.floor(Math.random() * n);
+        const candidates = [];
+        for (let i = 0; i < n; i++) {
+          if (i === i1) continue;
+          if (i === (i1 + 1) % n) continue;
+          if (i === (i1 - 1 + n) % n) continue;
+          candidates.push(i);
+        }
+        if (candidates.length > 0) {
+          const i2 = candidates[Math.floor(Math.random() * candidates.length)];
+          const v1 = poly[i1], v2 = poly[i2];
+          // Line through the two vertices, slightly extended beyond
+          const vdx = v2.x - v1.x, vdy = v2.y - v1.y;
+          const len = Math.hypot(vdx, vdy) || 1;
+          const ex = (vdx / len) * 500;
+          const ey = (vdy / len) * 500;
+          ax = v1.x - ex; ay = v1.y - ey;
+          bx = v1.x + ex; by = v1.y + ey;
+          picked = true;
+        }
+      }
+      if (!picked) {
+        // Fallback: random angle through a point in the box
+        const angle = Math.random() * Math.PI;
+        const cx = box.x + box.w * (0.3 + Math.random() * 0.4);
+        const cy = box.y + box.h * (0.3 + Math.random() * 0.4);
+        const ddx = Math.cos(angle), ddy = Math.sin(angle);
+        ax = cx - ddx * 1000; ay = cy - ddy * 1000;
+        bx = cx + ddx * 1000; by = cy + ddy * 1000;
+      }
+    }
+
+    const pieces = splitPolygon(poly, ax, ay, bx, by);
+    const p1 = pieces[0], p2 = pieces[1];
+    if (p1.length < 3 || p2.length < 3) continue;
+    const a1 = polyArea(p1), a2 = polyArea(p2);
+    if (a1 < minArea || a2 < minArea) continue;
+    const ratio = a1 / (a1 + a2);
+    const err = Math.abs(ratio - targetRatio);
+    if (err < bestErr) {
+      bestErr = err;
+      best = [p1, p2];
+    }
+    if (err < 0.04) break;
+  }
+
+  if (!best) {
+    // Last-resort horizontal fallback
+    const y = box.y + box.h * targetRatio;
+    const pieces = splitPolygon(poly, box.x - 10, y, box.x + box.w + 10, y);
+    if (pieces[0].length >= 3 && pieces[1].length >= 3) return pieces;
+    return null;
+  }
+  return best;
+}
+
+function partitionPoly(players, startIdx, endIdx, poly) {
+  const count = endIdx - startIdx;
+  if (count <= 0) return;
+  if (count === 1) {
+    players[startIdx].poly = poly;
+    return;
+  }
+
+  const cum = [];
+  let sum = 0;
+  for (let i = startIdx; i < endIdx; i++) {
+    sum += Math.max(players[i].bet, 1);
+    cum.push(sum);
+  }
+  const r = Math.random() * sum;
+  let splitIdx = startIdx;
+  for (let i = 0; i < cum.length; i++) {
+    if (r <= cum[i]) { splitIdx = startIdx + i + 1; break; }
+  }
+  if (splitIdx <= startIdx) splitIdx = startIdx + 1;
+  if (splitIdx >= endIdx) splitIdx = endIdx - 1;
+
+  const leftBet = players.slice(startIdx, splitIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
+  const rightBet = players.slice(splitIdx, endIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
+  const ratio = leftBet / (leftBet + rightBet);
+  const clampedRatio = Math.max(0.18, Math.min(0.82, ratio));
+
+  const box = bboxOf(poly);
+  if (box.w < 2 || box.h < 2) {
+    for (let i = startIdx; i < endIdx; i++) players[i].poly = poly;
+    return;
+  }
+
+  const pieces = pickCut(poly, box, clampedRatio);
+  if (!pieces) {
+    for (let i = startIdx; i < endIdx; i++) players[i].poly = poly;
+    return;
+  }
+
+  partitionPoly(players, startIdx, splitIdx, pieces[0]);
+  partitionPoly(players, splitIdx, endIdx, pieces[1]);
+}
+
 function repartitionIceArena() {
   const players = iceRoom.players;
   if (players.length === 0) return;
@@ -182,73 +362,30 @@ function repartitionIceArena() {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  partitionRect(shuffled, 0, 0, ICE_SIZE, ICE_SIZE, 0, shuffled.length);
-  const map = {};
-  shuffled.forEach(p => { map[p.id] = p; });
+  const root = [
+    { x: 0, y: 0 },
+    { x: ICE_SIZE, y: 0 },
+    { x: ICE_SIZE, y: ICE_SIZE },
+    { x: 0, y: ICE_SIZE }
+  ];
+  partitionPoly(shuffled, 0, shuffled.length, root);
+
+  // Scale around center to keep margin
   const half = ICE_SIZE / 2;
   const scale = ICE_FIELD_SCALE;
   players.forEach(p => {
-    const assigned = map[p.id];
-    if (assigned) {
-      const cx1 = assigned.x1 - half, cy1 = assigned.y1 - half;
-      const cx2 = assigned.x2 - half, cy2 = assigned.y2 - half;
-      p.x1 = half + cx1 * scale; p.y1 = half + cy1 * scale;
-      p.x2 = half + cx2 * scale; p.y2 = half + cy2 * scale;
-    }
+    if (!p.poly) { p.poly = root; return; }
+    p.poly = p.poly.map(v => ({
+      x: half + (v.x - half) * scale,
+      y: half + (v.y - half) * scale
+    }));
   });
-}
-
-function partitionRect(players, x, y, w, h, startIdx, endIdx) {
-  const count = endIdx - startIdx;
-  if (count <= 0) return;
-  if (count === 1) {
-    const p = players[startIdx];
-    p.x1 = x; p.y1 = y; p.x2 = x + w; p.y2 = y + h;
-    return;
-  }
-  const totalBet = players.slice(startIdx, endIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
-  if (totalBet === 0) {
-    const mid = Math.floor((startIdx + endIdx) / 2);
-    const dir = Math.random() < 0.5 ? 'h' : 'v';
-    if (dir === 'h') {
-      const splitY = y + h / 2;
-      partitionRect(players, x, y, w, splitY - y, startIdx, mid);
-      partitionRect(players, x, splitY, w, y + h - splitY, mid, endIdx);
-    } else {
-      const splitX = x + w / 2;
-      partitionRect(players, x, y, splitX - x, h, startIdx, mid);
-      partitionRect(players, splitX, y, x + w - splitX, h, mid, endIdx);
-    }
-    return;
-  }
-  const cum = [];
-  let sum = 0;
-  for (let i = startIdx; i < endIdx; i++) { sum += Math.max(players[i].bet, 1); cum.push(sum); }
-  const r = Math.random() * sum;
-  let splitIdx = startIdx;
-  for (let i = 0; i < cum.length; i++) { if (r <= cum[i]) { splitIdx = startIdx + i + 1; break; } }
-  if (splitIdx <= startIdx) splitIdx = startIdx + 1;
-  if (splitIdx >= endIdx) splitIdx = endIdx - 1;
-  const leftBet = players.slice(startIdx, splitIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
-  const rightBet = players.slice(splitIdx, endIdx).reduce((s, p) => s + Math.max(p.bet, 1), 0);
-  const ratio = leftBet / (leftBet + rightBet);
-  const clampedRatio = Math.max(0.10, Math.min(0.90, ratio));
-  const dir = Math.random() < 0.5 ? 'h' : 'v';
-  if (dir === 'h') {
-    const splitY = y + h * clampedRatio;
-    partitionRect(players, x, y, w, splitY - y, startIdx, splitIdx);
-    partitionRect(players, x, splitY, w, y + h - splitY, splitIdx, endIdx);
-  } else {
-    const splitX = x + w * clampedRatio;
-    partitionRect(players, x, y, splitX - x, h, startIdx, splitIdx);
-    partitionRect(players, splitX, y, x + w - splitX, h, splitIdx, endIdx);
-  }
 }
 
 function makeIcePlayer(id, bet, name, pfp) {
   const colorIdx = iceRoom.players.length % COLORS.length;
   const p = { id, bet, name: name || 'player', pfp: pfp || '',
-    color: COLORS[colorIdx], x1: 0, y1: 0, x2: ICE_SIZE, y2: ICE_SIZE };
+    color: COLORS[colorIdx], poly: null };
   iceRoom.players.push(p);
   repartitionIceArena();
   return p;
@@ -260,6 +397,8 @@ function removeIcePlayer(id) {
   iceRoom.players.splice(idx, 1);
   if (iceRoom.players.length > 0) repartitionIceArena();
 }
+
+/* ============================================================ */
 
 function startIceCountdown() {
   if (iceRoom.gameState !== 'idle') return;
@@ -291,16 +430,36 @@ function launchIcePuck() {
   iceRoom.lastBounceTime = 0;
 }
 
+function pointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    if (((yi > py) !== (yj > py)) &&
+        (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function polyCentroid(poly) {
+  let cx = 0, cy = 0;
+  for (const v of poly) { cx += v.x; cy += v.y; }
+  return { x: cx / poly.length, y: cy / poly.length };
+}
+
 function getIceWinner() {
   const px = Math.min(Math.max(iceRoom.puck.x, 0), ICE_SIZE);
   const py = Math.min(Math.max(iceRoom.puck.y, 0), ICE_SIZE);
   for (const p of iceRoom.players) {
-    if (px >= p.x1 && px <= p.x2 && py >= p.y1 && py <= p.y2) return p;
+    if (p.poly && pointInPoly(px, py, p.poly)) return p;
   }
-  let closest = null; let minDist = Infinity;
+  let closest = null, minDist = Infinity;
   for (const p of iceRoom.players) {
-    const cx = (p.x1 + p.x2) / 2, cy = (p.y1 + p.y2) / 2;
-    const d = Math.hypot(px - cx, py - cy);
+    if (!p.poly) continue;
+    const c = polyCentroid(p.poly);
+    const d = Math.hypot(px - c.x, py - c.y);
     if (d < minDist) { minDist = d; closest = p; }
   }
   return closest;
@@ -355,7 +514,7 @@ function updateIcePhysics(dt) {
   const subSteps = 8;
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
-  const puckRadius = 20;
+  const puckRadius = 10;
 
   const FRICTION_BASE    = 0.990;
   const ROLLING_FRICTION = 0.985;
@@ -455,7 +614,7 @@ function broadcastIceState() {
     },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
-      x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2,
+      poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
     })),
   });
 }
@@ -798,7 +957,7 @@ io.on('connection', (socket) => {
 
       const icePlayers = iceRoom.players.map(p => ({
         id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
-        x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2,
+        poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
       }));
 
       ack?.({
