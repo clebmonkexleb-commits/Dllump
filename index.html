@@ -140,7 +140,8 @@
   #ice-timer-progress-wrap{width:100%;height:2px;border-radius:2px;background:rgba(180,210,255,.15);overflow:hidden}
   #ice-timer-progress{height:100%;width:100%;border-radius:2px;background:linear-gradient(90deg,#b8d2ff,#fff);transform:scaleX(0);transform-origin:left center;will-change:transform}
 
-  #ice-last-game-panel,#ice-best-win-panel{position:absolute;top:calc(76px + var(--safe-top));padding:7px 12px 7px 7px;background:linear-gradient(135deg,rgba(40,50,80,.68),rgba(18,24,40,.78));backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(180,210,255,.18);border-radius:14px;display:flex;align-items:center;gap:7px;z-index:6;box-shadow:0 8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);pointer-events:none;font-size:11px;color:rgba(200,220,250,.7);min-height:36px}
+  #ice-last-game-panel,#ice-best-win-panel{position:absolute;top:calc(76px + var(--safe-top));padding:7px 12px 7px 7px;background:linear-gradient(135deg,rgba(40,50,80,.68),rgba(18,24,40,.78));backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(180,210,255,.18);border-radius:14px;display:flex;align-items:center;gap:7px;z-index:6;box-shadow:0 8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);pointer-events:auto;cursor:pointer;font-size:11px;color:rgba(200,220,250,.7);min-height:36px;transition:transform .2s var(--ease-spring),box-shadow .25s ease}
+  #ice-last-game-panel:active,#ice-best-win-panel:active{transform:scale(.95)}
   #ice-last-game-panel{left:8px}
   #ice-best-win-panel{right:8px}
   .win-panel .panel-label{font-weight:700;letter-spacing:.4px;opacity:.7;margin-right:4px;white-space:nowrap;font-size:9px;text-transform:uppercase}
@@ -841,6 +842,203 @@
     .card-aura,.card-shine,#di{animation:none !important}
     .tab-indicator{transition-duration:.15s !important}
   }
+
+  /* ============================================================
+     HISTORY & REPLAY
+     ============================================================ */
+  .hs-overlay{
+    position:fixed;inset:0;z-index:9997;max-width:440px;margin:0 auto;
+    display:none;flex-direction:column;background:#0b0c10;
+    opacity:0;transform:translateY(20px);
+    transition:opacity .3s ease,transform .42s cubic-bezier(.34,1.56,.64,1);
+    overflow:hidden;
+  }
+  .hs-overlay::before{
+    content:'';position:absolute;top:-30%;left:-20%;right:-20%;height:70%;
+    background:radial-gradient(ellipse at 50% 0%,rgba(240,208,128,.10),transparent 55%);
+    pointer-events:none;
+  }
+  .hs-overlay.show{display:flex;opacity:1;transform:translateY(0)}
+  .hs-panel{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
+
+  .hs-head{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + var(--safe-top)) 20px 14px;flex-shrink:0}
+  .hs-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#fff}
+  .hs-close{
+    width:38px;height:38px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);
+    color:rgba(255,255,255,.85);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-family:inherit;
+    transition:transform .18s var(--ease-spring),background .18s ease;
+  }
+  .hs-close:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+
+  .hs-tabs{display:flex;gap:6px;padding:4px 20px 14px;flex-shrink:0}
+  .hs-tab{
+    flex:1;padding:10px 8px;border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.03);color:rgba(200,215,235,.6);
+    font-family:inherit;font-size:11px;font-weight:800;
+    letter-spacing:.8px;text-transform:uppercase;border-radius:12px;
+    cursor:pointer;transition:all .2s ease;
+  }
+  .hs-tab.active{
+    background:linear-gradient(135deg,rgba(91,157,255,.20),rgba(91,157,255,.08));
+    border-color:rgba(91,157,255,.5);color:#fff;
+    box-shadow:0 4px 16px rgba(91,157,255,.20),inset 0 1px 0 rgba(255,255,255,.15);
+  }
+
+  .hs-list{
+    flex:1;overflow-y:auto;padding:0 20px calc(30px + var(--safe-bottom));
+    display:flex;flex-direction:column;gap:8px;touch-action:pan-y;
+  }
+  .hs-list::-webkit-scrollbar{width:3px}
+  .hs-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
+
+  .hs-entry{
+    display:flex;align-items:center;gap:12px;padding:14px;
+    background:linear-gradient(135deg,rgba(40,50,80,.42),rgba(18,24,40,.55));
+    border:1px solid rgba(255,255,255,.07);border-radius:16px;
+    cursor:pointer;position:relative;overflow:hidden;
+    transition:transform .2s var(--ease-spring),background .2s ease,border-color .2s ease;
+    animation:hsEntryIn .4s var(--ease-spring) backwards;
+  }
+  @keyframes hsEntryIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .hs-entry:active{
+    transform:scale(.98);
+    background:linear-gradient(135deg,rgba(60,80,130,.55),rgba(28,38,60,.7));
+    border-color:rgba(140,180,255,.35);
+  }
+
+  .hs-rank{
+    position:absolute;top:8px;right:12px;
+    font-size:10px;font-weight:800;letter-spacing:1px;
+    color:rgba(240,208,128,.85);text-transform:uppercase;
+  }
+  .hs-rank.one{color:#f0d080;text-shadow:0 0 12px rgba(240,208,128,.7)}
+  .hs-rank.two{color:#c8c8d8}
+  .hs-rank.three{color:#cd8a5a}
+
+  .hs-num{
+    position:absolute;top:8px;left:14px;
+    font-size:9px;font-weight:800;letter-spacing:1px;
+    color:rgba(200,215,235,.35);font-family:'SF Mono',monospace;
+  }
+  .hs-pfp{
+    width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;
+    border:1.5px solid rgba(240,208,128,.45);background:rgba(255,255,255,.05);
+    margin-top:6px;
+  }
+  .hs-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;margin-top:6px}
+  .hs-name{font-size:14px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hs-meta{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-size:11px;color:rgba(200,215,235,.55);font-weight:600;
+  }
+  .hs-meta .dot{width:3px;height:3px;border-radius:50%;background:rgba(200,215,235,.3);flex-shrink:0}
+  .hs-amount{display:inline-flex;align-items:center;gap:3px;color:#f0d080;font-weight:800}
+  .hs-amount img{width:11px;height:11px;object-fit:contain}
+  .hs-mult{display:inline-flex;align-items:center;gap:3px;color:#6dffb0;font-weight:800;font-size:11.5px}
+
+  .hs-play{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#6da9ff,#4a86e8);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    box-shadow:0 4px 14px rgba(91,157,255,.4);margin-top:6px;
+  }
+  .hs-play svg{width:14px;height:14px;fill:#fff;stroke:none;margin-left:2px}
+
+  .hs-empty{text-align:center;padding:60px 20px;font-size:14px;color:rgba(200,215,235,.4);font-weight:600;line-height:1.6}
+  .hs-empty .hs-empty-icon{font-size:42px;margin-bottom:14px;opacity:.4}
+
+  .rp-overlay{
+    position:fixed;inset:0;z-index:9999;max-width:440px;margin:0 auto;
+    display:none;flex-direction:column;background:#08090c;
+    opacity:0;transform:scale(.96);
+    transition:opacity .3s ease,transform .42s cubic-bezier(.34,1.56,.64,1);
+    overflow:hidden;
+  }
+  .rp-overlay::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 30%,rgba(91,157,255,.08),transparent 60%);
+    pointer-events:none;
+  }
+  .rp-overlay.show{display:flex;opacity:1;transform:scale(1)}
+  .rp-panel{
+    display:flex;flex-direction:column;height:100%;position:relative;z-index:1;
+    padding:calc(20px + var(--safe-top)) 18px calc(20px + var(--safe-bottom));
+  }
+
+  .rp-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0}
+  .rp-back{
+    width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.85);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:transform .18s var(--ease-spring),background .18s ease;
+  }
+  .rp-back:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+  .rp-back svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .rp-title{font-size:16px;font-weight:700;letter-spacing:-.2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .rp-canvas-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 0 12px}
+  #rp-canvas{
+    width:100%;max-width:min(100%,440px);aspect-ratio:1/1;max-height:100%;
+    border-radius:22px;background:transparent;display:block;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+  }
+
+  .rp-info{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:14px 16px;
+    background:linear-gradient(135deg,rgba(40,50,80,.55),rgba(18,24,40,.7));
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;
+    margin-bottom:12px;flex-shrink:0;min-height:62px;
+  }
+  .rp-info-pfp{
+    width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;
+    border:1.5px solid rgba(240,208,128,.55);background:rgba(255,255,255,.05);
+  }
+  .rp-info-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .rp-info-name{font-size:14px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rp-info-sub{font-size:11.5px;font-weight:600;color:rgba(200,215,235,.6);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .rp-info-sub .hs-amount{color:#f0d080}
+  .rp-info-sub .hs-mult{color:#6dffb0;font-size:12px}
+
+  .rp-controls{display:flex;align-items:center;gap:12px;flex-shrink:0;padding:10px 4px 0}
+  .rp-play{
+    width:44px;height:44px;border-radius:50%;
+    border:1px solid rgba(140,180,255,.5);
+    background:linear-gradient(135deg,#6da9ff,#4a86e8);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+    box-shadow:0 6px 20px rgba(91,157,255,.4),inset 0 1px 0 rgba(255,255,255,.25);
+    transition:transform .18s var(--ease-spring);
+  }
+  .rp-play:active{transform:scale(.9)}
+  .rp-play svg{width:18px;height:18px;fill:#fff;stroke:none}
+  .rp-play .rp-pause-icon{display:none}
+  .rp-play.paused .rp-play-icon{display:block}
+  .rp-play.paused .rp-pause-icon{display:none}
+  .rp-play:not(.paused) .rp-play-icon{display:none}
+  .rp-play:not(.paused) .rp-pause-icon{display:block}
+
+  .rp-seek{
+    flex:1;height:4px;-webkit-appearance:none;appearance:none;
+    background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;
+  }
+  .rp-seek::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:16px;height:16px;border-radius:50%;
+    background:#b8d2ff;box-shadow:0 0 12px rgba(140,180,255,.7);
+    cursor:pointer;border:2px solid #0a0c12;
+  }
+  .rp-seek::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:#b8d2ff;
+    border:2px solid #0a0c12;box-shadow:0 0 12px rgba(140,180,255,.7);cursor:pointer;
+  }
+  .rp-time{
+    font-size:11.5px;font-weight:700;color:rgba(200,215,235,.6);
+    font-variant-numeric:tabular-nums;min-width:76px;text-align:right;letter-spacing:.3px;
+  }
 </style>
 </head>
 <body data-layout="panel" data-theme="onyx" data-bg-blur="on" data-bg-image="on">
@@ -1218,6 +1416,44 @@
 </div>
 <!-- ==================================================== -->
 
+<!-- ================= HISTORY OVERLAY ================= -->
+<div id="history-overlay" class="hs-overlay">
+  <div class="hs-panel">
+    <div class="hs-head">
+      <div class="hs-title">Arena History</div>
+      <button class="hs-close" id="hs-close" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="hs-tabs">
+      <button class="hs-tab active" data-hs-tab="history" type="button">History</button>
+      <button class="hs-tab" data-hs-tab="biggest" type="button">Biggest</button>
+      <button class="hs-tab" data-hs-tab="luckiest" type="button">Luckiest</button>
+    </div>
+    <div class="hs-list" id="hs-list"></div>
+  </div>
+</div>
+
+<!-- ================= REPLAY OVERLAY ================= -->
+<div id="replay-overlay" class="rp-overlay">
+  <div class="rp-panel">
+    <div class="rp-head">
+      <button class="rp-back" id="rp-close" type="button" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="rp-title" id="rp-title">Replay</div>
+    </div>
+    <div class="rp-canvas-wrap"><canvas id="rp-canvas"></canvas></div>
+    <div class="rp-info" id="rp-info"></div>
+    <div class="rp-controls">
+      <button class="rp-play paused" id="rp-play" type="button" aria-label="Play">
+        <svg class="rp-play-icon" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg>
+        <svg class="rp-pause-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      </button>
+      <input type="range" class="rp-seek" id="rp-seek" min="0" max="1000" value="0">
+      <div class="rp-time" id="rp-time">0.0s / 0.0s</div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -1506,7 +1742,17 @@
     socket.on('disconnect',()=>setOnline(false));
     socket.on('connect_error',()=>setOnline(false));
     socket.on('iceState',s=>applyIceServerState(s));
-    socket.on('icePuck',d=>{if(d&&d.g==='sliding')pushPuckSnapshot(d.x,d.y,d.vx,d.vy)});
+    socket.on('icePuck',d=>{
+      if(!d||d.g!=='sliding')return;
+      pushPuckSnapshot(d.x,d.y,d.vx,d.vy);
+      if(currentRecording){
+        const t = performance.now() - currentRecordingStartTs;
+        const p = currentRecording.path;
+        if(p.length === 0 || t - p[p.length-1].t > 25){
+          p.push({ x: d.x, y: d.y, t });
+        }
+      }
+    });
     socket.on('iceRoundEnd',p=>handleIceRoundEnd(p));
     socket.on('icePuckBounce',d=>{if(!d||!state.bounceLightsEnabled)return;iceState.wallPulses.push({x:d.x,y:d.y,intensity:d.intensity||.6,startTime:performance.now(),duration:700});if(iceState.wallPulses.length>6)iceState.wallPulses.shift()});
     socket.on('notification',d=>{if(d?.message)showNotif(d.message)});
@@ -1933,6 +2179,20 @@
     }
 
     if(snapshot.gameState==='sliding'&&prev!=='sliding'){
+      currentRecording = {
+        path: [{ x: snapshot.puck.x, y: snapshot.puck.y, t: 0 }],
+        players: snapshot.players.map(p => ({
+          id: p.id, name: p.name, pfp: p.pfp, color: p.color, bet: p.bet,
+          poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null
+        })),
+        pot: snapshot.pot,
+        startedAt: Date.now(),
+        duration: 5000,
+        winner: null,
+        gameNumber: 0
+      };
+      currentRecordingStartTs = performance.now();
+
       puckBuffer.length = 0;
       puckLastSnapshotT = 0;
       pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
@@ -2094,6 +2354,20 @@
   }
 
   function handleIceRoundEnd(payload){
+    if(currentRecording){
+      currentRecording.winner = payload ? {
+        id: payload.winnerId,
+        name: payload.winnerName,
+        pfp: payload.winnerPfp,
+        winnings: payload.winnings,
+        multiplier: payload.multiplier
+      } : null;
+      const p = currentRecording.path;
+      currentRecording.duration = p.length > 0 ? p[p.length-1].t : 5000;
+      currentRecording.endedAt = Date.now();
+      recordGameInHistory(currentRecording);
+      currentRecording = null;
+    }
     if(!payload){hideIceWinPanelAndReset();return}
     iceState.winnerId=payload.winnerId;
     const winnerPlayer=iceState.players.find(p=>p.id===payload.winnerId);
@@ -2296,9 +2570,6 @@
       const csx=iceState.zoomCenterX*s,csy=iceState.zoomCenterY*s;
       const tx=(half-csx)*iceState.zoom+half-half*iceState.zoom;
       const ty=(half-csy)*iceState.zoom+half-half*iceState.zoom;
-      // Solid base fill so the area OUTSIDE the zoomed rink (when the puck
-      // rests near an edge/corner) matches the rink's outer edge instead of
-      // showing through. This replaces the old static rink draw.
       iceCtx.fillStyle = '#060a12';
       iceCtx.fillRect(0, 0, w, w);
       iceCtx.save();
@@ -2364,21 +2635,14 @@
       const elapsedMs = now - iceState.slideStartTime;
 
       if(!iceState.zoomFired){
-        // Zoom starts this many ms BEFORE the puck is expected to rest
         const ZOOM_LEAD_MS = 200;
-        // Measured launch -> rest time for the current physics
         const EXPECTED_STOP_MS = 5440;
-
         let trigger = elapsedMs >= (EXPECTED_STOP_MS - ZOOM_LEAD_MS);
-
-        // Safety net: if the puck actually dies early (server velocity ~0),
-        // fire immediately so we don't miss the moment.
         if(!trigger && puckBuffer.length){
           const lastSnap = puckBuffer[puckBuffer.length - 1];
           const sv = Math.hypot(lastSnap.vx || 0, lastSnap.vy || 0);
           if(sv < 0.15) trigger = true;
         }
-
         if(trigger){
           iceState.zoomCenterX = rpx;
           iceState.zoomCenterY = rpy;
@@ -2391,9 +2655,6 @@
         }
       }
 
-      // Keep the camera glued to the puck while we're still zooming in, so
-      // the zoom lands on the puck's real resting spot (not where it was
-      // 200ms earlier).
       if(iceState.isZoomingIn){
         iceState.zoomCenterX += (rpx - iceState.zoomCenterX) * 0.25;
         iceState.zoomCenterY += (rpy - iceState.zoomCenterY) * 0.25;
@@ -3328,6 +3589,394 @@
       resizeSigCanvas();
     }
   });
+  /* ============================================================ */
+
+  /* ============================================================
+     GAME HISTORY & REPLAY
+     ============================================================ */
+  let gameCounter = 0;
+  const MAX_HISTORY = 20;
+  const gameHistory = [];
+  let currentRecording = null;
+  let currentRecordingStartTs = 0;
+
+  const hsOverlay = document.getElementById('history-overlay');
+  const hsList    = document.getElementById('hs-list');
+  const hsClose   = document.getElementById('hs-close');
+  const hsTabs    = document.querySelectorAll('.hs-tab');
+
+  const rpOverlay  = document.getElementById('replay-overlay');
+  const rpClose    = document.getElementById('rp-close');
+  const rpTitle    = document.getElementById('rp-title');
+  const rpCanvas   = document.getElementById('rp-canvas');
+  const rpCtx      = rpCanvas.getContext('2d');
+  const rpInfo     = document.getElementById('rp-info');
+  const rpPlay     = document.getElementById('rp-play');
+  const rpSeek     = document.getElementById('rp-seek');
+  const rpTime     = document.getElementById('rp-time');
+
+  let hsCurrentTab    = 'history';
+  let rpCurrentGame   = null;
+  let rpCurrentTime   = 0;
+  let rpPlaying       = false;
+  let rpLastTs        = 0;
+  let rpRafId         = null;
+  let rpCanvasSize    = 0;
+
+  function recordGameInHistory(rec){
+    gameCounter++;
+    rec.gameNumber = gameCounter;
+    gameHistory.unshift(rec);
+    if(gameHistory.length > MAX_HISTORY) gameHistory.pop();
+    saveHistoryToStorage();
+    if(hsOverlay.classList.contains('show')) renderHistoryList();
+  }
+
+  function saveHistoryToStorage(){
+    try{
+      const slim = gameHistory.map(g => ({
+        gameNumber: g.gameNumber, path: g.path, players: g.players,
+        pot: g.pot, startedAt: g.startedAt, endedAt: g.endedAt,
+        duration: g.duration, winner: g.winner
+      }));
+      localStorage.setItem('dllump_ice_history', JSON.stringify(slim));
+    }catch(_){}
+  }
+  function loadHistoryFromStorage(){
+    try{
+      const raw = localStorage.getItem('dllump_ice_history');
+      if(!raw) return;
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return;
+      arr.forEach(g => gameHistory.push(g));
+      gameCounter = arr.reduce((m,g)=>Math.max(m, g.gameNumber||0), 0);
+    }catch(_){}
+  }
+
+  function timeAgo(ts){
+    if(!ts) return 'just now';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if(s < 60) return s + 's ago';
+    const m = Math.floor(s/60);
+    if(m < 60) return m + 'm ago';
+    const h = Math.floor(m/60);
+    if(h < 24) return h + 'h ago';
+    return Math.floor(h/24) + 'd ago';
+  }
+
+  function renderHistoryList(){
+    const games = gameHistory.slice();
+    let sorted;
+    if(hsCurrentTab === 'biggest'){
+      sorted = games.filter(g => g.winner)
+        .sort((a,b) => (b.winner.winnings||0) - (a.winner.winnings||0)).slice(0, 30);
+    } else if(hsCurrentTab === 'luckiest'){
+      sorted = games.filter(g => g.winner)
+        .sort((a,b) => (b.winner.multiplier||0) - (a.winner.multiplier||0)).slice(0, 30);
+    } else {
+      sorted = games.slice(0, 30);
+    }
+
+    if(sorted.length === 0){
+      hsList.innerHTML =
+        '<div class="hs-empty"><div class="hs-empty-icon">❄️</div>' +
+        'No games yet.<br/>Play a round to start your history.</div>';
+      return;
+    }
+
+    let html = '';
+    sorted.forEach((g, idx) => {
+      const w = g.winner;
+      const pfp = w && w.pfp ? w.pfp : state.defaultAvatar;
+      const name = w ? w.name : 'No winner';
+      const winnings = w ? (w.winnings || 0) : 0;
+      const mult = w ? (w.multiplier || 0) : 0;
+      const pObj = w ? g.players.find(p => p.id === w.id) : null;
+      const bet = pObj ? pObj.bet : 0;
+
+      let rankLabel = '';
+      if((hsCurrentTab === 'biggest' || hsCurrentTab === 'luckiest') && idx < 3){
+        const cls = idx === 0 ? 'one' : idx === 1 ? 'two' : 'three';
+        rankLabel = '<div class="hs-rank ' + cls + '">#' + (idx+1) +
+                    (hsCurrentTab === 'luckiest' ? ' 🍀' : '') + '</div>';
+      }
+      const numLabel = hsCurrentTab === 'history'
+        ? '<div class="hs-num">#' + g.gameNumber + '</div>' : '';
+
+      html +=
+        '<div class="hs-entry" data-game="' + g.gameNumber + '" style="animation-delay:' + (idx*25) + 'ms">' +
+          numLabel + rankLabel +
+          '<img class="hs-pfp" src="' + pfp + '" onerror="this.src=\'' + state.defaultAvatar + '" alt="">' +
+          '<div class="hs-body">' +
+            '<div class="hs-name">' + name + '</div>' +
+            '<div class="hs-meta">' +
+              '<span>' + timeAgo(g.endedAt || g.startedAt) + '</span>' +
+              '<span class="dot"></span>' +
+              '<span>bet ' + bet + '</span>' +
+              '<span class="dot"></span>' +
+              '<span class="hs-amount">+' + winnings + ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt=""></span>' +
+              (mult > 0 ? '<span class="dot"></span><span class="hs-mult">' + mult.toFixed(2) + '×</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="hs-play"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg></div>' +
+        '</div>';
+    });
+
+    hsList.innerHTML = html;
+    hsList.querySelectorAll('.hs-entry').forEach(el => {
+      el.addEventListener('click', () => {
+        const num = parseInt(el.dataset.game, 10);
+        const game = gameHistory.find(g => g.gameNumber === num);
+        if(game){ haptic('light'); openReplay(game); }
+      });
+    });
+  }
+
+  function openHistory(tab){
+    hsCurrentTab = tab || 'history';
+    hsTabs.forEach(t => t.classList.toggle('active', t.dataset.hsTab === hsCurrentTab));
+    renderHistoryList();
+    hsOverlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => hsOverlay.classList.add('show')));
+    haptic('medium');
+  }
+  function closeHistory(){
+    hsOverlay.classList.remove('show');
+    haptic('light');
+    setTimeout(() => { hsOverlay.style.display = 'none'; }, 380);
+  }
+
+  function openReplay(game){
+    rpCurrentGame = game;
+    rpCurrentTime = 0;
+    rpPlaying = true;
+    rpLastTs = 0;
+
+    rpTitle.textContent = 'Game #' + game.gameNumber;
+    const w = game.winner;
+    const pfp = w && w.pfp ? w.pfp : state.defaultAvatar;
+    const name = w ? w.name : 'No winner';
+    const winnings = w ? (w.winnings || 0) : 0;
+    const mult = w ? (w.multiplier || 0) : 0;
+    const pObj = w ? game.players.find(p => p.id === w.id) : null;
+    const bet = pObj ? pObj.bet : 0;
+
+    rpInfo.innerHTML =
+      '<img class="rp-info-pfp" src="' + pfp + '" onerror="this.src=\'' + state.defaultAvatar + '" alt="">' +
+      '<div class="rp-info-body">' +
+        '<div class="rp-info-name">' + name + ' won</div>' +
+        '<div class="rp-info-sub">' +
+          '<span>bet ' + bet + '</span><span>·</span>' +
+          '<span class="hs-amount">+' + winnings + ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="" style="width:11px;height:11px;object-fit:contain;"></span>' +
+          (mult > 0 ? '<span>·</span><span class="hs-mult">' + mult.toFixed(2) + '×</span>' : '') +
+        '</div>' +
+      '</div>';
+
+    rpSeek.value = 0;
+    rpPlay.classList.remove('paused');
+
+    rpOverlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        rpOverlay.classList.add('show');
+        sizeReplayCanvas();
+        setTimeout(() => {
+          rpLastTs = 0;
+          if(!rpRafId) rpRafId = requestAnimationFrame(replayTick);
+        }, 60);
+      });
+    });
+    haptic('medium');
+  }
+  function closeReplay(){
+    rpPlaying = false;
+    if(rpRafId){ cancelAnimationFrame(rpRafId); rpRafId = null; }
+    rpOverlay.classList.remove('show');
+    haptic('light');
+    setTimeout(() => { rpOverlay.style.display = 'none'; rpCurrentGame = null; }, 380);
+  }
+
+  function sizeReplayCanvas(){
+    const rect = rpCanvas.getBoundingClientRect();
+    if(rect.width < 10) return;
+    const dpr = PERF.dpr;
+    rpCanvasSize = rect.width;
+    rpCanvas.width  = Math.round(rect.width  * dpr);
+    rpCanvas.height = Math.round(rect.height * dpr);
+    rpCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    rpCtx.imageSmoothingEnabled = true;
+    rpCtx.imageSmoothingQuality = 'high';
+  }
+
+  function replayTick(ts){
+    if(!rpCurrentGame){ rpRafId = null; return; }
+    if(rpPlaying){
+      if(rpLastTs){
+        rpCurrentTime += (ts - rpLastTs);
+        if(rpCurrentTime >= rpCurrentGame.duration){
+          rpCurrentTime = rpCurrentGame.duration;
+          rpPlaying = false;
+          rpPlay.classList.add('paused');
+        }
+      }
+      rpLastTs = ts;
+    } else {
+      rpLastTs = ts;
+    }
+    drawReplayFrame();
+
+    const pct = rpCurrentGame.duration > 0 ? (rpCurrentTime / rpCurrentGame.duration) : 0;
+    rpSeek.value = Math.round(pct * 1000);
+    rpTime.textContent = (rpCurrentTime/1000).toFixed(1) + 's / ' + (rpCurrentGame.duration/1000).toFixed(1) + 's';
+
+    rpRafId = requestAnimationFrame(replayTick);
+  }
+
+  function puckAtTimeInPath(path, t){
+    if(!path || path.length === 0) return { x: 200, y: 200 };
+    if(t <= path[0].t) return { x: path[0].x, y: path[0].y };
+    const last = path[path.length - 1];
+    if(t >= last.t) return { x: last.x, y: last.y };
+    for(let i = 0; i < path.length - 1; i++){
+      if(t >= path[i].t && t <= path[i+1].t){
+        const dt = path[i+1].t - path[i].t;
+        const a = dt > 0 ? (t - path[i].t) / dt : 0;
+        return {
+          x: path[i].x + (path[i+1].x - path[i].x) * a,
+          y: path[i].y + (path[i+1].y - path[i].y) * a
+        };
+      }
+    }
+    return { x: last.x, y: last.y };
+  }
+
+  function drawReplayFrame(){
+    if(!rpCurrentGame) return;
+    const g = rpCurrentGame;
+    const w = rpCanvasSize;
+    if(w < 10) return;
+    const s = w / SERVER_ARENA_SIZE;
+
+    rpCtx.clearRect(0, 0, w, w);
+    rpCtx.fillStyle = '#060a12';
+    rpCtx.fillRect(0, 0, w, w);
+    if(rinkCache) rpCtx.drawImage(rinkCache, 0, 0, w, w);
+
+    rpCtx.save();
+    if(rpCtx.roundRect){
+      rpCtx.beginPath();
+      rpCtx.roundRect(0, 0, w, w, iceState.cornerRadius * s);
+      rpCtx.clip();
+    } else if(cachedPerimeterPath){
+      rpCtx.clip(cachedPerimeterPath);
+    }
+
+    const nearEnd = g.duration > 0 && rpCurrentTime > g.duration - 400;
+
+    for(const p of g.players){
+      if(!p.poly || p.poly.length < 3) continue;
+      rpCtx.save();
+      rpCtx.beginPath();
+      rpCtx.moveTo(p.poly[0].x * s, p.poly[0].y * s);
+      for(let i = 1; i < p.poly.length; i++) rpCtx.lineTo(p.poly[i].x * s, p.poly[i].y * s);
+      rpCtx.closePath();
+
+      const isWinner = nearEnd && g.winner && g.winner.id === p.id;
+      const grad = rpCtx.createLinearGradient(0, 0, w, w);
+      grad.addColorStop(0,   lightenColor(p.color, 35));
+      grad.addColorStop(0.5, p.color);
+      grad.addColorStop(1,   lightenColor(p.color, 20));
+      rpCtx.fillStyle = grad;
+      rpCtx.globalAlpha = isWinner ? 1 : 0.88;
+      rpCtx.fill();
+      if(isWinner){
+        rpCtx.globalAlpha = 0.32;
+        rpCtx.fillStyle = '#fff';
+        rpCtx.fill();
+      }
+      rpCtx.globalAlpha = 1;
+      rpCtx.restore();
+
+      const meta = polyMeta(p.poly);
+      const cx = meta.cx * s, cy = meta.cy * s, inR = meta.inR * s;
+      const playerObj = iceState.players.find(x => x.id === p.id);
+      const avatarR = Math.min(inR * 0.65, w * 0.12);
+      if(avatarR > 2 && playerObj){
+        try{
+          const sprite = getAvatarSprite(playerObj, avatarR*2);
+          rpCtx.drawImage(sprite, cx-avatarR, cy-avatarR, avatarR*2, avatarR*2);
+        }catch(_){
+          rpCtx.beginPath(); rpCtx.arc(cx, cy, avatarR, 0, Math.PI*2);
+          rpCtx.fillStyle = p.color; rpCtx.fill();
+        }
+      }
+    }
+
+    rpCtx.restore();
+
+    if(g.path.length > 1){
+      rpCtx.save();
+      rpCtx.lineCap = 'round';
+      rpCtx.lineJoin = 'round';
+      const trailLen = 18;
+      const startIdx = Math.max(0, g.path.length - trailLen);
+      for(let i = startIdx; i < g.path.length - 1; i++){
+        const p0 = g.path[i], p1 = g.path[i+1];
+        if(p0.t > rpCurrentTime) break;
+        const alpha = ((i - startIdx) / (g.path.length - startIdx)) * 0.35;
+        rpCtx.beginPath();
+        rpCtx.moveTo(p0.x * s, p0.y * s);
+        rpCtx.lineTo(p1.x * s, p1.y * s);
+        rpCtx.strokeStyle = 'rgba(180,210,255,' + alpha + ')';
+        rpCtx.lineWidth = 3;
+        rpCtx.stroke();
+      }
+      rpCtx.restore();
+    }
+
+    const pos = puckAtTimeInPath(g.path, rpCurrentTime);
+    drawPuckSprite(rpCtx, pos.x * s, pos.y * s, PUCK_RENDER_RADIUS * s);
+  }
+
+  hsClose.addEventListener('click', closeHistory);
+  hsTabs.forEach(t => t.addEventListener('click', () => {
+    hsCurrentTab = t.dataset.hsTab;
+    hsTabs.forEach(x => x.classList.toggle('active', x === t));
+    haptic('light');
+    renderHistoryList();
+  }));
+
+  document.getElementById('ice-last-game-panel').addEventListener('click', () => openHistory('history'));
+  document.getElementById('ice-best-win-panel').addEventListener('click', () => openHistory('biggest'));
+
+  rpClose.addEventListener('click', closeReplay);
+  rpPlay.addEventListener('click', () => {
+    if(!rpCurrentGame) return;
+    if(rpCurrentTime >= rpCurrentGame.duration) rpCurrentTime = 0;
+    rpPlaying = !rpPlaying;
+    rpPlay.classList.toggle('paused', !rpPlaying);
+    if(rpPlaying && !rpRafId){ rpLastTs = 0; rpRafId = requestAnimationFrame(replayTick); }
+    haptic('light');
+  });
+  rpSeek.addEventListener('input', e => {
+    if(!rpCurrentGame) return;
+    const pct = parseFloat(e.target.value) / 1000;
+    rpCurrentTime = pct * rpCurrentGame.duration;
+    drawReplayFrame();
+    rpTime.textContent = (rpCurrentTime/1000).toFixed(1) + 's / ' + (rpCurrentGame.duration/1000).toFixed(1) + 's';
+  });
+  rpSeek.addEventListener('change', () => {
+    if(rpPlaying && !rpRafId){ rpLastTs = 0; rpRafId = requestAnimationFrame(replayTick); }
+  });
+
+  window.addEventListener('resize', () => {
+    if(rpOverlay.classList.contains('show')){
+      sizeReplayCanvas();
+      drawReplayFrame();
+    }
+  });
+
+  loadHistoryFromStorage();
   /* ============================================================ */
 
   function init(){
