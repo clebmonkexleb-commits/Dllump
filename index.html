@@ -521,7 +521,7 @@
 
   .tr-hero{
     display:flex;flex-direction:column;align-items:center;
-    padding:12px 0 34px;text-align:center;flex-shrink:0;
+    padding:12px 0 30px;text-align:center;flex-shrink:0;
   }
   .tr-hero-amount{
     display:inline-flex;align-items:center;gap:14px;
@@ -548,22 +548,74 @@
   }
   .tr-field + .tr-field{margin-top:6px}
   .tr-field:focus-within{border-bottom-color:rgba(91,157,255,.85)}
+  .tr-field:focus-within::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:1.5px;
+    background:linear-gradient(90deg,transparent,rgba(140,180,255,.7),transparent);
+    filter:blur(3px);
+    animation:fieldGlow 2.4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes fieldGlow{0%,100%{opacity:.5}50%{opacity:1}}
   .tr-field label{
     display:block;font-size:10px;font-weight:800;letter-spacing:1.9px;
     text-transform:uppercase;color:rgba(200,215,235,.42);
     margin-bottom:7px;transition:color .25s ease;
   }
   .tr-field:focus-within label{color:rgba(140,180,255,.9)}
-  .tr-field input{
-    width:100%;border:none;background:transparent;
-    color:#fff;font-family:inherit;font-size:19px;font-weight:700;
-    padding:0;outline:none;letter-spacing:-.3px;
+
+  .tr-input-wrap{position:relative;width:100%;min-height:1.4em}
+  .tr-input-wrap input{
+    display:block;width:100%;
+    border:none;background:transparent;outline:none;
+    padding:0;margin:0;
+    color:transparent;
+    caret-color:transparent;
     -webkit-user-select:text;user-select:text;
+    font-family:inherit;
+    font-size:19px;font-weight:700;letter-spacing:-.3px;line-height:1.4;
   }
-  .tr-field input::placeholder{color:rgba(255,255,255,.22);font-weight:600;letter-spacing:0}
-  .tr-field.amount input{
+  .tr-input-wrap input::placeholder{color:rgba(255,255,255,.22);font-weight:600;letter-spacing:0;opacity:1}
+  .tr-input-wrap input::selection{background:rgba(91,157,255,.32);color:transparent}
+
+  .tr-input-display{
+    position:absolute;left:0;top:0;right:0;bottom:0;
+    pointer-events:none;
+    font-family:inherit;
+    font-size:19px;font-weight:700;letter-spacing:-.3px;line-height:1.4;
+    color:#fff;
+    white-space:nowrap;overflow:hidden;
+    display:block;
+  }
+  .tr-char{
+    display:inline-block;
+    white-space:pre;
+    will-change:transform,opacity;
+  }
+  .tr-char.in{
+    animation:trCharIn .42s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes trCharIn{
+    0%{opacity:0;transform:translateY(14px) scale(.5)}
+    55%{opacity:1;transform:translateY(-5px) scale(1.10)}
+    78%{transform:translateY(2px) scale(.97)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .tr-caret{
+    display:inline-block;
+    width:2px;height:1.05em;margin-left:1px;
+    background:#b8d2ff;border-radius:1px;
+    vertical-align:middle;
+    transform:translateY(-1px);
+    animation:trCaretBlink 1s steps(1,end) infinite;
+    box-shadow:0 0 8px rgba(140,180,255,.7);
+  }
+  @keyframes trCaretBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  .tr-field.amount .tr-input-wrap input,
+  .tr-field.amount .tr-input-display{
     font-size:30px;font-weight:800;letter-spacing:-.9px;
-    padding-right:34px;font-variant-numeric:tabular-nums;
+    font-variant-numeric:tabular-nums;
+    padding-right:34px;
   }
   .tr-field .tr-field-icon{
     position:absolute;right:0;bottom:14px;
@@ -574,16 +626,36 @@
   .tr-field .tr-field-prefix{
     position:absolute;left:0;bottom:12px;
     font-size:19px;font-weight:700;color:rgba(255,255,255,.5);
-    pointer-events:none;
+    pointer-events:none;z-index:2;
   }
-  .tr-field.has-prefix input{padding-left:18px}
+  .tr-field.has-prefix .tr-input-wrap{padding-left:18px}
 
-  .tr-bottom{margin-top:auto;display:flex;flex-direction:column;padding-top:20px}
+  .tr-chips{
+    display:flex;gap:8px;margin-top:14px;
+    flex-shrink:0;
+  }
+  .tr-chip{
+    flex:1;
+    padding:9px 6px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.09);
+    background:rgba(255,255,255,.04);
+    color:rgba(220,232,248,.85);
+    font-family:inherit;font-weight:800;font-size:12px;
+    letter-spacing:.5px;
+    cursor:pointer;
+    position:relative;overflow:hidden;
+    transition:transform .18s var(--ease-spring),background .2s ease,border-color .2s ease,color .2s ease;
+  }
+  .tr-chip:active{transform:scale(.94);background:rgba(91,157,255,.16);border-color:rgba(91,157,255,.5);color:#fff}
+
+  .tr-bottom{margin-top:auto;display:flex;flex-direction:column;padding-top:18px}
 
   .tr-error{
     min-height:18px;margin-bottom:8px;text-align:center;
     font-size:12.5px;font-weight:700;color:#ff7a7a;letter-spacing:.2px;
+    animation:errIn .3s var(--ease-spring);
   }
+  @keyframes errIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
   #tr-submit{
     width:100%;padding:18px 0;border-radius:18px;
@@ -635,9 +707,12 @@
   .paper-brand{font-size:15px;font-weight:900;letter-spacing:5px;color:#0a1a2a}
   .paper-type{font-size:8.5px;font-weight:700;letter-spacing:3.4px;color:rgba(10,26,42,.5)}
   .paper-date{position:absolute;top:24px;right:26px;font-size:9.5px;font-weight:700;color:rgba(10,26,42,.55);letter-spacing:.2px}
-  .paper-divider{height:0;border-top:1px dashed rgba(10,26,42,.28);margin:14px 0}
+  .paper-divider{height:0;border-top:1px dashed rgba(10,26,42,.28);margin:14px 0;transform-origin:left;animation:paperDiv .6s ease .25s both}
+  @keyframes paperDiv{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .paper-body{display:flex;flex-direction:column;gap:12px}
-  .paper-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .paper-row{display:flex;justify-content:space-between;align-items:center;gap:12px;opacity:0;animation:paperRow .5s ease .35s forwards}
+  .paper-row:nth-child(2){animation-delay:.5s}
+  @keyframes paperRow{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   .paper-label{font-size:9px;font-weight:800;letter-spacing:2.2px;color:rgba(10,26,42,.5);flex-shrink:0}
   .paper-value{font-size:14px;font-weight:800;color:#0a1a2a;word-break:break-all;text-align:right}
   .paper-amount{
@@ -650,13 +725,15 @@
     position:relative;flex:1;height:72px;
     border-bottom:1.5px dashed rgba(10,26,42,.42);
     min-width:0;
+    opacity:0;
+    animation:paperRow .5s ease .65s forwards;
   }
   #tr-sig-canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
   .paper-signature-label{
     position:absolute;left:0;bottom:-15px;font-size:8px;font-weight:800;
     letter-spacing:2.4px;color:rgba(10,26,42,.5);
   }
-  .paper-sender{text-align:right;flex-shrink:0;max-width:44%}
+  .paper-sender{text-align:right;flex-shrink:0;max-width:44%;opacity:0;animation:paperRow .5s ease .72s forwards}
   .paper-sender-label{font-size:8px;font-weight:800;letter-spacing:2.4px;color:rgba(10,26,42,.5);margin-bottom:3px}
   .paper-sender-name{font-size:12.5px;font-weight:800;color:#0a1a2a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
@@ -698,12 +775,18 @@
     60%{transform:scale(1.03)}
     100%{transform:scale(1)}
   }
+  #tr-continue.success{
+    background:linear-gradient(135deg,#4ade80,#22c55e);
+    border-color:rgba(120,220,160,.6);
+    box-shadow:0 14px 32px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.3);
+  }
 
   @media (max-width:400px){
     .tr-page{padding-left:22px;padding-right:22px}
     .tr-hero-amount{font-size:48px;gap:12px}
     .tr-hero-amount img{width:34px;height:34px}
-    .tr-field.amount input{font-size:26px}
+    .tr-field.amount .tr-input-wrap input,
+    .tr-field.amount .tr-input-display{font-size:26px}
     .tr-paper{max-width:310px;padding:20px 20px 16px}
     .paper-brand{font-size:13px;letter-spacing:4px}
     .paper-date{font-size:8.5px;right:20px;top:20px}
@@ -718,6 +801,16 @@
     .paper-signature-box{height:60px}
     .paper-arrow{top:-26px;width:28px;height:28px}
     #tr-submit,#tr-continue{padding:15px 0;border-radius:16px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .tr-char.in,
+    .tr-caret,
+    .tr-field:focus-within::after,
+    .paper-arrow,
+    .paper-row,
+    .paper-divider,
+    .paper-signature-box,
+    .paper-sender{animation:none !important;opacity:1 !important;transform:none !important}
   }
 
   @media (max-width:400px){
@@ -747,9 +840,6 @@
   @media (prefers-reduced-motion:reduce){
     .card-aura,.card-shine,#di{animation:none !important}
     .tab-indicator{transition-duration:.15s !important}
-    .paper-arrow{animation:none}
-    #tr-continue.enabled{animation:none}
-    .tr-hero-amount img{animation:none}
   }
 </style>
 </head>
@@ -1024,7 +1114,6 @@
 <!-- ================= TRANSFER OVERLAY ================= -->
 <div id="transfer-overlay" class="tr-overlay">
 
-  <!-- Stage 1: compose -->
   <div class="tr-page active" id="tr-compose-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-close" type="button" aria-label="Close">
@@ -1044,13 +1133,27 @@
     <div class="tr-fields">
       <div class="tr-field amount">
         <label>Amount</label>
-        <input id="tr-amount" type="text" placeholder="0" inputmode="numeric" enterkeyhint="next" autocomplete="off">
+        <div class="tr-input-wrap">
+          <input id="tr-amount" type="text" placeholder="0" inputmode="numeric" enterkeyhint="next" autocomplete="off">
+          <div class="tr-input-display" id="tr-amount-display"></div>
+        </div>
         <img class="tr-field-icon" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
       </div>
+
+      <div class="tr-chips" id="tr-chips">
+        <button class="tr-chip" type="button" data-pct="0.25">25%</button>
+        <button class="tr-chip" type="button" data-pct="0.50">50%</button>
+        <button class="tr-chip" type="button" data-pct="0.75">75%</button>
+        <button class="tr-chip" type="button" data-pct="1">MAX</button>
+      </div>
+
       <div class="tr-field has-prefix">
         <label>Recipient</label>
         <span class="tr-field-prefix">@</span>
-        <input id="tr-username" type="text" placeholder="username" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
+        <div class="tr-input-wrap">
+          <input id="tr-username" type="text" placeholder="username" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
+          <div class="tr-input-display" id="tr-username-display"></div>
+        </div>
       </div>
     </div>
 
@@ -1063,7 +1166,6 @@
     </div>
   </div>
 
-  <!-- Stage 2: sign -->
   <div class="tr-page" id="tr-sign-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-sign-back" type="button" aria-label="Back">
@@ -1592,7 +1694,7 @@
   function drawLiquidGlassPuck(c,x,y,r,opts){
     opts=opts||{};
     const scale=r/36;
-    const rim=(opts.rimRatio!==undefined?opts.rimRatio:.36)*r;
+    const rim=(opts.rimRatio!==undefined?opts.rimRatio:.44)*r;
     const outer=(opts.outerRatio!==undefined?opts.outerRatio:.32)*r;
     const rimAlpha=opts.rimAlpha!==undefined?opts.rimAlpha:.95;
     const outerAlpha=opts.outerAlpha!==undefined?opts.outerAlpha:.20;
@@ -1611,7 +1713,7 @@
     c.restore();
     c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.08);c.strokeStyle='rgba(255,255,255,0.04)';c.arc(x,y,r-rim*.2,-0.6,0.6);c.stroke();c.restore();
   }
-  const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
+  const PUCK_OPTS={rimRatio:.44,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
 
   const PUCK_BASE_R = 96;
   const PUCK_PAD    = Math.ceil(PUCK_BASE_R*0.35)+4;
@@ -2836,9 +2938,12 @@
   const trSignBack      = document.getElementById('tr-sign-back');
   const trBalanceNum    = document.getElementById('tr-balance-num');
   const trUsernameInput = document.getElementById('tr-username');
+  const trUsernameDisp  = document.getElementById('tr-username-display');
   const trAmountInput   = document.getElementById('tr-amount');
+  const trAmountDisp    = document.getElementById('tr-amount-display');
   const trSubmit        = document.getElementById('tr-submit');
   const trError         = document.getElementById('tr-error');
+  const trChips         = document.getElementById('tr-chips');
   const paperTo         = document.getElementById('paper-to');
   const paperAmountNum  = document.getElementById('paper-amount-num');
   const paperDate       = document.getElementById('paper-date');
@@ -2853,6 +2958,111 @@
   let trDrawnPoints  = 0;
   let trPending      = false;
   const trSigCtx = trSigCanvas.getContext('2d');
+
+  function attachTypeMirror(inputEl, displayEl){
+    let chars = [];
+    let lastVal = '';
+
+    function buildStatic(val){
+      displayEl.innerHTML = '';
+      chars = [];
+      for(let i = 0; i < val.length; i++){
+        const s = document.createElement('span');
+        s.className = 'tr-char';
+        s.textContent = val[i];
+        displayEl.appendChild(s);
+        chars.push(s);
+      }
+      const caret = document.createElement('span');
+      caret.className = 'tr-caret';
+      displayEl.appendChild(caret);
+      lastVal = val;
+    }
+
+    function onInput(){
+      const val = inputEl.value;
+      const old = lastVal;
+      if(val.length <= old.length || Math.abs(val.length - old.length) > 1){
+        buildStatic(val);
+        return;
+      }
+      if(val.length === old.length + 1 && val.slice(0, old.length) === old){
+        const newChar = val.charAt(val.length - 1);
+        const caret = displayEl.querySelector('.tr-caret');
+        if(caret) caret.remove();
+        const s = document.createElement('span');
+        s.className = 'tr-char in';
+        s.textContent = newChar;
+        displayEl.appendChild(s);
+        chars.push(s);
+        const newCaret = document.createElement('span');
+        newCaret.className = 'tr-caret';
+        displayEl.appendChild(newCaret);
+        lastVal = val;
+        setTimeout(()=> s.classList.remove('in'), 500);
+      } else {
+        buildStatic(val);
+      }
+    }
+
+    inputEl.addEventListener('input', onInput);
+    inputEl.addEventListener('paste', () => setTimeout(()=> buildStatic(inputEl.value), 0));
+    inputEl.addEventListener('change', () => buildStatic(inputEl.value));
+    buildStatic(inputEl.value);
+
+    return {
+      sync: () => buildStatic(inputEl.value)
+    };
+  }
+
+  const trAmountMirror   = attachTypeMirror(trAmountInput, trAmountDisp);
+  const trUsernameMirror = attachTypeMirror(trUsernameInput, trUsernameDisp);
+
+  let trBalanceAnim = null;
+  function animateTrBalance(target){
+    if(trBalanceAnim) cancelAnimationFrame(trBalanceAnim);
+    const start = performance.now();
+    const dur = 900;
+    const from = 0;
+    const to = Math.max(0, Math.floor(target));
+    function frame(t){
+      const p = Math.min(1, (t - start) / dur);
+      const e = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
+      const v = Math.round(from + (to - from) * e);
+      trBalanceNum.textContent = v.toLocaleString();
+      if(p < 1) trBalanceAnim = requestAnimationFrame(frame);
+      else { trBalanceNum.textContent = to.toLocaleString(); trBalanceAnim = null; }
+    }
+    trBalanceAnim = requestAnimationFrame(frame);
+  }
+
+  trChips.addEventListener('click', e => {
+    const chip = e.target.closest('.tr-chip');
+    if(!chip) return;
+    const pct = parseFloat(chip.dataset.pct);
+    if(!Number.isFinite(pct)) return;
+    const raw = Math.floor(state.balance * pct);
+    let val;
+    if(pct === 1) val = Math.floor(state.balance);
+    else val = Math.max(1, Math.floor(raw));
+    trAmountInput.value = String(val);
+    trAmountMirror.sync();
+    haptic('light');
+    chip.animate(
+      [{transform:'scale(.9)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],
+      {duration:260, easing:'cubic-bezier(.34,1.56,.64,1)'}
+    );
+  });
+
+  function flashError(msg){
+    trError.textContent = msg || '';
+    if(msg){
+      trError.animate(
+        [{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(-3px)'},{transform:'translateX(0)'}],
+        {duration:280, easing:'ease-out'}
+      );
+    }
+  }
 
   function trShowPage(which){
     if(which === 'compose'){
@@ -2883,7 +3093,7 @@
     trSigned = false;
     trDrawnPoints = 0;
     trContinue.disabled = true;
-    trContinue.classList.remove('enabled');
+    trContinue.classList.remove('enabled','success');
     paperArrow.classList.remove('hidden');
   }
 
@@ -2893,6 +3103,8 @@
     trDrawing      = false;
     trUsernameInput.value = '';
     trAmountInput.value   = '';
+    trAmountMirror.sync();
+    trUsernameMirror.sync();
     trError.textContent   = '';
     trContinue.textContent = 'Continue';
     trClearSig();
@@ -2901,15 +3113,16 @@
 
   function openTransfer(){
     if(!state.userId){ showNotif('Please sign in first'); return; }
-    trBalanceNum.textContent = Math.floor(state.balance).toLocaleString();
     trReset();
     trOverlay.style.display = 'flex';
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
         trOverlay.classList.add('show');
+        animateTrBalance(state.balance);
       });
     });
     haptic('medium');
+    setTimeout(()=>{ try{ trAmountInput.focus(); }catch(_){ } }, 480);
   }
 
   function closeTransfer(){
@@ -2968,24 +3181,12 @@
     const clean   = rawUser.replace(/^@/, '').toLowerCase();
     const amount  = Math.floor(Number(rawAmt) || 0);
 
-    trError.textContent = '';
+    flashError('');
 
-    if(!clean || clean.length < 3){
-      trError.textContent = 'Enter a valid username';
-      haptic('light'); return;
-    }
-    if(clean === (state.username || '').toLowerCase()){
-      trError.textContent = 'Cannot transfer to yourself';
-      haptic('light'); return;
-    }
-    if(!Number.isFinite(amount) || amount <= 0){
-      trError.textContent = 'Enter a valid amount';
-      haptic('light'); return;
-    }
-    if(amount > state.balance){
-      trError.textContent = 'Insufficient balance';
-      haptic('light'); return;
-    }
+    if(!clean || clean.length < 3){ flashError('Enter a valid username'); haptic('light'); return; }
+    if(clean === (state.username || '').toLowerCase()){ flashError('Cannot transfer to yourself'); haptic('light'); return; }
+    if(!Number.isFinite(amount) || amount <= 0){ flashError('Enter a valid amount'); haptic('light'); return; }
+    if(amount > state.balance){ flashError('Insufficient balance'); haptic('light'); return; }
 
     trTransferData = { username: clean, amount };
 
@@ -3016,7 +3217,11 @@
     if(!trSigned || trPending || !trTransferData) return;
     trPending = true;
     trContinue.disabled = true;
-    trContinue.textContent = '...';
+
+    const originalText = trContinue.textContent;
+    trContinue.textContent = '✓';
+    trContinue.classList.add('success');
+
     try {
       const r = await fetch(SERVER_URL + '/api/transfer', {
         method: 'POST',
@@ -3044,17 +3249,21 @@
           trReset();
         }, 200);
       } else {
-        trError.textContent = d.error || 'Transfer failed';
+        trContinue.textContent = originalText;
+        trContinue.classList.remove('success');
+        trContinue.disabled = false;
+        flashError(d.error || 'Transfer failed');
         trShowPage('compose');
         trPending = false;
-        trContinue.textContent = 'Continue';
         haptic('light');
       }
     } catch(err){
-      trError.textContent = 'Network error';
+      trContinue.textContent = originalText;
+      trContinue.classList.remove('success');
+      trContinue.disabled = false;
+      flashError('Network error');
       trShowPage('compose');
       trPending = false;
-      trContinue.textContent = 'Continue';
       haptic('light');
     }
   });
