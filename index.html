@@ -1279,7 +1279,6 @@
     img.src=src;
   }
 
-  // ---------- Polygon helpers ----------
   function polyMeta(poly){
     const n = poly.length;
     let cx = 0, cy = 0;
@@ -1522,11 +1521,9 @@
       if(sp.poly){
         const incoming = sp.poly.map(v => ({ x: v.x, y: v.y }));
         if(!local._displayPoly || local._displayPoly.length !== incoming.length){
-          // Vertex count changed — snap. Keeps sharp corners.
           local._targetPoly  = incoming;
           local._displayPoly = incoming.map(v => ({ x: v.x, y: v.y }));
         } else {
-          // Same count — just retarget; render loop lerps smoothly.
           local._targetPoly = incoming;
         }
       }
@@ -1946,11 +1943,9 @@
 
     const highlight = state.fieldHighlightEnabled;
 
-    // Pass 1: tiles + corner blicks + avatars
     for(let pi=0; pi<iceState.players.length; pi++){
       const p = iceState.players[pi];
 
-      // Lerp display polygon toward target (only when vertex counts match)
       if(p._displayPoly && p._targetPoly && p._displayPoly.length === p._targetPoly.length){
         const k = 0.22;
         const dp = p._displayPoly, tp = p._targetPoly;
@@ -1962,7 +1957,6 @@
       const poly = p._displayPoly;
       if(!poly || poly.length < 3) continue;
 
-      // bbox in screen space
       let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
       for(let i=0;i<poly.length;i++){
         const sx=poly[i].x*s, sy=poly[i].y*s;
@@ -1974,7 +1968,6 @@
 
       const isWinner = (iceState.gameState==='finished' && iceState.winnerId===p.id);
 
-      // Draw polygon clip + tile + blicks
       iceCtx.save();
       iceCtx.beginPath();
       iceCtx.moveTo(poly[0].x*s, poly[0].y*s);
@@ -1991,7 +1984,6 @@
       }
       iceCtx.globalAlpha = 1;
 
-      // Corner blicks (only when highlight enabled)
       if(highlight){
         const corners = findBboxCorners(poly);
         const blickR = Math.min(32 * s, Math.min(segW, segH) * 0.30);
@@ -2011,7 +2003,6 @@
 
       iceCtx.restore();
 
-      // Avatar
       const meta = polyMeta(poly);
       const cx = meta.cx * s;
       const cy = meta.cy * s;
@@ -2033,7 +2024,6 @@
       iceCtx.drawImage(getAvatarSprite(p, drawR*2), cx-drawR, cy-drawR, drawR*2, drawR*2);
     }
 
-    // Pass 2: field outlines (only when highlight enabled)
     if(highlight){
       for(let pi=0; pi<iceState.players.length; pi++){
         const p = iceState.players[pi];
