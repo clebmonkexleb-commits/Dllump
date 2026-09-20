@@ -2288,7 +2288,6 @@
     iceCtx.clearRect(0,0,w,w);
 
     if(!rinkCache || rinkCacheSize!==w || !cachedPerimeterPath) buildRinkCache();
-    if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
     const path=cachedPerimeterPath;
     if(!path) return;
 
@@ -2297,7 +2296,16 @@
       const csx=iceState.zoomCenterX*s,csy=iceState.zoomCenterY*s;
       const tx=(half-csx)*iceState.zoom+half-half*iceState.zoom;
       const ty=(half-csy)*iceState.zoom+half-half*iceState.zoom;
-      iceCtx.save();iceCtx.translate(tx,ty);iceCtx.scale(iceState.zoom,iceState.zoom);
+      // Solid base fill so the area OUTSIDE the zoomed rink (when the puck
+      // rests near an edge/corner) matches the rink's outer edge instead of
+      // showing through. This replaces the old static rink draw.
+      iceCtx.fillStyle = '#060a12';
+      iceCtx.fillRect(0, 0, w, w);
+      iceCtx.save();
+      iceCtx.translate(tx,ty);
+      iceCtx.scale(iceState.zoom,iceState.zoom);
+      if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
+    } else {
       if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
     }
 
