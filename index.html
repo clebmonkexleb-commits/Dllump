@@ -844,122 +844,186 @@
   }
 
   /* ============================================================
-     HISTORY & REPLAY
+     HISTORY & REPLAY (REDESIGNED · serious / no emojis)
      ============================================================ */
   .hs-overlay{
     position:fixed;inset:0;z-index:9997;max-width:440px;margin:0 auto;
-    display:none;flex-direction:column;background:#0b0c10;
-    opacity:0;transform:translateY(20px);
+    display:none;flex-direction:column;background:#08090c;
+    opacity:0;transform:translateY(16px);
     transition:opacity .3s ease,transform .42s cubic-bezier(.34,1.56,.64,1);
     overflow:hidden;
   }
   .hs-overlay::before{
     content:'';position:absolute;top:-30%;left:-20%;right:-20%;height:70%;
-    background:radial-gradient(ellipse at 50% 0%,rgba(240,208,128,.10),transparent 55%);
+    background:radial-gradient(ellipse at 50% 0%,rgba(91,157,255,.10),transparent 55%);
     pointer-events:none;
   }
   .hs-overlay.show{display:flex;opacity:1;transform:translateY(0)}
   .hs-panel{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
 
-  .hs-head{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + var(--safe-top)) 20px 14px;flex-shrink:0}
-  .hs-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#fff}
+  .hs-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:calc(20px + var(--safe-top)) 20px 12px;flex-shrink:0;
+  }
+  .hs-title{
+    font-size:18px;font-weight:700;letter-spacing:-.3px;color:#fff;
+    display:flex;align-items:center;gap:10px;
+  }
+  .hs-title .hs-title-mark{
+    width:6px;height:6px;border-radius:50%;background:#5b9dff;
+    box-shadow:0 0 10px rgba(91,157,255,.9);
+  }
+  .hs-title .hs-title-sub{
+    font-size:10px;font-weight:800;letter-spacing:2px;
+    color:rgba(200,215,235,.4);text-transform:uppercase;
+  }
   .hs-close{
-    width:38px;height:38px;border-radius:50%;
-    border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);
-    color:rgba(255,255,255,.85);cursor:pointer;
+    width:36px;height:36px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);
+    color:rgba(255,255,255,.75);cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    font-size:15px;font-family:inherit;
     transition:transform .18s var(--ease-spring),background .18s ease;
   }
+  .hs-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
   .hs-close:active{transform:scale(.9);background:rgba(255,255,255,.12)}
 
-  .hs-tabs{display:flex;gap:6px;padding:4px 20px 14px;flex-shrink:0}
+  .hs-tabs{
+    display:flex;gap:4px;padding:6px 20px 12px;flex-shrink:0;
+    position:relative;
+  }
+  .hs-tabs::after{
+    content:'';position:absolute;left:20px;right:20px;bottom:8px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  }
   .hs-tab{
-    flex:1;padding:10px 8px;border:1px solid rgba(255,255,255,.08);
-    background:rgba(255,255,255,.03);color:rgba(200,215,235,.6);
+    flex:1;padding:9px 6px;border:none;
+    background:transparent;color:rgba(200,215,235,.5);
     font-family:inherit;font-size:11px;font-weight:800;
-    letter-spacing:.8px;text-transform:uppercase;border-radius:12px;
-    cursor:pointer;transition:all .2s ease;
+    letter-spacing:1.2px;text-transform:uppercase;border-radius:8px;
+    cursor:pointer;transition:all .2s ease;position:relative;
   }
-  .hs-tab.active{
-    background:linear-gradient(135deg,rgba(91,157,255,.20),rgba(91,157,255,.08));
-    border-color:rgba(91,157,255,.5);color:#fff;
-    box-shadow:0 4px 16px rgba(91,157,255,.20),inset 0 1px 0 rgba(255,255,255,.15);
+  .hs-tab::after{
+    content:'';position:absolute;left:50%;transform:translateX(-50%);
+    bottom:-6px;width:0;height:2px;border-radius:1px;
+    background:linear-gradient(90deg,transparent,#5b9dff,transparent);
+    transition:width .3s var(--ease-spring),opacity .2s ease;
+    opacity:0;
   }
+  .hs-tab.active{color:#fff}
+  .hs-tab.active::after{width:70%;opacity:1}
 
   .hs-list{
-    flex:1;overflow-y:auto;padding:0 20px calc(30px + var(--safe-bottom));
-    display:flex;flex-direction:column;gap:8px;touch-action:pan-y;
+    flex:1;overflow-y:auto;padding:6px 20px calc(30px + var(--safe-bottom));
+    display:flex;flex-direction:column;gap:6px;touch-action:pan-y;
   }
   .hs-list::-webkit-scrollbar{width:3px}
   .hs-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
 
   .hs-entry{
-    display:flex;align-items:center;gap:12px;padding:14px;
-    background:linear-gradient(135deg,rgba(40,50,80,.42),rgba(18,24,40,.55));
-    border:1px solid rgba(255,255,255,.07);border-radius:16px;
+    display:flex;align-items:center;gap:12px;padding:12px 14px;
+    background:linear-gradient(135deg,rgba(40,50,80,.32),rgba(18,24,40,.45));
+    border:1px solid rgba(255,255,255,.06);border-radius:14px;
     cursor:pointer;position:relative;overflow:hidden;
     transition:transform .2s var(--ease-spring),background .2s ease,border-color .2s ease;
     animation:hsEntryIn .4s var(--ease-spring) backwards;
   }
-  @keyframes hsEntryIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes hsEntryIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .hs-entry:active{
     transform:scale(.98);
-    background:linear-gradient(135deg,rgba(60,80,130,.55),rgba(28,38,60,.7));
-    border-color:rgba(140,180,255,.35);
+    background:linear-gradient(135deg,rgba(60,80,130,.5),rgba(28,38,60,.65));
+    border-color:rgba(140,180,255,.32);
   }
+  .hs-entry::before{
+    content:'';position:absolute;left:0;top:14%;bottom:14%;width:2px;
+    border-radius:0 2px 2px 0;background:#5b9dff;opacity:0;
+    transition:opacity .2s ease;
+  }
+  .hs-entry:active::before{opacity:1}
 
-  .hs-rank{
-    position:absolute;top:8px;right:12px;
-    font-size:10px;font-weight:800;letter-spacing:1px;
-    color:rgba(240,208,128,.85);text-transform:uppercase;
-  }
-  .hs-rank.one{color:#f0d080;text-shadow:0 0 12px rgba(240,208,128,.7)}
-  .hs-rank.two{color:#c8c8d8}
-  .hs-rank.three{color:#cd8a5a}
-
-  .hs-num{
-    position:absolute;top:8px;left:14px;
-    font-size:9px;font-weight:800;letter-spacing:1px;
-    color:rgba(200,215,235,.35);font-family:'SF Mono',monospace;
-  }
   .hs-pfp{
-    width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;
-    border:1.5px solid rgba(240,208,128,.45);background:rgba(255,255,255,.05);
-    margin-top:6px;
+    width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;
+    border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
   }
-  .hs-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;margin-top:6px}
-  .hs-name{font-size:14px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hs-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .hs-name-row{display:flex;align-items:center;gap:8px;min-width:0}
+  .hs-name{font-size:13.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.1px}
+  .hs-gamenum{
+    font-size:9.5px;font-weight:800;letter-spacing:.8px;
+    color:rgba(200,215,235,.42);font-family:'SF Mono',ui-monospace,monospace;
+    flex-shrink:0;padding:2px 6px;border-radius:5px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);
+  }
   .hs-meta{
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    font-size:11px;color:rgba(200,215,235,.55);font-weight:600;
+    font-size:11px;color:rgba(200,215,235,.5);font-weight:600;
+    letter-spacing:.1px;
   }
-  .hs-meta .dot{width:3px;height:3px;border-radius:50%;background:rgba(200,215,235,.3);flex-shrink:0}
-  .hs-amount{display:inline-flex;align-items:center;gap:3px;color:#f0d080;font-weight:800}
-  .hs-amount img{width:11px;height:11px;object-fit:contain}
-  .hs-mult{display:inline-flex;align-items:center;gap:3px;color:#6dffb0;font-weight:800;font-size:11.5px}
+  .hs-meta .dot{width:2.5px;height:2.5px;border-radius:50%;background:rgba(200,215,235,.28);flex-shrink:0}
+  .hs-amount{display:inline-flex;align-items:center;gap:4px;color:#f0d080;font-weight:800}
+  .hs-amount img{width:10px;height:10px;object-fit:contain}
+  .hs-mult{
+    display:inline-flex;align-items:center;
+    color:#5b9dff;font-weight:800;font-size:11.5px;
+    padding:1px 6px;border-radius:4px;
+    background:rgba(91,157,255,.10);
+    border:1px solid rgba(91,157,255,.18);
+  }
+
+  .hs-actions{
+    display:flex;align-items:center;gap:8px;flex-shrink:0;
+  }
+  .hs-rank-badge{
+    width:22px;height:22px;border-radius:6px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10.5px;font-weight:900;letter-spacing:-.2px;
+    font-family:'SF Mono',ui-monospace,monospace;
+  }
+  .hs-rank-badge.r1{color:#f0d080;background:rgba(240,208,128,.10);border:1px solid rgba(240,208,128,.32)}
+  .hs-rank-badge.r2{color:#c8c8d8;background:rgba(200,200,216,.08);border:1px solid rgba(200,200,216,.25)}
+  .hs-rank-badge.r3{color:#cd8a5a;background:rgba(205,138,90,.08);border:1px solid rgba(205,138,90,.25)}
 
   .hs-play{
-    width:34px;height:34px;border-radius:50%;
-    background:linear-gradient(135deg,#6da9ff,#4a86e8);
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,rgba(91,157,255,.22),rgba(74,134,232,.16));
+    border:1px solid rgba(91,157,255,.35);
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    box-shadow:0 4px 14px rgba(91,157,255,.4);margin-top:6px;
+    transition:transform .18s var(--ease-spring),background .2s ease;
   }
-  .hs-play svg{width:14px;height:14px;fill:#fff;stroke:none;margin-left:2px}
+  .hs-entry:active .hs-play{transform:scale(.92);background:linear-gradient(135deg,#6da9ff,#4a86e8);border-color:#6da9ff}
+  .hs-play svg{width:11px;height:11px;fill:#8fbdff;stroke:none;margin-left:2px;transition:fill .2s ease}
+  .hs-entry:active .hs-play svg{fill:#fff}
 
-  .hs-empty{text-align:center;padding:60px 20px;font-size:14px;color:rgba(200,215,235,.4);font-weight:600;line-height:1.6}
-  .hs-empty .hs-empty-icon{font-size:42px;margin-bottom:14px;opacity:.4}
+  .hs-empty{
+    text-align:center;padding:70px 24px;
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+  }
+  .hs-empty-icon{
+    width:56px;height:56px;opacity:.35;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hs-empty-icon svg{
+    width:100%;height:100%;stroke:rgba(200,215,235,.55);
+    fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;
+  }
+  .hs-empty-title{
+    font-size:14px;font-weight:700;color:rgba(200,215,235,.55);letter-spacing:-.1px;
+  }
+  .hs-empty-sub{
+    font-size:11.5px;font-weight:500;color:rgba(200,215,235,.35);
+    line-height:1.5;max-width:240px;
+  }
 
+  /* ---------- REPLAY ---------- */
   .rp-overlay{
     position:fixed;inset:0;z-index:9999;max-width:440px;margin:0 auto;
-    display:none;flex-direction:column;background:#08090c;
-    opacity:0;transform:scale(.96);
+    display:none;flex-direction:column;background:#06070a;
+    opacity:0;transform:scale(.97);
     transition:opacity .3s ease,transform .42s cubic-bezier(.34,1.56,.64,1);
     overflow:hidden;
   }
   .rp-overlay::before{
     content:'';position:absolute;inset:0;
-    background:radial-gradient(ellipse at 50% 30%,rgba(91,157,255,.08),transparent 60%);
+    background:radial-gradient(ellipse at 50% 30%,rgba(91,157,255,.07),transparent 60%);
     pointer-events:none;
   }
   .rp-overlay.show{display:flex;opacity:1;transform:scale(1)}
@@ -968,77 +1032,136 @@
     padding:calc(20px + var(--safe-top)) 18px calc(20px + var(--safe-bottom));
   }
 
-  .rp-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0}
+  .rp-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-shrink:0}
   .rp-back{
-    width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.06);
-    color:rgba(255,255,255,.85);cursor:pointer;
+    width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.04);
+    color:rgba(255,255,255,.8);cursor:pointer;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
     transition:transform .18s var(--ease-spring),background .18s ease;
   }
   .rp-back:active{transform:scale(.9);background:rgba(255,255,255,.12)}
-  .rp-back svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-  .rp-title{font-size:16px;font-weight:700;letter-spacing:-.2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rp-back svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .rp-head-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .rp-eyebrow{
+    font-size:9.5px;font-weight:800;letter-spacing:2px;
+    color:rgba(200,215,235,.4);text-transform:uppercase;
+  }
+  .rp-title{font-size:16px;font-weight:800;letter-spacing:-.2px;color:#fff;font-family:'SF Mono',ui-monospace,monospace}
 
-  .rp-canvas-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 0 12px}
+  .rp-canvas-wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 0 10px}
   #rp-canvas{
     width:100%;max-width:min(100%,440px);aspect-ratio:1/1;max-height:100%;
-    border-radius:22px;background:transparent;display:block;
+    border-radius:20px;background:transparent;display:block;
     box-shadow:0 20px 60px rgba(0,0,0,.6);
   }
 
   .rp-info{
-    display:flex;align-items:center;justify-content:center;gap:10px;
-    padding:14px 16px;
-    background:linear-gradient(135deg,rgba(40,50,80,.55),rgba(18,24,40,.7));
-    border:1px solid rgba(255,255,255,.08);border-radius:16px;
-    margin-bottom:12px;flex-shrink:0;min-height:62px;
+    display:flex;align-items:center;gap:12px;padding:14px 16px;
+    background:linear-gradient(135deg,rgba(40,50,80,.42),rgba(18,24,40,.6));
+    border:1px solid rgba(255,255,255,.07);border-radius:16px;
+    margin-bottom:12px;flex-shrink:0;position:relative;overflow:hidden;
+  }
+  .rp-info::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+    background:linear-gradient(180deg,rgba(240,208,128,.7),rgba(240,208,128,.15));
   }
   .rp-info-pfp{
-    width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;
-    border:1.5px solid rgba(240,208,128,.55);background:rgba(255,255,255,.05);
+    width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;
+    border:1.5px solid rgba(240,208,128,.42);background:rgba(255,255,255,.05);
   }
-  .rp-info-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-  .rp-info-name{font-size:14px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rp-info-sub{font-size:11.5px;font-weight:600;color:rgba(200,215,235,.6);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .rp-info-sub .hs-amount{color:#f0d080}
-  .rp-info-sub .hs-mult{color:#6dffb0;font-size:12px}
+  .rp-info-body{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+  .rp-info-row1{display:flex;align-items:center;gap:8px;min-width:0}
+  .rp-info-name{
+    font-size:14px;font-weight:800;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.15px;
+  }
+  .rp-info-tag{
+    font-size:9.5px;font-weight:800;letter-spacing:1.4px;
+    color:rgba(240,208,128,.85);text-transform:uppercase;
+    padding:2px 6px;border-radius:4px;
+    background:rgba(240,208,128,.08);border:1px solid rgba(240,208,128,.22);
+    flex-shrink:0;
+  }
+  .rp-info-row2{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    font-size:11.5px;font-weight:700;color:rgba(200,215,235,.55);
+    font-variant-numeric:tabular-nums;
+  }
+  .rp-stat{
+    display:inline-flex;align-items:baseline;gap:4px;
+  }
+  .rp-stat-label{
+    font-size:9px;font-weight:800;letter-spacing:1px;
+    color:rgba(200,215,235,.35);text-transform:uppercase;
+  }
+  .rp-stat-value{
+    font-weight:800;color:rgba(220,235,255,.85);
+    font-family:'SF Mono',ui-monospace,monospace;font-size:12px;
+  }
+  .rp-stat-value.gold{color:#f0d080}
+  .rp-stat-value.blue{color:#8fbdff}
+  .rp-sep{width:3px;height:3px;border-radius:50%;background:rgba(200,215,235,.2);flex-shrink:0}
 
-  .rp-controls{display:flex;align-items:center;gap:12px;flex-shrink:0;padding:10px 4px 0}
+  /* ---------- REPLAY CONTROLS ---------- */
+  .rp-controls{
+    display:flex;align-items:center;gap:12px;flex-shrink:0;
+    padding:10px 2px 0;
+  }
   .rp-play{
     width:44px;height:44px;border-radius:50%;
-    border:1px solid rgba(140,180,255,.5);
-    background:linear-gradient(135deg,#6da9ff,#4a86e8);
+    border:1px solid rgba(140,180,255,.4);
+    background:linear-gradient(135deg,rgba(91,157,255,.20),rgba(74,134,232,.10));
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;flex-shrink:0;
-    box-shadow:0 6px 20px rgba(91,157,255,.4),inset 0 1px 0 rgba(255,255,255,.25);
-    transition:transform .18s var(--ease-spring);
+    box-shadow:0 4px 14px rgba(91,157,255,.18),inset 0 1px 0 rgba(255,255,255,.12);
+    transition:transform .18s var(--ease-spring),background .2s ease,box-shadow .2s ease;
   }
-  .rp-play:active{transform:scale(.9)}
-  .rp-play svg{width:18px;height:18px;fill:#fff;stroke:none}
-  .rp-play .rp-pause-icon{display:none}
+  .rp-play:active{transform:scale(.92);background:linear-gradient(135deg,rgba(91,157,255,.35),rgba(74,134,232,.2));box-shadow:0 4px 20px rgba(91,157,255,.35)}
+  .rp-play svg{width:16px;height:16px;fill:#8fbdff;stroke:none;transition:fill .2s ease}
+  .rp-play:active svg{fill:#fff}
   .rp-play.paused .rp-play-icon{display:block}
   .rp-play.paused .rp-pause-icon{display:none}
   .rp-play:not(.paused) .rp-play-icon{display:none}
   .rp-play:not(.paused) .rp-pause-icon{display:block}
+  .rp-play .rp-play-icon{margin-left:2px}
 
-  .rp-seek{
-    flex:1;height:4px;-webkit-appearance:none;appearance:none;
-    background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;
+  .rp-progress-wrap{
+    flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;
   }
-  .rp-seek::-webkit-slider-thumb{
-    -webkit-appearance:none;appearance:none;
-    width:16px;height:16px;border-radius:50%;
-    background:#b8d2ff;box-shadow:0 0 12px rgba(140,180,255,.7);
-    cursor:pointer;border:2px solid #0a0c12;
+  .rp-progress{
+    position:relative;height:10px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    overflow:hidden;cursor:pointer;touch-action:none;
   }
-  .rp-seek::-moz-range-thumb{
-    width:16px;height:16px;border-radius:50%;background:#b8d2ff;
-    border:2px solid #0a0c12;box-shadow:0 0 12px rgba(140,180,255,.7);cursor:pointer;
+  .rp-progress::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.10),transparent 50%,rgba(0,0,0,.15));
+    border-radius:999px;
   }
-  .rp-time{
-    font-size:11.5px;font-weight:700;color:rgba(200,215,235,.6);
-    font-variant-numeric:tabular-nums;min-width:76px;text-align:right;letter-spacing:.3px;
+  .rp-progress-fill{
+    position:absolute;left:0;top:0;bottom:0;width:0%;
+    border-radius:999px;
+    background:linear-gradient(180deg,#ffffff,#c8dcff);
+    box-shadow:0 0 14px rgba(180,210,255,.55),inset 0 -1px 0 rgba(120,170,255,.3);
+    pointer-events:none;
   }
+  .rp-progress-fill::after{
+    content:'';position:absolute;right:-1px;top:0;bottom:0;width:2px;
+    background:rgba(255,255,255,.9);
+    box-shadow:0 0 10px rgba(255,255,255,.85);
+    opacity:.9;
+  }
+  .rp-time-row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:10.5px;font-weight:700;color:rgba(200,215,235,.5);
+    font-variant-numeric:tabular-nums;
+    font-family:'SF Mono',ui-monospace,monospace;
+    letter-spacing:.3px;
+  }
+  .rp-time-row .cur{color:rgba(255,255,255,.85)}
 </style>
 </head>
 <body data-layout="panel" data-theme="onyx" data-bg-blur="on" data-bg-image="on">
@@ -1420,8 +1543,14 @@
 <div id="history-overlay" class="hs-overlay">
   <div class="hs-panel">
     <div class="hs-head">
-      <div class="hs-title">Arena History</div>
-      <button class="hs-close" id="hs-close" type="button" aria-label="Close">✕</button>
+      <div class="hs-title">
+        <span class="hs-title-mark"></span>
+        Arena History
+        <span class="hs-title-sub" id="hs-count-label"></span>
+      </div>
+      <button class="hs-close" id="hs-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
     <div class="hs-tabs">
       <button class="hs-tab active" data-hs-tab="history" type="button">History</button>
@@ -1439,7 +1568,10 @@
       <button class="rp-back" id="rp-close" type="button" aria-label="Back">
         <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
       </button>
-      <div class="rp-title" id="rp-title">Replay</div>
+      <div class="rp-head-text">
+        <div class="rp-eyebrow">Replay</div>
+        <div class="rp-title" id="rp-title">Game #—</div>
+      </div>
     </div>
     <div class="rp-canvas-wrap"><canvas id="rp-canvas"></canvas></div>
     <div class="rp-info" id="rp-info"></div>
@@ -1448,8 +1580,15 @@
         <svg class="rp-play-icon" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg>
         <svg class="rp-pause-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
       </button>
-      <input type="range" class="rp-seek" id="rp-seek" min="0" max="1000" value="0">
-      <div class="rp-time" id="rp-time">0.0s / 0.0s</div>
+      <div class="rp-progress-wrap">
+        <div class="rp-progress" id="rp-progress">
+          <div class="rp-progress-fill" id="rp-progress-fill"></div>
+        </div>
+        <div class="rp-time-row">
+          <span class="cur" id="rp-time-cur">0.0s</span>
+          <span id="rp-time-total">0.0s</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3592,7 +3731,7 @@
   /* ============================================================ */
 
   /* ============================================================
-     GAME HISTORY & REPLAY
+     GAME HISTORY & REPLAY (REDESIGNED)
      ============================================================ */
   let gameCounter = 0;
   const MAX_HISTORY = 20;
@@ -3604,6 +3743,7 @@
   const hsList    = document.getElementById('hs-list');
   const hsClose   = document.getElementById('hs-close');
   const hsTabs    = document.querySelectorAll('.hs-tab');
+  const hsCountLabel = document.getElementById('hs-count-label');
 
   const rpOverlay  = document.getElementById('replay-overlay');
   const rpClose    = document.getElementById('rp-close');
@@ -3612,8 +3752,10 @@
   const rpCtx      = rpCanvas.getContext('2d');
   const rpInfo     = document.getElementById('rp-info');
   const rpPlay     = document.getElementById('rp-play');
-  const rpSeek     = document.getElementById('rp-seek');
-  const rpTime     = document.getElementById('rp-time');
+  const rpProgress = document.getElementById('rp-progress');
+  const rpProgressFill = document.getElementById('rp-progress-fill');
+  const rpTimeCur  = document.getElementById('rp-time-cur');
+  const rpTimeTot  = document.getElementById('rp-time-total');
 
   let hsCurrentTab    = 'history';
   let rpCurrentGame   = null;
@@ -3622,6 +3764,30 @@
   let rpLastTs        = 0;
   let rpRafId         = null;
   let rpCanvasSize    = 0;
+  let rpSeeking       = false;
+  let rpWasPlaying    = false;
+
+  // Replay PFP cache (per URL, globally shared)
+  const replayPfpCache = new Map();
+  function getReplayPfpEntry(url){
+    if(!url) return null;
+    let e = replayPfpCache.get(url);
+    if(e) return e;
+    const img = new Image();
+    e = { img, ready: false, failed: false };
+    img.onload = () => { e.ready = true; };
+    img.onerror = () => { e.failed = true; };
+    try { img.crossOrigin = 'anonymous'; } catch(_){}
+    img.src = url;
+    replayPfpCache.set(url, e);
+    return e;
+  }
+
+  const EMPTY_SVG =
+    '<svg viewBox="0 0 24 24">' +
+      '<path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1M2 12h20"/>' +
+      '<circle cx="12" cy="12" r="3"/>' +
+    '</svg>';
 
   function recordGameInHistory(rec){
     gameCounter++;
@@ -3664,6 +3830,12 @@
     return Math.floor(h/24) + 'd ago';
   }
 
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
   function renderHistoryList(){
     const games = gameHistory.slice();
     let sorted;
@@ -3677,10 +3849,17 @@
       sorted = games.slice(0, 30);
     }
 
+    if(hsCountLabel){
+      hsCountLabel.textContent = games.length > 0 ? '· ' + games.length + ' games' : '';
+    }
+
     if(sorted.length === 0){
       hsList.innerHTML =
-        '<div class="hs-empty"><div class="hs-empty-icon">❄️</div>' +
-        'No games yet.<br/>Play a round to start your history.</div>';
+        '<div class="hs-empty">' +
+          '<div class="hs-empty-icon">' + EMPTY_SVG + '</div>' +
+          '<div class="hs-empty-title">No games yet</div>' +
+          '<div class="hs-empty-sub">Play a round in the Ice arena and it will appear here with a full replay.</div>' +
+        '</div>';
       return;
     }
 
@@ -3694,31 +3873,38 @@
       const pObj = w ? g.players.find(p => p.id === w.id) : null;
       const bet = pObj ? pObj.bet : 0;
 
-      let rankLabel = '';
+      let rankBadge = '';
       if((hsCurrentTab === 'biggest' || hsCurrentTab === 'luckiest') && idx < 3){
-        const cls = idx === 0 ? 'one' : idx === 1 ? 'two' : 'three';
-        rankLabel = '<div class="hs-rank ' + cls + '">#' + (idx+1) +
-                    (hsCurrentTab === 'luckiest' ? ' 🍀' : '') + '</div>';
+        const cls = idx === 0 ? 'r1' : idx === 1 ? 'r2' : 'r3';
+        rankBadge = '<div class="hs-rank-badge ' + cls + '">' + (idx+1) + '</div>';
       }
+
       const numLabel = hsCurrentTab === 'history'
-        ? '<div class="hs-num">#' + g.gameNumber + '</div>' : '';
+        ? '<div class="hs-gamenum">#' + g.gameNumber + '</div>' : '';
 
       html +=
-        '<div class="hs-entry" data-game="' + g.gameNumber + '" style="animation-delay:' + (idx*25) + 'ms">' +
-          numLabel + rankLabel +
-          '<img class="hs-pfp" src="' + pfp + '" onerror="this.src=\'' + state.defaultAvatar + '" alt="">' +
+        '<div class="hs-entry" data-game="' + g.gameNumber + '" style="animation-delay:' + (idx*22) + 'ms">' +
+          '<img class="hs-pfp" src="' + escapeHtml(pfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
           '<div class="hs-body">' +
-            '<div class="hs-name">' + name + '</div>' +
+            '<div class="hs-name-row">' +
+              '<div class="hs-name">' + escapeHtml(name) + '</div>' +
+              numLabel +
+            '</div>' +
             '<div class="hs-meta">' +
               '<span>' + timeAgo(g.endedAt || g.startedAt) + '</span>' +
               '<span class="dot"></span>' +
-              '<span>bet ' + bet + '</span>' +
-              '<span class="dot"></span>' +
-              '<span class="hs-amount">+' + winnings + ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt=""></span>' +
+              '<span>Wager ' + bet + '</span>' +
+              (winnings > 0 ?
+                '<span class="dot"></span><span class="hs-amount">+' + winnings +
+                ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt=""></span>'
+              : '') +
               (mult > 0 ? '<span class="dot"></span><span class="hs-mult">' + mult.toFixed(2) + '×</span>' : '') +
             '</div>' +
           '</div>' +
-          '<div class="hs-play"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg></div>' +
+          '<div class="hs-actions">' +
+            rankBadge +
+            '<div class="hs-play"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20"/></svg></div>' +
+          '</div>' +
         '</div>';
     });
 
@@ -3751,8 +3937,11 @@
     rpCurrentTime = 0;
     rpPlaying = true;
     rpLastTs = 0;
+    rpSeeking = false;
+    rpWasPlaying = false;
 
     rpTitle.textContent = 'Game #' + game.gameNumber;
+
     const w = game.winner;
     const pfp = w && w.pfp ? w.pfp : state.defaultAvatar;
     const name = w ? w.name : 'No winner';
@@ -3761,18 +3950,37 @@
     const pObj = w ? game.players.find(p => p.id === w.id) : null;
     const bet = pObj ? pObj.bet : 0;
 
+    // Preload every player pfp so avatars appear on the fields
+    if(game.players && game.players.length){
+      for(const p of game.players){
+        if(p.pfp) getReplayPfpEntry(p.pfp);
+      }
+    }
+    if(w && w.pfp) getReplayPfpEntry(w.pfp);
+
     rpInfo.innerHTML =
-      '<img class="rp-info-pfp" src="' + pfp + '" onerror="this.src=\'' + state.defaultAvatar + '" alt="">' +
+      '<img class="rp-info-pfp" src="' + escapeHtml(pfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
       '<div class="rp-info-body">' +
-        '<div class="rp-info-name">' + name + ' won</div>' +
-        '<div class="rp-info-sub">' +
-          '<span>bet ' + bet + '</span><span>·</span>' +
-          '<span class="hs-amount">+' + winnings + ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="" style="width:11px;height:11px;object-fit:contain;"></span>' +
-          (mult > 0 ? '<span>·</span><span class="hs-mult">' + mult.toFixed(2) + '×</span>' : '') +
+        '<div class="rp-info-row1">' +
+          '<div class="rp-info-name">' + escapeHtml(name) + '</div>' +
+          (w ? '<div class="rp-info-tag">Winner</div>' : '') +
+        '</div>' +
+        '<div class="rp-info-row2">' +
+          '<span class="rp-stat"><span class="rp-stat-label">Wager</span><span class="rp-stat-value">' + bet + '</span></span>' +
+          (winnings > 0 ?
+            '<span class="rp-sep"></span>' +
+            '<span class="rp-stat"><span class="rp-stat-label">Won</span><span class="rp-stat-value gold">+' + winnings + '</span></span>'
+          : '') +
+          (mult > 0 ?
+            '<span class="rp-sep"></span>' +
+            '<span class="rp-stat"><span class="rp-stat-label">Multiplier</span><span class="rp-stat-value blue">' + mult.toFixed(2) + '×</span></span>'
+          : '') +
         '</div>' +
       '</div>';
 
-    rpSeek.value = 0;
+    rpProgressFill.style.width = '0%';
+    rpTimeCur.textContent = '0.0s';
+    rpTimeTot.textContent = (game.duration/1000).toFixed(1) + 's';
     rpPlay.classList.remove('paused');
 
     rpOverlay.style.display = 'flex';
@@ -3808,9 +4016,16 @@
     rpCtx.imageSmoothingQuality = 'high';
   }
 
+  function updateReplayProgressUI(){
+    if(!rpCurrentGame) return;
+    const pct = rpCurrentGame.duration > 0 ? (rpCurrentTime / rpCurrentGame.duration) : 0;
+    rpProgressFill.style.width = Math.max(0, Math.min(100, pct * 100)) + '%';
+    rpTimeCur.textContent = (rpCurrentTime/1000).toFixed(1) + 's';
+  }
+
   function replayTick(ts){
     if(!rpCurrentGame){ rpRafId = null; return; }
-    if(rpPlaying){
+    if(rpPlaying && !rpSeeking){
       if(rpLastTs){
         rpCurrentTime += (ts - rpLastTs);
         if(rpCurrentTime >= rpCurrentGame.duration){
@@ -3824,11 +4039,7 @@
       rpLastTs = ts;
     }
     drawReplayFrame();
-
-    const pct = rpCurrentGame.duration > 0 ? (rpCurrentTime / rpCurrentGame.duration) : 0;
-    rpSeek.value = Math.round(pct * 1000);
-    rpTime.textContent = (rpCurrentTime/1000).toFixed(1) + 's / ' + (rpCurrentGame.duration/1000).toFixed(1) + 's';
-
+    updateReplayProgressUI();
     rpRafId = requestAnimationFrame(replayTick);
   }
 
@@ -3873,8 +4084,10 @@
 
     const nearEnd = g.duration > 0 && rpCurrentTime > g.duration - 400;
 
+    // Draw slices + avatars
     for(const p of g.players){
       if(!p.poly || p.poly.length < 3) continue;
+
       rpCtx.save();
       rpCtx.beginPath();
       rpCtx.moveTo(p.poly[0].x * s, p.poly[0].y * s);
@@ -3887,7 +4100,7 @@
       grad.addColorStop(0.5, p.color);
       grad.addColorStop(1,   lightenColor(p.color, 20));
       rpCtx.fillStyle = grad;
-      rpCtx.globalAlpha = isWinner ? 1 : 0.88;
+      rpCtx.globalAlpha = isWinner ? 1 : 0.9;
       rpCtx.fill();
       if(isWinner){
         rpCtx.globalAlpha = 0.32;
@@ -3897,38 +4110,55 @@
       rpCtx.globalAlpha = 1;
       rpCtx.restore();
 
+      // Avatar on field
       const meta = polyMeta(p.poly);
       const cx = meta.cx * s, cy = meta.cy * s, inR = meta.inR * s;
-      const playerObj = iceState.players.find(x => x.id === p.id);
-      const avatarR = Math.min(inR * 0.65, w * 0.12);
-      if(avatarR > 2 && playerObj){
-        try{
-          const sprite = getAvatarSprite(playerObj, avatarR*2);
-          rpCtx.drawImage(sprite, cx-avatarR, cy-avatarR, avatarR*2, avatarR*2);
-        }catch(_){
-          rpCtx.beginPath(); rpCtx.arc(cx, cy, avatarR, 0, Math.PI*2);
-          rpCtx.fillStyle = p.color; rpCtx.fill();
+      const avatarR = Math.min(inR * 0.65, w * 0.11);
+      if(avatarR > 2){
+        rpCtx.save();
+        rpCtx.beginPath();
+        rpCtx.arc(cx, cy, avatarR, 0, Math.PI * 2);
+        rpCtx.clip();
+        // Base: player color
+        rpCtx.fillStyle = p.color || '#555';
+        rpCtx.fillRect(cx - avatarR, cy - avatarR, avatarR * 2, avatarR * 2);
+        // Try to draw pfp
+        const entry = p.pfp ? getReplayPfpEntry(p.pfp) : null;
+        if(entry && entry.ready && !entry.failed){
+          try{
+            rpCtx.drawImage(entry.img, cx - avatarR, cy - avatarR, avatarR * 2, avatarR * 2);
+          }catch(_){}
         }
+        rpCtx.restore();
+
+        // Ring border
+        rpCtx.beginPath();
+        rpCtx.arc(cx, cy, avatarR, 0, Math.PI * 2);
+        rpCtx.strokeStyle = isWinner ? 'rgba(240,208,128,.85)' : 'rgba(255,255,255,.35)';
+        rpCtx.lineWidth = isWinner ? 2 : 1.3;
+        rpCtx.stroke();
       }
     }
 
     rpCtx.restore();
 
+    // Puck trail
     if(g.path.length > 1){
       rpCtx.save();
       rpCtx.lineCap = 'round';
       rpCtx.lineJoin = 'round';
-      const trailLen = 18;
+      const trailLen = 22;
       const startIdx = Math.max(0, g.path.length - trailLen);
       for(let i = startIdx; i < g.path.length - 1; i++){
         const p0 = g.path[i], p1 = g.path[i+1];
         if(p0.t > rpCurrentTime) break;
-        const alpha = ((i - startIdx) / (g.path.length - startIdx)) * 0.35;
+        const k = (i - startIdx) / Math.max(1, (g.path.length - startIdx));
+        const alpha = k * 0.42;
         rpCtx.beginPath();
         rpCtx.moveTo(p0.x * s, p0.y * s);
         rpCtx.lineTo(p1.x * s, p1.y * s);
         rpCtx.strokeStyle = 'rgba(180,210,255,' + alpha + ')';
-        rpCtx.lineWidth = 3;
+        rpCtx.lineWidth = 2.6;
         rpCtx.stroke();
       }
       rpCtx.restore();
@@ -3938,6 +4168,7 @@
     drawPuckSprite(rpCtx, pos.x * s, pos.y * s, PUCK_RENDER_RADIUS * s);
   }
 
+  // ---- events
   hsClose.addEventListener('click', closeHistory);
   hsTabs.forEach(t => t.addEventListener('click', () => {
     hsCurrentTab = t.dataset.hsTab;
@@ -3950,6 +4181,7 @@
   document.getElementById('ice-best-win-panel').addEventListener('click', () => openHistory('biggest'));
 
   rpClose.addEventListener('click', closeReplay);
+
   rpPlay.addEventListener('click', () => {
     if(!rpCurrentGame) return;
     if(rpCurrentTime >= rpCurrentGame.duration) rpCurrentTime = 0;
@@ -3958,16 +4190,51 @@
     if(rpPlaying && !rpRafId){ rpLastTs = 0; rpRafId = requestAnimationFrame(replayTick); }
     haptic('light');
   });
-  rpSeek.addEventListener('input', e => {
+
+  // Custom liquid-glass slider (no thumb circle)
+  function rpPctFromClientX(clientX){
+    const rect = rpProgress.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    return rect.width > 0 ? x / rect.width : 0;
+  }
+  rpProgress.addEventListener('pointerdown', e => {
     if(!rpCurrentGame) return;
-    const pct = parseFloat(e.target.value) / 1000;
+    e.preventDefault();
+    rpSeeking = true;
+    rpWasPlaying = rpPlaying;
+    if(rpPlaying) rpPlaying = false;
+    try { rpProgress.setPointerCapture(e.pointerId); } catch(_){}
+    const pct = rpPctFromClientX(e.clientX);
     rpCurrentTime = pct * rpCurrentGame.duration;
     drawReplayFrame();
-    rpTime.textContent = (rpCurrentTime/1000).toFixed(1) + 's / ' + (rpCurrentGame.duration/1000).toFixed(1) + 's';
+    updateReplayProgressUI();
+    haptic('light');
   });
-  rpSeek.addEventListener('change', () => {
-    if(rpPlaying && !rpRafId){ rpLastTs = 0; rpRafId = requestAnimationFrame(replayTick); }
+  rpProgress.addEventListener('pointermove', e => {
+    if(!rpSeeking || !rpCurrentGame) return;
+    const pct = rpPctFromClientX(e.clientX);
+    rpCurrentTime = pct * rpCurrentGame.duration;
+    drawReplayFrame();
+    updateReplayProgressUI();
   });
+  function rpEndSeek(e){
+    if(!rpSeeking) return;
+    rpSeeking = false;
+    try { rpProgress.releasePointerCapture(e.pointerId); } catch(_){}
+    if(rpWasPlaying){
+      rpWasPlaying = false;
+      if(rpCurrentTime < rpCurrentGame.duration){
+        rpPlaying = true;
+        rpPlay.classList.remove('paused');
+        rpLastTs = 0;
+        if(!rpRafId) rpRafId = requestAnimationFrame(replayTick);
+      }
+    } else {
+      rpPlay.classList.add('paused');
+    }
+  }
+  rpProgress.addEventListener('pointerup', rpEndSeek);
+  rpProgress.addEventListener('pointercancel', rpEndSeek);
 
   window.addEventListener('resize', () => {
     if(rpOverlay.classList.contains('show')){
