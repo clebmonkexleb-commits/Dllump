@@ -246,6 +246,24 @@
   .card-back-text{position:absolute;bottom:22px;left:24px;font-size:9px;color:rgba(200,220,250,.35);letter-spacing:1px}
   .card-hint{text-align:center;font-size:10.5px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-top:6px;opacity:.7}
 
+  /* Wallet action button — liquid glass, below the card */
+  .wallet-actions{display:flex;gap:10px;margin:14px 0 14px}
+  .wallet-action-btn{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:15px 18px;border-radius:16px;
+    border:.5px solid var(--border2);
+    background:linear-gradient(135deg, rgba(40,50,80,.55), rgba(18,24,40,.65));
+    backdrop-filter:blur(24px) saturate(160%);
+    -webkit-backdrop-filter:blur(24px) saturate(160%);
+    color:var(--text);font-family:inherit;font-weight:800;font-size:14px;
+    letter-spacing:.4px;cursor:pointer;position:relative;overflow:hidden;
+    box-shadow:0 10px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.16);
+    transition:transform .2s var(--ease-spring),box-shadow .25s ease,background .25s ease;
+  }
+  .wallet-action-btn:active{transform:scale(.97);box-shadow:0 6px 18px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.22)}
+  .wallet-action-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .wallet-action-btn .q-diamond{width:22px;height:22px;object-fit:contain;display:block;flex-shrink:0}
+
   .tx-history{width:100%;max-height:150px;overflow-y:auto;background:rgba(0,0,0,.28);border-radius:14px;padding:5px 4px;border:.5px solid var(--border);margin-bottom:10px;touch-action:pan-y}
   .tx-history::-webkit-scrollbar{width:3px}
   .tx-history::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:10px}
@@ -418,11 +436,11 @@
   .toast-close{position:absolute;top:50%;right:12px;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;pointer-events:auto;transition:background .15s ease;}
   .toast-close:active{ background:rgba(255,255,255,.18); }
 
-  /* ---- success toast variant ---- */
   .toast.toast-success{padding-left:60px;background:linear-gradient(135deg, rgba(30,80,55,.82), rgba(14,40,30,.9));border-color:rgba(120,220,160,.35)}
   .toast.toast-success .toast-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#4ade80,#22c55e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,197,94,.55),inset 0 1px 0 rgba(255,255,255,.4)}
   .toast.toast-success .toast-icon svg{width:20px;height:20px;stroke:#032a10;fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(255,255,255,.4))}
-  .toast.toast-success .toast-main{font-size:13.5px;font-weight:800;color:#fff}
+  .toast.toast-success .toast-main{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:13.5px;font-weight:800;color:#fff}
+  .toast.toast-success .toast-main img{width:14px;height:14px;object-fit:contain;display:inline-block;vertical-align:middle}
   .toast.toast-success .toast-sub{font-size:11.5px;font-weight:600;color:rgba(200,240,220,.75);margin-top:1px}
 
   #bp{ touch-action:none; transition:transform .22s ease, box-shadow .25s ease; }
@@ -464,95 +482,72 @@
   body.perf-lite .bet-drag-chip{ backdrop-filter:blur(10px); }
 
   /* ============================================================
-     TRANSFER SYSTEM
+     TRANSFER SYSTEM (Telegram-style)
      ============================================================ */
-  .wallet-actions{display:flex;gap:8px;margin:-4px 0 12px}
-  .wallet-action-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;border-radius:14px;border:.5px solid var(--border2);background:var(--surface);color:var(--text);font-family:inherit;font-weight:800;font-size:13px;letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;transition:transform .2s var(--ease-spring),background .2s ease}
-  .wallet-action-btn:active{transform:scale(.97)}
-  .wallet-action-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-  .wallet-action-btn.primary{background:linear-gradient(135deg,#6da9ff,#4a86e8);border-color:rgba(140,180,255,.55);color:#fff;box-shadow:0 6px 18px rgba(91,157,255,.35)}
-
   .tr-overlay{
     position:fixed;inset:0;z-index:9998;
     max-width:440px;margin:0 auto;
-    background:var(--bg-base);
+    background:#141414;
     display:none;flex-direction:column;
     overflow:hidden;
     opacity:0;transform:translateX(100%);
     transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;
   }
-  .tr-overlay::before{
-    content:'';position:absolute;top:-40px;left:-40px;right:-40px;bottom:-40px;z-index:0;
-    background-image:url('https://i.postimg.cc/ncz4Kznn/photo-5202192649983563686-y.jpg');
-    background-size:cover;background-position:center;
-    filter:blur(24px) brightness(.42) saturate(.85);opacity:.65;pointer-events:none;
-  }
-  .tr-overlay::after{
-    content:'';position:absolute;inset:0;z-index:0;
-    background:radial-gradient(circle at 30% 20%, rgba(0,0,0,.30), rgba(0,0,0,.78) 70%);
-    pointer-events:none;
-  }
-  .tr-overlay > *{position:relative;z-index:1}
   .tr-overlay.show{ display:flex;opacity:1;transform:translateX(0); }
 
-  .tr-page{display:none;flex-direction:column;flex:1;min-height:0;padding:calc(16px + var(--safe-top)) 18px calc(20px + var(--safe-bottom))}
+  .tr-page{display:none;flex-direction:column;flex:1;min-height:0;padding:calc(18px + var(--safe-top)) 22px calc(24px + var(--safe-bottom))}
   .tr-page.active{display:flex;animation:trPageIn .35s var(--ease-spring)}
   @keyframes trPageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-  .tr-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-shrink:0}
-  .tr-back{width:36px;height:36px;border-radius:50%;border:.5px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s var(--ease-spring),background .2s ease}
-  .tr-back:active{transform:scale(.92);background:var(--surface3)}
-  .tr-back svg{width:16px;height:16px}
-  .tr-title{font-size:20px;font-weight:800;letter-spacing:-.4px;color:var(--text)}
+  .tr-head{display:flex;align-items:center;gap:10px;margin-bottom:36px;flex-shrink:0}
+  .tr-back{width:38px;height:38px;border-radius:50%;border:none;background:transparent;color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s var(--ease-spring),color .18s ease,background .18s ease;margin-left:-8px}
+  .tr-back:active{transform:scale(.9);background:rgba(255,255,255,.08)}
+  .tr-back svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .tr-title{font-size:18px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
 
-  .tr-compose-card{
-    background:linear-gradient(135deg,rgba(40,50,80,.72),rgba(18,24,40,.86));
-    border:1px solid rgba(180,210,255,.20);
-    border-radius:22px;
-    padding:20px 22px;
-    box-shadow:0 20px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
-    margin-bottom:16px;
-    position:relative;overflow:hidden;
-    text-align:center;
+  .tr-balance-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:6px}
+  .tr-balance-num{
+    font-size:46px;font-weight:800;color:#fff;
+    font-variant-numeric:tabular-nums;letter-spacing:-1.8px;line-height:1;
+    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .tr-compose-card::before{
-    content:'';position:absolute;top:-30%;left:-20%;width:80%;height:100%;
-    background:radial-gradient(ellipse, rgba(140,180,255,.25), transparent 70%);
-    pointer-events:none;
+  .tr-balance-gif{
+    width:40px;height:40px;object-fit:contain;display:block;flex-shrink:0;
+    filter:drop-shadow(0 0 14px rgba(200,168,78,.55));
+    animation:glowDiamond 2.8s ease-in-out infinite;
   }
-  .tr-balance-label{font-size:9.5px;font-weight:800;letter-spacing:3px;color:rgba(200,220,250,.55);text-transform:uppercase;margin-bottom:6px;position:relative}
-  .tr-balance-value{display:flex;align-items:center;justify-content:center;gap:8px;font-size:32px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-1px;position:relative}
-  .tr-balance-value img{width:26px;height:26px;object-fit:contain}
+  .tr-balance-label{
+    font-size:10px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;
+    color:rgba(255,255,255,.4);margin-bottom:44px;
+  }
 
-  .tr-form{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
-  .tr-field{display:flex;flex-direction:column;gap:6px}
-  .tr-field label{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
-  .tr-field input{
-    width:100%;padding:14px 16px;border-radius:14px;
-    border:.5px solid var(--border2);background:var(--surface2);
-    color:var(--text);font-family:inherit;font-size:16px;font-weight:700;
-    outline:none;transition:border-color .2s ease,background .2s ease;
-    -webkit-user-select:text;user-select:text
+  .tr-underline-field{position:relative;margin-bottom:30px}
+  .tr-underline-field input{
+    width:100%;padding:6px 0 10px;
+    border:none;border-bottom:1.5px solid rgba(255,255,255,.15);
+    background:transparent;color:#fff;
+    font-family:inherit;font-size:22px;font-weight:700;
+    outline:none;border-radius:0;
+    transition:border-color .22s ease;
+    -webkit-user-select:text;user-select:text;
+    letter-spacing:-.3px;
   }
-  .tr-field input:focus{border-color:rgba(140,180,255,.6);background:var(--surface3)}
-  .tr-field input::placeholder{color:var(--text3);font-weight:600}
-  .tr-field.amount input{font-size:22px;font-weight:800;letter-spacing:-.4px;padding:16px 18px;text-align:center;font-variant-numeric:tabular-nums}
-  .tr-field.amount{position:relative}
-  .tr-field.amount::after{content:'◆';position:absolute;right:18px;bottom:15px;font-size:14px;color:rgba(240,208,128,.75);pointer-events:none}
+  .tr-underline-field input:focus{border-bottom-color:rgba(140,180,255,.9)}
+  .tr-underline-field input::placeholder{color:rgba(255,255,255,.28);font-weight:600;letter-spacing:0}
 
   #tr-submit{
-    width:100%;padding:15px 0;border-radius:16px;
-    border:1px solid rgba(140,180,255,.35);
+    width:100%;padding:16px 0;border-radius:16px;
+    border:1px solid rgba(140,180,255,.4);
     background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);
     color:#fff;font-family:inherit;font-weight:800;font-size:15px;
     cursor:pointer;letter-spacing:.3px;
-    box-shadow:0 10px 28px rgba(91,157,255,.4);
-    position:relative;overflow:hidden;
+    box-shadow:0 10px 28px rgba(91,157,255,.45);
+    position:relative;overflow:hidden;margin-top:12px;
     transition:transform .2s var(--ease-spring),box-shadow .2s ease
   }
   #tr-submit:active{transform:scale(.97);box-shadow:0 6px 18px rgba(91,157,255,.5)}
 
-  .tr-error{min-height:18px;margin-top:10px;font-size:12px;font-weight:700;color:var(--red);text-align:center;letter-spacing:.2px}
+  .tr-error{min-height:18px;margin-top:14px;font-size:12.5px;font-weight:700;color:#ff7a7a;text-align:center;letter-spacing:.2px}
 
   /* --- paper receipt --- */
   .tr-paper-wrap{
@@ -593,10 +588,14 @@
   .paper-date{position:absolute;top:22px;right:24px;font-size:9.5px;font-weight:700;color:rgba(10,26,42,.55);letter-spacing:.3px}
   .paper-divider{height:0;border-top:1px dashed rgba(10,26,42,.30);margin:12px 0}
   .paper-body{display:flex;flex-direction:column;gap:10px}
-  .paper-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .paper-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .paper-label{font-size:9px;font-weight:800;letter-spacing:2px;color:rgba(10,26,42,.55)}
   .paper-value{font-size:14px;font-weight:800;color:#0a1a2a;word-break:break-all;text-align:right}
-  .paper-amount{font-size:22px;font-weight:900;letter-spacing:-.5px;color:#0a1a2a}
+  .paper-amount{
+    display:inline-flex;align-items:center;gap:6px;justify-content:flex-end;
+    font-size:22px;font-weight:900;letter-spacing:-.5px;color:#0a1a2a;
+  }
+  .paper-amount img.paper-diamond{width:18px;height:18px;object-fit:contain;display:block;flex-shrink:0}
   .paper-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-top:6px}
   .paper-signature-box{
     position:relative;flex:1;height:70px;
@@ -630,7 +629,7 @@
   }
 
   #tr-continue{
-    width:100%;padding:15px 0;border-radius:16px;
+    width:100%;padding:16px 0;border-radius:16px;
     border:1px solid rgba(140,180,255,.35);
     background:rgba(255,255,255,.06);
     color:rgba(255,255,255,.4);font-family:inherit;font-weight:800;font-size:15px;
@@ -657,12 +656,16 @@
     .paper-brand{font-size:12px;letter-spacing:3px}
     .paper-date{font-size:8.5px;right:18px;top:18px}
     .paper-amount{font-size:19px}
+    .paper-amount img.paper-diamond{width:16px;height:16px}
     .tr-paper-wrap{padding:2px 0 14px}
+    .tr-balance-num{font-size:40px}
+    .tr-balance-gif{width:34px;height:34px}
   }
   @media (max-height:640px){
     .tr-paper{padding:16px 20px 12px}
     .paper-signature-box{height:58px}
     .paper-arrow{top:-26px;width:26px;height:26px}
+    .tr-balance-label{margin-bottom:28px}
   }
 
   @media (max-width:400px){
@@ -694,6 +697,7 @@
     .tab-indicator{transition-duration:.15s !important}
     .paper-arrow{animation:none}
     #tr-continue.enabled{animation:none}
+    .tr-balance-gif{animation:none}
   }
 </style>
 </head>
@@ -765,12 +769,6 @@
 
     <div class="tab-page" id="wallet-page">
       <div class="page-head"><div class="eyebrow">BALANCE</div><div class="page-title">Wallet</div></div>
-      <div class="wallet-actions">
-        <button class="wallet-action-btn primary" id="wallet-transfer-btn" type="button">
-          <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
-          <span>Transfer</span>
-        </button>
-      </div>
       <div class="card-scene">
         <div class="card-aura"></div>
         <div class="card-stars" id="card-stars"></div>
@@ -802,6 +800,15 @@
         </div>
       </div>
       <div class="card-hint">Drag to rotate · Tap to flip</div>
+
+      <div class="wallet-actions">
+        <button class="wallet-action-btn" id="wallet-transfer-btn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+          <span>Transfer</span>
+          <img class="q-diamond" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
+        </button>
+      </div>
+
       <div class="tx-history" id="tx-history">
         <div class="tx-header"><span>Transaction</span><span>Amount</span></div>
         <div id="tx-list"><div class="tx-empty">No transactions yet</div></div>
@@ -968,27 +975,24 @@
   <div class="tr-page active" id="tr-compose-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-close" type="button" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
       <div class="tr-title">Transfer</div>
     </div>
-    <div class="tr-compose-card">
-      <div class="tr-balance-label">Available balance</div>
-      <div class="tr-balance-value">
-        <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
-        <span id="tr-balance-num">0</span>
-      </div>
+
+    <div class="tr-balance-row">
+      <div class="tr-balance-num" id="tr-balance-num">0</div>
+      <img class="tr-balance-gif" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
     </div>
-    <div class="tr-form">
-      <div class="tr-field">
-        <label>Recipient username</label>
-        <input id="tr-username" type="text" placeholder="@username" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
-      </div>
-      <div class="tr-field amount">
-        <label>Amount</label>
-        <input id="tr-amount" type="text" placeholder="0" inputmode="numeric" enterkeyhint="done">
-      </div>
+    <div class="tr-balance-label">Available balance</div>
+
+    <div class="tr-underline-field">
+      <input id="tr-amount" type="text" placeholder="Amount" inputmode="numeric" enterkeyhint="next">
     </div>
+    <div class="tr-underline-field">
+      <input id="tr-username" type="text" placeholder="Recipient username" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text">
+    </div>
+
     <button id="tr-submit" type="button">Transfer</button>
     <div class="tr-error" id="tr-error"></div>
   </div>
@@ -997,7 +1001,7 @@
   <div class="tr-page" id="tr-sign-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-sign-back" type="button" aria-label="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
       </button>
       <div class="tr-title">Sign to confirm</div>
     </div>
@@ -1016,7 +1020,10 @@
           </div>
           <div class="paper-row">
             <span class="paper-label">AMOUNT</span>
-            <span class="paper-value paper-amount" id="paper-amount">0 ◆</span>
+            <span class="paper-value paper-amount">
+              <span id="paper-amount-num">0</span>
+              <img class="paper-diamond" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
+            </span>
           </div>
         </div>
         <div class="paper-divider"></div>
@@ -1025,7 +1032,7 @@
             <canvas id="tr-sig-canvas"></canvas>
             <div class="paper-signature-label">SIGNATURE</div>
             <div class="paper-arrow" id="paper-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>
             </div>
           </div>
           <div class="paper-sender">
@@ -2764,7 +2771,7 @@
   const trSubmit        = document.getElementById('tr-submit');
   const trError         = document.getElementById('tr-error');
   const paperTo         = document.getElementById('paper-to');
-  const paperAmount     = document.getElementById('paper-amount');
+  const paperAmountNum  = document.getElementById('paper-amount-num');
   const paperDate       = document.getElementById('paper-date');
   const paperSender     = document.getElementById('paper-sender');
   const paperArrow      = document.getElementById('paper-arrow');
@@ -2845,7 +2852,6 @@
     }, 420);
   }
 
-  // signature drawing
   function trSigPos(e){
     const rect = trSigCanvas.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -2886,7 +2892,6 @@
   trSigCanvas.addEventListener('pointercancel', trEndSig);
   trSigCanvas.addEventListener('pointerleave', trEndSig);
 
-  // submit → validate → move to sign page
   trSubmit.addEventListener('click', () => {
     if(trPending) return;
     const rawUser = trUsernameInput.value.trim();
@@ -2915,8 +2920,8 @@
 
     trTransferData = { username: clean, amount };
 
-    paperTo.textContent     = '@' + clean;
-    paperAmount.textContent = amount.toLocaleString() + ' ◆';
+    paperTo.textContent        = '@' + clean;
+    paperAmountNum.textContent = amount.toLocaleString();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -2938,7 +2943,6 @@
     haptic('light');
   });
 
-  // continue → perform transfer
   trContinue.addEventListener('click', async () => {
     if(!trSigned || trPending || !trTransferData) return;
     trPending = true;
@@ -2961,9 +2965,16 @@
         state.balance = d.newBalance;
         updateBalance();
         addTransaction('bet', -amt, 'Transfer to @' + to);
-        closeTransfer();
+        // Faster close on success so the toast pops up right away
+        trOverlay.style.transition = 'transform .18s ease, opacity .18s ease';
+        trOverlay.classList.remove('show');
         showTransferSuccess(amt, to);
         haptic('heavy');
+        setTimeout(()=>{
+          trOverlay.style.display = 'none';
+          trOverlay.style.transition = '';
+          trReset();
+        }, 200);
       } else {
         trError.textContent = d.error || 'Transfer failed';
         trShowPage('compose');
@@ -2982,7 +2993,6 @@
 
   trClose.addEventListener('click', closeTransfer);
 
-  // success toast with SVG checkmark icon
   function showTransferSuccess(amount, username){
     if(!toastContainer) return;
     const existing = toastContainer.querySelectorAll('.toast:not(.dismissing)');
@@ -2994,7 +3004,9 @@
         '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' +
       '</div>' +
       '<div class="toast-text">' +
-        '<div class="toast-main">Transferred ' + amount.toLocaleString() + ' ◆</div>' +
+        '<div class="toast-main">Transferred ' + amount.toLocaleString() +
+          ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
+        '</div>' +
         '<div class="toast-sub">to @' + username + '</div>' +
       '</div>' +
       '<button class="toast-close" type="button" aria-label="Dismiss">✕</button>';
