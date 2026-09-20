@@ -775,7 +775,6 @@
   const MEM = navigator.deviceMemory || 4;
   const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
   const RAW_DPR = window.devicePixelRatio || 1;
-
   const IS_LOW_END = CORES <= 4 || MEM <= 3;
 
   const PERF = {
@@ -1007,7 +1006,13 @@
           if(best.amount>0){iceState.bestWin=best;updateIceBestWinPanel(best)}
         }
         if(res.icePlayers&&Array.isArray(res.icePlayers)){
-          iceState.players=res.icePlayers.map(p=>({id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,x1:p.x1,y1:p.y1,x2:p.x2,y2:p.y2,dx1:p.x1,dy1:p.y1,dx2:p.x2,dy2:p.y2,color:p.color,bet:p.bet,_sprite:null,_spriteKey:null,_pfpSrc:null,_avSprite:null,_avKey:null}));
+          iceState.players=res.icePlayers.map(p=>{
+            const local={id:p.id,name:p.name,pfp:p.pfp,pfpImg:null,poly:p.poly||null,
+              color:p.color,bet:p.bet,_pfpSrc:null,_avSprite:null,_avKey:null,
+              cx:0,cy:0,inR:0};
+            refreshPolyMeta(local);
+            return local;
+          });
           iceState.pot=res.icePot||0;iceState.players.forEach(p=>loadIcePlayerPFP(p));
         }
         applyIdentity();updateBalance();updateProfile();refreshLeaderboard();refreshCardUI();
@@ -1202,7 +1207,6 @@
   function easeOutBack(t){const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)}
   function lightenColor(hex,amt){let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);r=Math.min(255,r+amt);g=Math.min(255,g+amt);b=Math.min(255,b+amt);return'#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0')}
 
-  /* ---- TUNED: puck slightly bigger (17 → 19) ---- */
   const PUCK_RENDER_RADIUS=19;
 
   function drawLiquidGlassPuck(c,x,y,r,opts){
@@ -1211,11 +1215,11 @@
     const rim=(opts.rimRatio!==undefined?opts.rimRatio:.36)*r;
     const outer=(opts.outerRatio!==undefined?opts.outerRatio:.32)*r;
     const rimAlpha=opts.rimAlpha!==undefined?opts.rimAlpha:.95;
-    const outerAlpha=opts.outerAlpha!==undefined?opts.outerAlpha:.09;
+    const outerAlpha=opts.outerAlpha!==undefined?opts.outerAlpha:.20;
     const innerGlow=opts.innerGlow!==undefined?opts.innerGlow:.10;
     const drawCross=opts.cross!==undefined?opts.cross:true;
     const crossAlpha=opts.crossAlpha!==undefined?opts.crossAlpha:.28;
-    const crossWidth=opts.crossWidth!==undefined?opts.crossWidth:2.2;
+    const crossWidth=opts.crossWidth!==undefined?opts.crossWidth:1.6;
     if(outer>0){c.save();c.beginPath();c.lineWidth=outer;c.strokeStyle='rgba(255,255,255,'+outerAlpha+')';c.lineCap='round';c.arc(x,y,r+outer*.12,0,Math.PI*2);c.stroke();c.restore();}
     c.save();c.beginPath();c.lineWidth=rim;c.strokeStyle='rgba(255,255,255,'+rimAlpha+')';c.lineCap='round';c.arc(x,y,r-rim/2,0,Math.PI*2);c.stroke();c.restore();
     c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.36);c.strokeStyle='rgba(0,0,0,0.18)';c.lineCap='round';c.arc(x,y,r-rim*.9,0,Math.PI*2);c.stroke();c.restore();
@@ -1227,8 +1231,6 @@
     c.restore();
     c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.08);c.strokeStyle='rgba(255,255,255,0.04)';c.arc(x,y,r-rim*.2,-0.6,0.6);c.stroke();c.restore();
   }
-
-  /* ---- TUNED: outerAlpha .09 → .20, crossWidth 2.2 → 1.6 ---- */
   const PUCK_OPTS={rimRatio:.36,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
 
   const PUCK_BASE_R = 48;
@@ -1262,6 +1264,40 @@
     img.onerror=()=>{a++;if(a<3){const sep=src.includes('?')?'&':'?';img.src=src+sep+'r='+a}else pfpCache.set(src,{img:null,loaded:false})};
     pfpCache.set(src,{img:null,loaded:false});
     img.src=src;
+  }
+
+  // ---- polygon helpers ----
+  function pointInPoly(px, py, poly){
+    let inside = false;
+    for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+      const xi=poly[i].x, yi=poly[i].y;
+      const xj=poly[j].x, yj=poly[j].y;
+      if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi) + xi)) inside=!inside;
+    }
+    return inside;
+  }
+
+  function refreshPolyMeta(p){
+    if(!p.poly || p.poly.length < 3){ p.cx=0; p.cy=0; p.inR=0; return; }
+    const n = p.poly.length;
+    let cx = 0, cy = 0;
+    for(const v of p.poly){ cx += v.x; cy += v.y; }
+    cx /= n; cy /= n;
+    let minD = Infinity;
+    for(let i=0; i<n; i++){
+      const a = p.poly[i];
+      const b = p.poly[(i+1)%n];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const lenSq = dx*dx + dy*dy;
+      if(lenSq < 0.0001) continue;
+      let t = ((cx-a.x)*dx + (cy-a.y)*dy) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      const nx = a.x + t*dx;
+      const ny = a.y + t*dy;
+      const d = Math.hypot(cx-nx, cy-ny);
+      if(d < minD) minD = d;
+    }
+    p.cx = cx; p.cy = cy; p.inR = minD;
   }
 
   let rinkCache=null, rinkCacheSize=0;
@@ -1445,14 +1481,16 @@
       if(!local){
         const ci=iceState.players.length%8;
         local={id:sp.id,name:sp.name,pfp:sp.pfp,pfpImg:generateDefaultAvatar(sp.name?sp.name.charAt(0):'?',ci),
-          x1:sp.x1,y1:sp.y1,x2:sp.x2,y2:sp.y2,
-          dx1:sp.x1,dy1:sp.y1,dx2:sp.x2,dy2:sp.y2,
-          color:sp.color,bet:sp.bet,_sprite:null,_spriteKey:null,_pfpSrc:null,_avSprite:null,_avKey:null};
+          poly:sp.poly,color:sp.color,bet:sp.bet,
+          cx:0,cy:0,inR:0,
+          _pfpSrc:null,_avSprite:null,_avKey:null};
+        refreshPolyMeta(local);
         iceState.players.push(local);loadIcePlayerPFP(local);
         iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
       }else{
         if(Math.abs(local.bet-sp.bet)>5)iceState.pfpPop.set(sp.id,{startTime:performance.now(),duration:400});
-        local.x1=sp.x1;local.y1=sp.y1;local.x2=sp.x2;local.y2=sp.y2;local.color=sp.color;local.bet=sp.bet;
+        local.poly=sp.poly;local.color=sp.color;local.bet=sp.bet;
+        refreshPolyMeta(local);
       }
       local.name=sp.name;
     });
@@ -1531,7 +1569,7 @@
   function spawnSliceConfetti(p){
     if(!PERF.confetti) return;
     const now=performance.now();
-    const cx=(p.x1+p.x2)/2, cy=(p.y1+p.y2)/2;
+    const cx=p.cx, cy=p.cy;
     for(let i=0;i<16;i++){
       const ang=(Math.PI*2*i/16)+(Math.random()-0.5)*0.5;
       const spd=60+Math.random()*90;
@@ -1867,28 +1905,43 @@
 
     for(let pi=0; pi<iceState.players.length; pi++){
       const p = iceState.players[pi];
-      const k = 0.22;
-      p.dx1 += (p.x1 - p.dx1) * k;
-      p.dy1 += (p.y1 - p.dy1) * k;
-      p.dx2 += (p.x2 - p.dx2) * k;
-      p.dy2 += (p.y2 - p.dy2) * k;
+      const poly = p.poly;
+      if(!poly || poly.length < 3) continue;
 
-      const x1 = p.dx1*s, y1 = p.dy1*s, x2 = p.dx2*s, y2 = p.dy2*s;
-      const segW = x2-x1, segH = y2-y1;
+      // Compute bbox in screen space
+      let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+      for(let i=0;i<poly.length;i++){
+        const sx=poly[i].x*s, sy=poly[i].y*s;
+        if(sx<minX)minX=sx; if(sy<minY)minY=sy;
+        if(sx>maxX)maxX=sx; if(sy>maxY)maxY=sy;
+      }
+      const segW = maxX-minX, segH = maxY-minY;
       if(segW <= 0 || segH <= 0) continue;
 
       const isWinner = (iceState.gameState==='finished' && iceState.winnerId===p.id);
 
+      // Draw the polygon clipped to its shape with the gradient sprite
+      iceCtx.save();
+      iceCtx.beginPath();
+      iceCtx.moveTo(poly[0].x*s, poly[0].y*s);
+      for(let i=1;i<poly.length;i++) iceCtx.lineTo(poly[i].x*s, poly[i].y*s);
+      iceCtx.closePath();
+      iceCtx.clip();
+
       iceCtx.globalAlpha = isWinner ? 1 : 0.92;
-      iceCtx.drawImage(getTileSprite(p.color, segW, segH), x1, y1, segW, segH);
+      iceCtx.drawImage(getTileSprite(p.color, segW, segH), minX, minY, segW, segH);
       if(isWinner){
         iceCtx.globalAlpha = 0.35;
         iceCtx.fillStyle = '#ffffff';
-        iceCtx.fillRect(x1, y1, segW, segH);
+        iceCtx.fillRect(minX, minY, segW, segH);
       }
       iceCtx.globalAlpha = 1;
+      iceCtx.restore();
 
-      const avatarR = Math.min(segW,segH) * .32;
+      // Avatar at polygon centroid
+      const cx = p.cx * s;
+      const cy = p.cy * s;
+
       let pfpScale = 1;
       const pd = iceState.pfpPop.get(p.id);
       if(pd){
@@ -1897,10 +1950,13 @@
         if(pr < 1) pfpScale = Math.max(0, Math.min(1.2, easeOutBack(pr)));
         else iceState.pfpPop.delete(p.id);
       }
+
+      // Radius: bounded by polygon inradius and bbox
+      const inR = (p.inR || 0) * s;
+      const avatarR = Math.min(inR * 0.65, Math.min(segW, segH) * 0.32);
       const drawR = avatarR * pfpScale;
       if(drawR <= 0.5) continue;
 
-      const cx = (x1+x2)/2, cy = (y1+y2)/2;
       iceCtx.drawImage(getAvatarSprite(p, drawR*2), cx-drawR, cy-drawR, drawR*2, drawR*2);
     }
 
@@ -1983,7 +2039,7 @@
       let ownerName='';
       if(iceState.players.length>0&&iceState.gameState==='sliding'){
         for(const p of iceState.players){
-          if(rpx>=p.x1&&rpx<=p.x2&&rpy>=p.y1&&rpy<=p.y2){ownerName=p.name||'Player';break}
+          if(p.poly && pointInPoly(rpx, rpy, p.poly)){ownerName=p.name||'Player';break}
         }
       }
       if(isSlow&&ownerName){iceState.currentOwnerName=ownerName;iceState.showOwnerName=true;iceState.nameFadeIn=Math.min(1,iceState.nameFadeIn+.03)}
