@@ -122,124 +122,11 @@ function createIceRoom(id) {
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
     recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
-    finalRoll: null,
   };
 }
 const iceRoom = createIceRoom('ice');
 
 function getIcePlayer(id) { return iceRoom.players.find(p => p.id === id); }
-
-/* ============================================================
-   ICE RTP — steering-based dynamic balancing
-   ============================================================ */
-const iceRtp = {
-  boost: 0,
-  maxBoost: 24,
-  minBoost: 0,
-  threshold: 2.5,
-  perPointChance: 0.008,
-  maxChance: 0.22,
-  forceOverride: false       // 100% test mode — always picks the smallest bettor
-};
-
-let iceRoundOverride = null;
-
-function decideIceRoundOverride() {
-  iceRoundOverride = null;
-  const players = iceRoom.players;
-  if (players.length < 2) return;
-  const totalBet = iceRoom.pot || 0;
-  if (totalBet <= 0) return;
-
-  // ----- FORCE MODE (testing) -----
-  // Pick the absolute smallest bettor among REAL (non-bot) players so the
-  // tester is always the target, then fall back to including bots if there
-  // are no non-bot candidates.
-  if (iceRtp.forceOverride) {
-    let candidates = players.filter(p => !isBot(p.id));
-    if (candidates.length === 0) candidates = players.slice();
-    // Need at least 2 candidates so we're not chasing ourselves
-    if (candidates.length < 2) candidates = players.slice();
-
-    candidates.sort((a, b) => a.bet - b.bet);
-    const minBet = candidates[0].bet;
-    const finalists = candidates.filter(p => p.bet === minBet);
-    const target = finalists[Math.floor(Math.random() * finalists.length)];
-
-    iceRoundOverride = {
-      targetPlayerId: target.id,
-      turnBase: 0.0025,
-      turnMax: 0.030
-    };
-    console.log(`[IceRTP] FORCE → target: ${target.name} (bet ${target.bet}, ${finalists.length} finalist${finalists.length>1?'s':''})`);
-    return;
-  }
-
-  // ----- NATURAL MODE (boosted) -----
-  const smallPlayers = players.filter(p => (p.bet / totalBet) < 0.30);
-  if (smallPlayers.length === 0) return;
-
-  let shouldOverride = false;
-  if (iceRtp.boost >= iceRtp.threshold) {
-    const chance = Math.min(iceRtp.maxChance, iceRtp.boost * iceRtp.perPointChance);
-    if (Math.random() < chance) shouldOverride = true;
-  }
-  if (!shouldOverride) return;
-
-  smallPlayers.sort((a, b) => a.bet - b.bet);
-  const pool = [];
-  smallPlayers.forEach((p, idx) => {
-    const weight = smallPlayers.length - idx;
-    for (let i = 0; i < weight; i++) pool.push(p);
-  });
-  const target = pool[Math.floor(Math.random() * pool.length)];
-
-  iceRoundOverride = {
-    targetPlayerId: target.id,
-    turnBase: 0.0025,
-    turnMax: 0.030
-  };
-
-  iceRtp.boost = Math.max(iceRtp.minBoost, iceRtp.boost - (4 + Math.random() * 4));
-  console.log(`[IceRTP] Natural override → target: ${target.name} (bet ${target.bet}, share ${(target.bet/totalBet*100).toFixed(0)}%)`);
-}
-
-function steerTowards(puck, targetX, targetY, turnRate) {
-  const speed = Math.hypot(puck.vx, puck.vy);
-  if (speed < 0.01) return;
-  const dx = targetX - puck.x;
-  const dy = targetY - puck.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist < 0.5) return;
-
-  const dirX = puck.vx / speed;
-  const dirY = puck.vy / speed;
-  const tDirX = dx / dist;
-  const tDirY = dy / dist;
-
-  const blendX = dirX * (1 - turnRate) + tDirX * turnRate;
-  const blendY = dirY * (1 - turnRate) + tDirY * turnRate;
-  const blendLen = Math.hypot(blendX, blendY);
-  if (blendLen < 0.001) return;
-
-  puck.vx = (blendX / blendLen) * speed;
-  puck.vy = (blendY / blendLen) * speed;
-}
-
-function updateIceRtpAfterWin(winner) {
-  if (!winner) return;
-  const players = iceRoom.players;
-  if (players.length < 2) return;
-  const totalBet = iceRoom.pot || 0;
-  if (totalBet <= 0) return;
-
-  const winnerShare = winner.bet / totalBet;
-  if (winnerShare > 0.32 && Math.random() < 0.75) {
-    const increase = winnerShare * (1.2 + Math.random() * 1.3);
-    iceRtp.boost = Math.min(iceRtp.maxBoost, iceRtp.boost + increase);
-    console.log(`[IceRTP] Boost → ${iceRtp.boost.toFixed(2)} after ${winner.name} won with share ${(winnerShare * 100).toFixed(0)}%`);
-  }
-}
 
 let botCounter = 0;
 const botIds = new Set();
@@ -525,9 +412,6 @@ function launchIcePuck() {
   iceRoom.puck.vy = Math.sin(angle) * speed;
   iceRoom.slideStartTime = Date.now();
   iceRoom.lastBounceTime = 0;
-  iceRoom.finalRoll = null;
-
-  decideIceRoundOverride();
 }
 
 function pointInPoly(px, py, poly) {
@@ -547,20 +431,6 @@ function polyCentroid(poly) {
   let cx = 0, cy = 0;
   for (const v of poly) { cx += v.x; cy += v.y; }
   return { x: cx / poly.length, y: cy / poly.length };
-}
-
-function randomPointInPoly(poly) {
-  const c = polyCentroid(poly);
-  for (let i = 0; i < 60; i++) {
-    const r = Math.random() * 90;
-    const a = Math.random() * Math.PI * 2;
-    const px = c.x + Math.cos(a) * r;
-    const py = c.y + Math.sin(a) * r;
-    if (px > 20 && px < ICE_SIZE - 20 && py > 20 && py < ICE_SIZE - 20 && pointInPoly(px, py, poly)) {
-      return { x: px, y: py };
-    }
-  }
-  return c;
 }
 
 function getIceWinner() {
@@ -583,25 +453,7 @@ async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
 
-  let winner = null;
-
-  // If an RTP override is active, trust the target — the physics has steered
-  // the puck into their slice, but floating-point edge cases can leave the
-  // final position a hair outside. Committing to the target guarantees the
-  // override actually applies.
-  if (iceRoundOverride) {
-    const target = iceRoom.players.find(p => p.id === iceRoundOverride.targetPlayerId);
-    if (target) {
-      winner = target;
-      if (target.poly && !pointInPoly(iceRoom.puck.x, iceRoom.puck.y, target.poly)) {
-        const dest = randomPointInPoly(target.poly);
-        iceRoom.puck.x = dest.x;
-        iceRoom.puck.y = dest.y;
-      }
-    }
-  }
-
-  if (!winner) winner = getIceWinner();
+  const winner = getIceWinner();
 
   let payload = null;
   if (winner) {
@@ -637,11 +489,6 @@ async function endIceGame() {
     try { await addWinToHistory(winner.id, winner.name, winner.pfp, winnings); }
     catch (err) { console.error('endIceGame: history:', err); }
   }
-
-  updateIceRtpAfterWin(winner);
-
-  iceRoundOverride = null;
-  iceRoom.finalRoll = null;
 
   io.emit('iceRoundEnd', payload);
   setTimeout(() => {
@@ -751,45 +598,8 @@ function updateIcePhysics(dt) {
     }
   }
 
-  // ---- RTP steering: gently curve the puck toward the target slice ----
-  if (iceRoundOverride) {
-    const target = iceRoom.players.find(p => p.id === iceRoundOverride.targetPlayerId);
-    if (target && target.poly && !pointInPoly(puck.x, puck.y, target.poly)) {
-      const c = polyCentroid(target.poly);
-      const speed = Math.hypot(puck.vx, puck.vy);
-      const speedFactor = 1 - Math.min(1, speed / 20);
-      const turnRate = iceRoundOverride.turnBase + speedFactor * (iceRoundOverride.turnMax - iceRoundOverride.turnBase);
-      steerTowards(puck, c.x, c.y, turnRate);
-    }
-  }
-
   const finalSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-  if (finalSpeed < 0.15) {
-    puck.vx = 0;
-    puck.vy = 0;
-
-    if (iceRoundOverride) {
-      const target = iceRoom.players.find(p => p.id === iceRoundOverride.targetPlayerId);
-      if (target && target.poly && !pointInPoly(puck.x, puck.y, target.poly)) {
-        const dest = randomPointInPoly(target.poly);
-        const dist = Math.hypot(dest.x - puck.x, dest.y - puck.y);
-        const duration = Math.max(450, Math.min(1400, dist * 7));
-        iceRoom.finalRoll = {
-          fromX: puck.x,
-          fromY: puck.y,
-          toX: dest.x,
-          toY: dest.y,
-          startTime: Date.now(),
-          duration
-        };
-        iceRoom.gameState = 'rolling';
-        console.log(`[IceRTP] Final roll → ${target.name} · dist ${dist.toFixed(1)} · ${duration}ms`);
-        return;
-      }
-    }
-
-    endIceGame();
-  }
+  if (finalSpeed < 0.05) { puck.vx = 0; puck.vy = 0; endIceGame(); }
 }
 
 function broadcastIceState() {
@@ -1094,27 +904,8 @@ setInterval(() => {
 
     const icePrev = iceRoom.gameState;
 
-    if (iceRoom.gameState === 'sliding') {
-      updateIcePhysics(dt);
-    } else if (iceRoom.gameState === 'rolling') {
-      const r = iceRoom.finalRoll;
-      if (r) {
-        const t = Math.min(1, (now - r.startTime) / r.duration);
-        const e = 1 - Math.pow(1 - t, 3);
-        iceRoom.puck.x = r.fromX + (r.toX - r.fromX) * e;
-        iceRoom.puck.y = r.fromY + (r.toY - r.fromY) * e;
-        iceRoom.puck.vx = (r.toX - r.fromX) * (1 - e) * 0.05;
-        iceRoom.puck.vy = (r.toY - r.fromY) * (1 - e) * 0.05;
-        if (t >= 1) {
-          iceRoom.puck.vx = 0;
-          iceRoom.puck.vy = 0;
-          iceRoom.finalRoll = null;
-          endIceGame();
-        }
-      } else {
-        endIceGame();
-      }
-    } else if (iceRoom.gameState === 'countdown') {
+    if (iceRoom.gameState === 'sliding') updateIcePhysics(dt);
+    else if (iceRoom.gameState === 'countdown') {
       if ((now - iceRoom.countdownStartTime) / 1000 >= 10.0) startIceSpin();
     } else if (iceRoom.gameState === 'spinning') {
       if ((now - iceRoom.spinStartTime) / 1000 >= iceRoom.spinDuration) launchIcePuck();
@@ -1124,7 +915,7 @@ setInterval(() => {
 
     tickCount++;
 
-    if (iceRoom.gameState === 'sliding' || iceRoom.gameState === 'rolling') {
+    if (iceRoom.gameState === 'sliding') {
       io.emit('icePuck', {
         x: iceRoom.puck.x, y: iceRoom.puck.y,
         vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding'
@@ -1288,33 +1079,6 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <input id="botBet" placeholder="Bet amount" value="100" type="number" min="10"/>
 <input id="botCount" placeholder="Count" value="1" type="number" min="1" max="8" style="width:80px"/>
 <button onclick="spawnBots()">Spawn Bots</button><button class="danger" onclick="removeBots()">Remove All Bots</button></div></div>
-<div class="section"><h3>RTP Test Controls (temporary)</h3>
-<p style="font-size:12px;color:#888;margin:0 0 10px;">Live control over the ice RTP. Remove before release.</p>
-<div class="switch-wrap">
-  <span style="color:#ccc;">100% Test Mode (smallest non-bot player always wins)</span>
-  <label class="switch"><input type="checkbox" id="rtpForce" onchange="saveRtp()"/><span class="slider"></span></label>
-</div>
-<div class="bot-row">
-  <label style="color:#ccc;font-size:12px;">Boost</label>
-  <input id="rtpBoost" type="number" step="0.1" min="0" style="width:90px"/>
-  <label style="color:#ccc;font-size:12px;">Max boost</label>
-  <input id="rtpMaxBoost" type="number" step="0.1" min="0" style="width:90px"/>
-  <label style="color:#ccc;font-size:12px;">Threshold</label>
-  <input id="rtpThreshold" type="number" step="0.1" min="0" style="width:90px"/>
-</div>
-<div class="bot-row">
-  <label style="color:#ccc;font-size:12px;">Per-point chance</label>
-  <input id="rtpPerPoint" type="number" step="0.001" min="0" style="width:110px"/>
-  <label style="color:#ccc;font-size:12px;">Max chance (0-1)</label>
-  <input id="rtpMaxChance" type="number" step="0.01" min="0" max="1" style="width:90px"/>
-</div>
-<div class="bot-row">
-  <button onclick="saveRtp()">Apply</button>
-  <button class="warning" onclick="resetRtp()">Reset defaults</button>
-  <button onclick="loadRtp()">Reload</button>
-</div>
-<div id="rtpStatus" style="font-size:12px;color:#888;margin-top:6px;"></div>
-</div>
 <div class="section"><h3>Players</h3><button onclick="refreshPlayers()">Refresh Players</button><div id="players"></div></div>
 <div class="section"><h3>Actions</h3><button class="warning" onclick="resetTop()">Reset Top</button>
 <button class="warning" onclick="resetEconomy()">Reset Economy</button><button class="danger" onclick="wipeAll()">Wipe All Data</button></div>
@@ -1332,7 +1096,7 @@ async function fetchAdmin(path,method='GET',body=null){const h={'admin-secret':d
 if(body)h['Content-Type']='application/json';
 const r=await fetch('/admin/api'+path,{method,headers:h,body:body?JSON.stringify(body):null});return r.json();}
 function auth(){if(document.getElementById('secret').value===ADMIN_SECRET){document.getElementById('content').style.display='block';
-refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();loadRtp();}else alert('Wrong secret');}
+refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();}else alert('Wrong secret');}
 async function fetchAutoBotStatus(){const d=await fetchAdmin('/auto-bot-status');document.getElementById('autoBotToggle').checked=d.enabled;
 document.getElementById('autoBotStatus').textContent=d.enabled?'enabled':'disabled';}
 async function toggleAutoBot(e){const d=await fetchAdmin('/toggle-auto-bot','POST',{enabled:e});
@@ -1368,42 +1132,6 @@ const c=document.getElementById('promoCode').value||null;const m=parseInt(docume
 const d=await fetchAdmin('/create-promo','POST',{amount:a,code:c,maxUses:m});
 if(d.ok){alert('Promo: '+d.code);refreshPromoCodes();}else alert('Error: '+d.error);}
 async function deletePromo(code){if(!confirm('Delete '+code+'?'))return;await fetchAdmin('/delete-promo','POST',{code});refreshPromoCodes();}
-async function loadRtp(){
-  const d = await fetchAdmin('/rtp-state');
-  if(!d.ok) return;
-  document.getElementById('rtpBoost').value = d.boost;
-  document.getElementById('rtpMaxBoost').value = d.maxBoost;
-  document.getElementById('rtpThreshold').value = d.threshold;
-  document.getElementById('rtpPerPoint').value = d.perPointChance;
-  document.getElementById('rtpMaxChance').value = d.maxChance;
-  document.getElementById('rtpForce').checked = !!d.forceOverride;
-  document.getElementById('rtpStatus').textContent =
-    'boost ' + d.boost.toFixed(2) + ' · chance ' +
-    Math.min(d.maxChance, d.boost * d.perPointChance).toFixed(4) +
-    (d.forceOverride ? ' · 100% TEST MODE' : '');
-}
-async function saveRtp(){
-  const body = {
-    boost: parseFloat(document.getElementById('rtpBoost').value),
-    maxBoost: parseFloat(document.getElementById('rtpMaxBoost').value),
-    threshold: parseFloat(document.getElementById('rtpThreshold').value),
-    perPointChance: parseFloat(document.getElementById('rtpPerPoint').value),
-    maxChance: parseFloat(document.getElementById('rtpMaxChance').value),
-    forceOverride: document.getElementById('rtpForce').checked
-  };
-  const d = await fetchAdmin('/rtp-set','POST',body);
-  if(d.ok){
-    document.getElementById('rtpStatus').textContent = 'saved · boost ' + d.state.boost.toFixed(2);
-    loadRtp();
-  } else {
-    document.getElementById('rtpStatus').textContent = 'error';
-  }
-}
-async function resetRtp(){
-  if(!confirm('Reset RTP to defaults?')) return;
-  const d = await fetchAdmin('/rtp-reset','POST');
-  if(d.ok){ loadRtp(); document.getElementById('rtpStatus').textContent = 'reset to defaults'; }
-}
 </script></body></html>`;
 
 function adminAuth(req, res, next) {
@@ -1428,51 +1156,6 @@ app.post('/admin/api/send-notification', adminAuth, (req, res) => {
   io.emit('notification', { message: message.trim(), timestamp: Date.now() });
   res.json({ ok: true });
 });
-
-/* ---- RTP TEST CONTROLS (temporary — remove before release) ---- */
-
-app.get('/admin/api/rtp-state', adminAuth, (req, res) => {
-  res.json({
-    ok: true,
-    boost: iceRtp.boost,
-    maxBoost: iceRtp.maxBoost,
-    threshold: iceRtp.threshold,
-    perPointChance: iceRtp.perPointChance,
-    maxChance: iceRtp.maxChance,
-    forceOverride: iceRtp.forceOverride || false
-  });
-});
-
-app.post('/admin/api/rtp-set', adminAuth, (req, res) => {
-  try {
-    const { boost, maxBoost, threshold, perPointChance, maxChance, forceOverride } = req.body || {};
-
-    if (boost !== undefined) iceRtp.boost = Math.max(0, Number(boost) || 0);
-    if (maxBoost !== undefined) iceRtp.maxBoost = Math.max(0, Number(maxBoost) || 0);
-    if (threshold !== undefined) iceRtp.threshold = Math.max(0, Number(threshold) || 0);
-    if (perPointChance !== undefined) iceRtp.perPointChance = Math.max(0, Number(perPointChance) || 0);
-    if (maxChance !== undefined) iceRtp.maxChance = Math.min(1, Math.max(0, Number(maxChance) || 0));
-    if (forceOverride !== undefined) iceRtp.forceOverride = !!forceOverride;
-
-    console.log('[IceRTP] admin set →', iceRtp);
-    res.json({ ok: true, state: iceRtp });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
-});
-
-app.post('/admin/api/rtp-reset', adminAuth, (req, res) => {
-  iceRtp.boost = 0;
-  iceRtp.maxBoost = 24;
-  iceRtp.threshold = 2.5;
-  iceRtp.perPointChance = 0.008;
-  iceRtp.maxChance = 0.22;
-  iceRtp.forceOverride = false;
-  console.log('[IceRTP] admin reset →', iceRtp);
-  res.json({ ok: true, state: iceRtp });
-});
-
-/* ---- END RTP TEST CONTROLS ---- */
 
 app.get('/admin/api/players', adminAuth, async (req, res) => {
   try { res.json({ players: await getAllUsers() }); }
