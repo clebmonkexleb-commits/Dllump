@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const {
   getUser, saveUser, addWinToHistory, getAllUsers, topPlayers, allUsersCount,
   createPromoCode, redeemPromoCode, getPromoCodes, deletePromoCode, resetPlayer,
-  setAnonymousData, checkAnonymousUnique, changeAnonymousField, toggleHidePfp,
+  toggleHidePfp,
 } = require('./store');
 
 const PORT = process.env.PORT || 3000;
@@ -175,7 +175,7 @@ function stopAutoBot() {
 }
 
 /* ============================================================
-   POLYGON PARTITION — Portals-style angled segments
+   POLYGON PARTITION
    ============================================================ */
 
 function bboxOf(poly) {
@@ -225,9 +225,6 @@ function splitPolygon(poly, ax, ay, bx, by) {
   return [A, B];
 }
 
-/* Binary-search the exact cut position for a given angle so the resulting
-   area split matches targetRatio. minArea is now 0.4% so tiny bettors get
-   genuinely tiny fields. */
 function pickCut(poly, box, targetRatio) {
   const totalArea = polyArea(poly);
   if (totalArea <= 0) return null;
@@ -314,9 +311,6 @@ function pickCut(poly, box, targetRatio) {
   return best;
 }
 
-/* Always isolate the top-bet player first, giving them a piece whose area
-   is their share of the group's total bet. Clamp lowered to 1.5% / 98.5% so
-   tiny bettors can get tiny fields and a big bettor can dominate. */
 function partitionPoly(players, startIdx, endIdx, poly) {
   const count = endIdx - startIdx;
   if (count <= 0) return;
@@ -938,6 +932,123 @@ function broadcastState() {
   });
 }
 
+/* ============================================================
+   ANONYMOUS IDENTITY SYSTEM
+   ============================================================ */
+
+const ANON_FEES = { name: 50, username: 150, phone: 1500 };
+
+const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
+                  'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
+                  'Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
+const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther',
+                   'Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter',
+                   'Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
+
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function generateAnonName(){ return pick(ANON_ADJ) + ' ' + pick(ANON_NOUN); }
+function generateAnonUsername(){
+  const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase();
+  return base + Math.floor(Math.random() * 9000 + 1000);
+}
+
+function formatPhone(digits){
+  return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+}
+
+// Weighted phone generator with rarity tiers
+function generatePhone(){
+  const r = Math.random() * 100000;
+
+  if(r < 2){
+    const pool = [
+      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
+      '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
+      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
+    ];
+    return { phone: pick(pool), tier: 'mythic' };
+  }
+
+  if(r < 22){
+    const d = 1 + Math.floor(Math.random() * 9);
+    return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
+  }
+
+  if(r < 122){
+    // Palindromic 9 digits
+    const a = Math.floor(Math.random() * 10);
+    const b = Math.floor(Math.random() * 10);
+    const c = Math.floor(Math.random() * 10);
+    const d = Math.floor(Math.random() * 10);
+    const digits = `${a}${b}${c}${d}${c}${b}${a}`;   // 7 digits - pad to 9 by repeating head
+    const full = digits + `${a}${b}`;
+    return { phone: formatPhone(full), tier: 'epic' };
+  }
+
+  if(r < 522){
+    const d = Math.floor(Math.random() * 10);
+    const triple = String(d).repeat(3);
+    let rest = '';
+    for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10);
+    const digits = Math.random() < 0.5
+      ? triple + rest
+      : rest + triple;
+    return { phone: formatPhone(digits), tier: 'rare' };
+  }
+
+  if(r < 2022){
+    const digits = [];
+    for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
+    const pos = Math.floor(Math.random() * 7);
+    const d = Math.floor(Math.random() * 10);
+    digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
+    return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
+  }
+
+  let s = '';
+  for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
+  return { phone: formatPhone(s), tier: 'common' };
+}
+
+async function isAnonValueTaken(field, value, excludeUserId){
+  const all = await getAllUsers();
+  const lc = String(value).toLowerCase();
+  for(const u of all){
+    if(String(u.id) === String(excludeUserId)) continue;
+    if(field === 'name'){
+      if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true;
+    } else if(field === 'username'){
+      if((u.username || '').toLowerCase() === lc) return true;
+      if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true;
+    } else if(field === 'phone'){
+      if((u.anonymousPhone || '') === value) return true;
+    }
+  }
+  return false;
+}
+
+async function refreshLiveIdentity(userId){
+  const user = await getUser(userId);
+  if(!user) return;
+  const isAnon = !!user.anonymousEnabled;
+  const pvpPlayer = getPlayer(userId);
+  if(pvpPlayer){
+    pvpPlayer.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
+    pvpPlayer.pfp  = isAnon ? null : (user.pfp || '');
+    broadcastState();
+  }
+  const iceP = getIcePlayer(userId);
+  if(iceP){
+    iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
+    iceP.pfp  = isAnon ? null : (user.pfp || '');
+    broadcastIceState();
+  }
+}
+
+/* ============================================================
+   SOCKET
+   ============================================================ */
+
 io.on('connection', (socket) => {
   let userId = null;
 
@@ -969,9 +1080,6 @@ io.on('connection', (socket) => {
           anonymousName: user.anonymousName || '',
           anonymousUsername: user.anonymousUsername || '',
           anonymousPhone: user.anonymousPhone || '',
-          nameChanged: user.nameChanged || false,
-          usernameChanged: user.usernameChanged || false,
-          phoneChanged: user.phoneChanged || false,
           hidePfp: user.hidePfp || false },
         arena: { size: ARENA_SIZE, cornerRadius: CORNER_RADIUS, perimeter: PERIMETER },
         iceArena: { size: ICE_SIZE, cornerRadius: ICE_CORNER_RADIUS, perimeter: ICE_PERIMETER },
@@ -1041,6 +1149,10 @@ io.on('connection', (socket) => {
   });
 });
 
+/* ============================================================
+   ADMIN
+   ============================================================ */
+
 const ADMIN_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin Panel</title>
 <style>body{background:#0a0a12;color:#eee;font-family:sans-serif;padding:20px;max-width:1000px;margin:auto}
 table{width:100%;border-collapse:collapse;margin:10px 0}th,td{padding:8px;border:1px solid #333;text-align:left}
@@ -1062,11 +1174,11 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <h2>dllump Admin</h2>
 <div class="auth"><input id="secret" placeholder="Admin Secret" type="password"/><button onclick="auth()">Authenticate</button></div>
 <div id="content" style="display:none">
-<div class="section"><h3>📢 Send Notification</h3><div class="notification-row"><input id="notifInput" placeholder="Type message..."/><button onclick="sendNotification()">Send</button></div></div>
-<div class="section"><h3>🤖 Auto Bot</h3><div class="switch-wrap"><span style="color:#888;">Auto-spawn bots</span>
+<div class="section"><h3>Send Notification</h3><div class="notification-row"><input id="notifInput" placeholder="Type message..."/><button onclick="sendNotification()">Send</button></div></div>
+<div class="section"><h3>Auto Bot</h3><div class="switch-wrap"><span style="color:#888;">Auto-spawn bots</span>
 <label class="switch"><input type="checkbox" id="autoBotToggle" onchange="toggleAutoBot(this.checked)"/><span class="slider"></span></label>
 <span id="autoBotStatus" style="font-size:12px;color:#888;">disabled</span></div></div>
-<div class="section"><h3>🤖 Bot Spawn</h3><div class="bot-row">
+<div class="section"><h3>Bot Spawn</h3><div class="bot-row">
 <input id="botBet" placeholder="Bet amount" value="100" type="number" min="10"/>
 <input id="botCount" placeholder="Count" value="1" type="number" min="1" max="8" style="width:80px"/>
 <button onclick="spawnBots()">Spawn Bots</button><button class="danger" onclick="removeBots()">Remove All Bots</button></div></div>
@@ -1096,7 +1208,7 @@ async function sendNotification(){const m=document.getElementById('notifInput').
 const d=await fetchAdmin('/send-notification','POST',{message:m});if(d.ok){alert('Sent!');document.getElementById('notifInput').value='';}else alert('Error: '+d.error);}
 async function refreshPlayers(){const d=await fetchAdmin('/players');const p=d.players||[];
 let h='<table><tr><th>ID</th><th>Username</th><th>Balance</th><th>Wins</th><th>Losses</th><th>Banned</th><th>Actions</th></tr>';
-p.forEach(x=>{h+=\`<tr><td>\${x.id}</td><td>\${x.username}</td><td>\${x.balance}</td><td>\${x.wins}</td><td>\${x.losses}</td><td>\${x.banned?'🚫':''}</td><td><button onclick="banPlayer('\${x.id}')">Toggle Ban</button></td></tr>\`;});
+p.forEach(x=>{h+=\`<tr><td>\${x.id}</td><td>\${x.username}</td><td>\${x.balance}</td><td>\${x.wins}</td><td>\${x.losses}</td><td>\${x.banned?'YES':''}</td><td><button onclick="banPlayer('\${x.id}')">Toggle Ban</button></td></tr>\`;});
 h+='</table>';document.getElementById('players').innerHTML=h;}
 async function refreshPromoCodes(){const d=await fetchAdmin('/promo-codes');const c=d.codes||[];
 let h='<table><tr><th>Code</th><th>Amount</th><th>Uses</th><th>Max</th><th>Actions</th></tr>';
@@ -1224,6 +1336,11 @@ app.post('/admin/api/remove-bots', adminAuth, async (req, res) => {
   try { const removed = removeAllBots(); broadcastIceState(); res.json({ ok: true, removed }); }
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
+
+/* ============================================================
+   PROMO
+   ============================================================ */
+
 app.post('/redeem', async (req, res) => {
   try { const { code, userId } = req.body;
     if (!code || !userId) return res.status(400).json({ ok: false, error: 'Missing' });
@@ -1236,33 +1353,135 @@ app.get('/redeem', async (req, res) => {
     res.json(await redeemPromoCode(code, userId));
   } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
+
+/* ============================================================
+   ANONYMOUS IDENTITY ENDPOINTS
+   ============================================================ */
+
+app.post('/api/toggle-anonymous', async (req, res) => {
+  try {
+    const { userId, enabled } = req.body;
+    if(!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
+    user.anonymousEnabled = !!enabled;
+
+    if(user.anonymousEnabled && !user.anonymousName){
+      let name, username, phone;
+      for(let i = 0; i < 20; i++){
+        const n = generateAnonName();
+        if(!(await isAnonValueTaken('name', n, userId))){ name = n; break; }
+      }
+      for(let i = 0; i < 20; i++){
+        const u = generateAnonUsername();
+        if(!(await isAnonValueTaken('username', u, userId))){ username = u; break; }
+      }
+      for(let i = 0; i < 40; i++){
+        const p = generatePhone().phone;
+        if(!(await isAnonValueTaken('phone', p, userId))){ phone = p; break; }
+      }
+      user.anonymousName = name || generateAnonName();
+      user.anonymousUsername = username || generateAnonUsername();
+      user.anonymousPhone = phone || generatePhone().phone;
+    }
+
+    await saveUser(user);
+    await refreshLiveIdentity(userId);
+
+    res.json({
+      ok: true,
+      enabled: user.anonymousEnabled,
+      name: user.anonymousName || '',
+      username: user.anonymousUsername || '',
+      phone: user.anonymousPhone || ''
+    });
+  } catch(err){
+    console.error('toggle-anonymous error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+app.post('/api/roll-phone', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if(!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.balance < ANON_FEES.phone){
+      return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
+    }
+
+    let result = null;
+    for(let i = 0; i < 40; i++){
+      const c = generatePhone();
+      if(!(await isAnonValueTaken('phone', c.phone, userId))){ result = c; break; }
+    }
+    if(!result){
+      for(let i = 0; i < 100; i++){
+        let s = '';
+        for(let j = 0; j < 9; j++) s += Math.floor(Math.random() * 10);
+        const p = formatPhone(s);
+        if(!(await isAnonValueTaken('phone', p, userId))){ result = { phone: p, tier: 'common' }; break; }
+      }
+    }
+    if(!result) return res.status(500).json({ ok: false, error: 'Roll failed, try again' });
+
+    res.json({ ok: true, phone: result.phone, tier: result.tier, fee: ANON_FEES.phone });
+  } catch(err){
+    console.error('roll-phone error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
 app.post('/api/change-anonymous', async (req, res) => {
   try {
     const { userId, field, value } = req.body;
-    if (!userId || !field || value === undefined) return res.status(400).json({ ok: false, error: 'Missing parameters' });
-    const validFields = ['name', 'username', 'phone'];
-    if (!validFields.includes(field)) return res.status(400).json({ ok: false, error: 'Invalid field' });
-    if (field === 'username' && !/^[a-zA-Z0-9_]{3,16}$/.test(value)) return res.status(400).json({ ok: false, error: 'Invalid username' });
-    if (field === 'phone' && !/^\+?[0-9\s\-]{7,15}$/.test(value)) return res.status(400).json({ ok: false, error: 'Invalid phone' });
-    if (field === 'name' && !/^[a-zA-Z\s]{1,30}$/.test(value)) return res.status(400).json({ ok: false, error: 'Invalid name' });
-    const result = await changeAnonymousField(userId, field, value);
-    const pvpPlayer = getPlayer(userId);
-    if (pvpPlayer) {
-      const user = await getUser(userId);
-      if (user.anonymousEnabled) { pvpPlayer.name = user.anonymousName; pvpPlayer.pfp = null; }
-      else { pvpPlayer.name = user.username; pvpPlayer.pfp = user.pfp; }
-      broadcastState();
+    if(!userId || !field || value === undefined)
+      return res.status(400).json({ ok: false, error: 'Missing parameters' });
+    if(!ANON_FEES.hasOwnProperty(field))
+      return res.status(400).json({ ok: false, error: 'Invalid field' });
+
+    const clean = String(value).trim();
+
+    if(field === 'name'){
+      if(!/^[A-Za-z][A-Za-z\s]{1,29}$/.test(clean) || clean.length < 2)
+        return res.status(400).json({ ok: false, error: 'Invalid name' });
+    } else if(field === 'username'){
+      if(!/^[A-Za-z0-9_]{3,16}$/.test(clean))
+        return res.status(400).json({ ok: false, error: 'Invalid username' });
+    } else if(field === 'phone'){
+      if(!/^\+\d{3} \d{3} \d{3}$/.test(clean))
+        return res.status(400).json({ ok: false, error: 'Invalid phone' });
     }
-    const iceP = getIcePlayer(userId);
-    if (iceP) {
-      const user = await getUser(userId);
-      if (user.anonymousEnabled) { iceP.name = user.anonymousName; iceP.pfp = null; }
-      else { iceP.name = user.username; iceP.pfp = user.pfp; }
-      broadcastIceState();
+
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
+    if(await isAnonValueTaken(field, clean, userId)){
+      return res.status(409).json({ ok: false, error: 'That value is already taken' });
     }
-    res.json({ ok: true, newBalance: result.newBalance, fee: result.fee });
-  } catch (err) { res.status(500).json({ ok: false, error: err.message || 'Internal error' }); }
+
+    const fee = ANON_FEES[field];
+    if(user.balance < fee) return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
+
+    if(field === 'name') user.anonymousName = clean;
+    else if(field === 'username') user.anonymousUsername = clean;
+    else if(field === 'phone') user.anonymousPhone = clean;
+
+    user.balance -= fee;
+    await saveUser(user);
+    await refreshLiveIdentity(userId);
+
+    res.json({ ok: true, newBalance: user.balance, fee, field, value: clean });
+  } catch(err){
+    console.error('change-anonymous error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
+
 app.post('/api/toggle-hide-pfp', async (req, res) => {
   try {
     const { userId, hide } = req.body;
@@ -1277,7 +1496,7 @@ app.post('/api/toggle-hide-pfp', async (req, res) => {
 });
 
 /* ============================================================
-   TRANSFER — send diamonds from one user to another by username
+   TRANSFER
    ============================================================ */
 app.post('/api/transfer', async (req, res) => {
   try {
@@ -1320,6 +1539,7 @@ app.post('/api/transfer', async (req, res) => {
     res.status(500).json({ ok: false, error: 'Internal error' });
   }
 });
+
 /* ============================================================ */
 
 app.get('/leaderboard', async (req, res) => {
@@ -1330,6 +1550,6 @@ app.get('/health', (req, res) => res.json({ ok: true, players: room.players.leng
 
 server.listen(PORT, () => {
   console.log(`bump arena server listening on :${PORT}`);
-  if (!BOT_TOKEN) console.warn('⚠ TELEGRAM_BOT_TOKEN not set.');
-  if (ADMIN_SECRET === 'change-me-in-production') console.warn('⚠ Change ADMIN_SECRET!');
+  if (!BOT_TOKEN) console.warn('TELEGRAM_BOT_TOKEN not set.');
+  if (ADMIN_SECRET === 'change-me-in-production') console.warn('Change ADMIN_SECRET!');
 });
