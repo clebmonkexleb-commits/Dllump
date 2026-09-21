@@ -135,28 +135,27 @@ const iceRtp = {
   boost: 0,
   maxBoost: 24,
   minBoost: 0,
-  threshold: 2.5,          // boost value below which no override is possible
-  perPointChance: 0.008,   // override probability per boost point
-  maxChance: 0.22          // hard cap on override probability
+  threshold: 2.5,
+  perPointChance: 0.008,
+  maxChance: 0.22,
+  forceOverride: false
 };
 
 function applyIceRtpOverride(geometricWinner) {
   if (!geometricWinner) return geometricWinner;
   const players = iceRoom.players;
   if (players.length < 2) return geometricWinner;
-  if (iceRtp.boost < iceRtp.threshold) return geometricWinner;
+  if (iceRtp.boost < iceRtp.threshold && !iceRtp.forceOverride) return geometricWinner;
 
   const totalBet = iceRoom.pot || 0;
   if (totalBet <= 0) return geometricWinner;
 
   const winnerShare = geometricWinner.bet / totalBet;
-  // Only trigger when the geometric winner is a whale
-  if (winnerShare < 0.4) return geometricWinner;
+  if (winnerShare < 0.4 && !iceRtp.forceOverride) return geometricWinner;
 
   const chance = Math.min(iceRtp.maxChance, iceRtp.boost * iceRtp.perPointChance);
-  if (Math.random() > chance) return geometricWinner;
+  if (!iceRtp.forceOverride && Math.random() > chance) return geometricWinner;
 
-  // Pick a small-bet player, weighted toward the smallest stake
   const smallPlayers = players.filter(p => (p.bet / totalBet) < 0.28 && p.id !== geometricWinner.id);
   if (smallPlayers.length === 0) return geometricWinner;
 
@@ -168,7 +167,6 @@ function applyIceRtpOverride(geometricWinner) {
   });
   const chosen = pool[Math.floor(Math.random() * pool.length)];
 
-  // Consume a large chunk of the boost
   iceRtp.boost = Math.max(iceRtp.minBoost, iceRtp.boost - (4 + Math.random() * 4));
   console.log(`[IceRTP] Override: ${geometricWinner.name}(${geometricWinner.bet}) → ${chosen.name}(${chosen.bet}) · boost now ${iceRtp.boost.toFixed(2)}`);
   return chosen;
@@ -182,7 +180,6 @@ function updateIceRtpAfterWin(winner) {
   if (totalBet <= 0) return;
 
   const winnerShare = winner.bet / totalBet;
-  // Build up boost when a whale wins — with randomness so it's never guaranteed
   if (winnerShare > 0.32 && Math.random() < 0.75) {
     const increase = winnerShare * (1.2 + Math.random() * 1.3);
     iceRtp.boost = Math.min(iceRtp.maxBoost, iceRtp.boost + increase);
@@ -518,8 +515,6 @@ async function endIceGame() {
   const geometricWinner = getIceWinner();
   const winner = applyIceRtpOverride(geometricWinner);
 
-  // If the RTP override changed the winner, teleport the puck into their slice
-  // so the client sees the puck sitting inside the winning area.
   if (winner && geometricWinner && winner.id !== geometricWinner.id && winner.poly) {
     const c = polyCentroid(winner.poly);
     let px = c.x, py = c.y;
@@ -569,7 +564,6 @@ async function endIceGame() {
     catch (err) { console.error('endIceGame: history:', err); }
   }
 
-  // Update boost AFTER the round, so this round's result decides the next round's odds
   updateIceRtpAfterWin(winner);
 
   io.emit('iceRoundEnd', payload);
@@ -1161,6 +1155,33 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <input id="botBet" placeholder="Bet amount" value="100" type="number" min="10"/>
 <input id="botCount" placeholder="Count" value="1" type="number" min="1" max="8" style="width:80px"/>
 <button onclick="spawnBots()">Spawn Bots</button><button class="danger" onclick="removeBots()">Remove All Bots</button></div></div>
+<div class="section"><h3>RTP Test Controls (temporary)</h3>
+<p style="font-size:12px;color:#888;margin:0 0 10px;">Live control over the ice RTP. Remove before release.</p>
+<div class="bot-row">
+  <label style="color:#ccc;font-size:12px;">Boost</label>
+  <input id="rtpBoost" type="number" step="0.1" min="0" style="width:90px"/>
+  <label style="color:#ccc;font-size:12px;">Max boost</label>
+  <input id="rtpMaxBoost" type="number" step="0.1" min="0" style="width:90px"/>
+  <label style="color:#ccc;font-size:12px;">Threshold</label>
+  <input id="rtpThreshold" type="number" step="0.1" min="0" style="width:90px"/>
+</div>
+<div class="bot-row">
+  <label style="color:#ccc;font-size:12px;">Per-point chance</label>
+  <input id="rtpPerPoint" type="number" step="0.001" min="0" style="width:110px"/>
+  <label style="color:#ccc;font-size:12px;">Max chance (0-1)</label>
+  <input id="rtpMaxChance" type="number" step="0.01" min="0" max="1" style="width:90px"/>
+</div>
+<div class="switch-wrap">
+  <span style="color:#888;">Force override next round</span>
+  <label class="switch"><input type="checkbox" id="rtpForce" onchange="saveRtp()"/><span class="slider"></span></label>
+</div>
+<div class="bot-row">
+  <button onclick="saveRtp()">Apply</button>
+  <button class="warning" onclick="resetRtp()">Reset defaults</button>
+  <button onclick="loadRtp()">Reload</button>
+</div>
+<div id="rtpStatus" style="font-size:12px;color:#888;margin-top:6px;"></div>
+</div>
 <div class="section"><h3>Players</h3><button onclick="refreshPlayers()">Refresh Players</button><div id="players"></div></div>
 <div class="section"><h3>Actions</h3><button class="warning" onclick="resetTop()">Reset Top</button>
 <button class="warning" onclick="resetEconomy()">Reset Economy</button><button class="danger" onclick="wipeAll()">Wipe All Data</button></div>
@@ -1178,7 +1199,7 @@ async function fetchAdmin(path,method='GET',body=null){const h={'admin-secret':d
 if(body)h['Content-Type']='application/json';
 const r=await fetch('/admin/api'+path,{method,headers:h,body:body?JSON.stringify(body):null});return r.json();}
 function auth(){if(document.getElementById('secret').value===ADMIN_SECRET){document.getElementById('content').style.display='block';
-refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();}else alert('Wrong secret');}
+refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();loadRtp();}else alert('Wrong secret');}
 async function fetchAutoBotStatus(){const d=await fetchAdmin('/auto-bot-status');document.getElementById('autoBotToggle').checked=d.enabled;
 document.getElementById('autoBotStatus').textContent=d.enabled?'enabled':'disabled';}
 async function toggleAutoBot(e){const d=await fetchAdmin('/toggle-auto-bot','POST',{enabled:e});
@@ -1214,6 +1235,42 @@ const c=document.getElementById('promoCode').value||null;const m=parseInt(docume
 const d=await fetchAdmin('/create-promo','POST',{amount:a,code:c,maxUses:m});
 if(d.ok){alert('Promo: '+d.code);refreshPromoCodes();}else alert('Error: '+d.error);}
 async function deletePromo(code){if(!confirm('Delete '+code+'?'))return;await fetchAdmin('/delete-promo','POST',{code});refreshPromoCodes();}
+async function loadRtp(){
+  const d = await fetchAdmin('/rtp-state');
+  if(!d.ok) return;
+  document.getElementById('rtpBoost').value = d.boost;
+  document.getElementById('rtpMaxBoost').value = d.maxBoost;
+  document.getElementById('rtpThreshold').value = d.threshold;
+  document.getElementById('rtpPerPoint').value = d.perPointChance;
+  document.getElementById('rtpMaxChance').value = d.maxChance;
+  document.getElementById('rtpForce').checked = !!d.forceOverride;
+  document.getElementById('rtpStatus').textContent =
+    'boost ' + d.boost.toFixed(2) + ' · chance ' +
+    Math.min(d.maxChance, d.boost * d.perPointChance).toFixed(4) +
+    (d.forceOverride ? ' · FORCE ON' : '');
+}
+async function saveRtp(){
+  const body = {
+    boost: parseFloat(document.getElementById('rtpBoost').value),
+    maxBoost: parseFloat(document.getElementById('rtpMaxBoost').value),
+    threshold: parseFloat(document.getElementById('rtpThreshold').value),
+    perPointChance: parseFloat(document.getElementById('rtpPerPoint').value),
+    maxChance: parseFloat(document.getElementById('rtpMaxChance').value),
+    forceOverride: document.getElementById('rtpForce').checked
+  };
+  const d = await fetchAdmin('/rtp-set','POST',body);
+  if(d.ok){
+    document.getElementById('rtpStatus').textContent = 'saved · boost ' + d.state.boost.toFixed(2);
+    loadRtp();
+  } else {
+    document.getElementById('rtpStatus').textContent = 'error';
+  }
+}
+async function resetRtp(){
+  if(!confirm('Reset RTP to defaults?')) return;
+  const d = await fetchAdmin('/rtp-reset','POST');
+  if(d.ok){ loadRtp(); document.getElementById('rtpStatus').textContent = 'reset to defaults'; }
+}
 </script></body></html>`;
 
 function adminAuth(req, res, next) {
@@ -1238,6 +1295,51 @@ app.post('/admin/api/send-notification', adminAuth, (req, res) => {
   io.emit('notification', { message: message.trim(), timestamp: Date.now() });
   res.json({ ok: true });
 });
+
+/* ---- RTP TEST CONTROLS (temporary — remove before release) ---- */
+
+app.get('/admin/api/rtp-state', adminAuth, (req, res) => {
+  res.json({
+    ok: true,
+    boost: iceRtp.boost,
+    maxBoost: iceRtp.maxBoost,
+    threshold: iceRtp.threshold,
+    perPointChance: iceRtp.perPointChance,
+    maxChance: iceRtp.maxChance,
+    forceOverride: iceRtp.forceOverride || false
+  });
+});
+
+app.post('/admin/api/rtp-set', adminAuth, (req, res) => {
+  try {
+    const { boost, maxBoost, threshold, perPointChance, maxChance, forceOverride } = req.body || {};
+
+    if (boost !== undefined) iceRtp.boost = Math.max(0, Number(boost) || 0);
+    if (maxBoost !== undefined) iceRtp.maxBoost = Math.max(0, Number(maxBoost) || 0);
+    if (threshold !== undefined) iceRtp.threshold = Math.max(0, Number(threshold) || 0);
+    if (perPointChance !== undefined) iceRtp.perPointChance = Math.max(0, Number(perPointChance) || 0);
+    if (maxChance !== undefined) iceRtp.maxChance = Math.min(1, Math.max(0, Number(maxChance) || 0));
+    if (forceOverride !== undefined) iceRtp.forceOverride = !!forceOverride;
+
+    console.log('[IceRTP] admin set →', iceRtp);
+    res.json({ ok: true, state: iceRtp });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+app.post('/admin/api/rtp-reset', adminAuth, (req, res) => {
+  iceRtp.boost = 0;
+  iceRtp.maxBoost = 24;
+  iceRtp.threshold = 2.5;
+  iceRtp.perPointChance = 0.008;
+  iceRtp.maxChance = 0.22;
+  iceRtp.forceOverride = false;
+  console.log('[IceRTP] admin reset →', iceRtp);
+  res.json({ ok: true, state: iceRtp });
+});
+
+/* ---- END RTP TEST CONTROLS ---- */
 
 app.get('/admin/api/players', adminAuth, async (req, res) => {
   try { res.json({ players: await getAllUsers() }); }
