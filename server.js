@@ -132,6 +132,7 @@ let botCounter = 0;
 const botIds = new Set();
 let autoBotEnabled = false;
 let autoBotInterval = null;
+let rareRollEnabled = false;
 
 function generateBotId() { return `bot_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
 function isBot(id) { return id && typeof id === 'string' && id.startsWith('bot_'); }
@@ -1013,7 +1014,23 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leaderboard', async (_, ack) => {
-    try { ack?.({ ok: true, top: await topPlayers(20) }); }
+    try {
+      const top = await topPlayers(20);
+      const all = await getAllUsers();
+      const map = new Map(all.map(u => [String(u.id), u]));
+      const enriched = top.map(t => {
+        const full = map.get(String(t.id));
+        if (!full) return t;
+        return {
+          ...t,
+          anonymousName: full.anonymousName || '',
+          anonymousUsername: full.anonymousUsername || '',
+          anonymousPhone: full.anonymousPhone || '',
+          anonymousEnabled: !!full.anonymousEnabled,
+        };
+      });
+      ack?.({ ok: true, top: enriched });
+    }
     catch (err) { console.error('Leaderboard error:', err); ack?.({ ok: false, error: 'Internal error' }); }
   });
 
@@ -1075,6 +1092,9 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <div class="section"><h3>Auto Bot</h3><div class="switch-wrap"><span style="color:#888;">Auto-spawn bots</span>
 <label class="switch"><input type="checkbox" id="autoBotToggle" onchange="toggleAutoBot(this.checked)"/><span class="slider"></span></label>
 <span id="autoBotStatus" style="font-size:12px;color:#888;">disabled</span></div></div>
+<div class="section"><h3>Rare Roll Mode</h3><div class="switch-wrap"><span style="color:#888;">90% rare anon numbers</span>
+<label class="switch"><input type="checkbox" id="rareRollToggle" onchange="toggleRareRoll(this.checked)"/><span class="slider"></span></label>
+<span id="rareRollStatus" style="font-size:12px;color:#888;">disabled</span></div></div>
 <div class="section"><h3>Bot Spawn</h3><div class="bot-row">
 <input id="botBet" placeholder="Bet amount" value="100" type="number" min="10"/>
 <input id="botCount" placeholder="Count" value="1" type="number" min="1" max="8" style="width:80px"/>
@@ -1096,11 +1116,15 @@ async function fetchAdmin(path,method='GET',body=null){const h={'admin-secret':d
 if(body)h['Content-Type']='application/json';
 const r=await fetch('/admin/api'+path,{method,headers:h,body:body?JSON.stringify(body):null});return r.json();}
 function auth(){if(document.getElementById('secret').value===ADMIN_SECRET){document.getElementById('content').style.display='block';
-refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();}else alert('Wrong secret');}
+refreshPlayers();refreshPromoCodes();fetchAutoBotStatus();fetchRareRollStatus();}else alert('Wrong secret');}
 async function fetchAutoBotStatus(){const d=await fetchAdmin('/auto-bot-status');document.getElementById('autoBotToggle').checked=d.enabled;
 document.getElementById('autoBotStatus').textContent=d.enabled?'enabled':'disabled';}
+async function fetchRareRollStatus(){const d=await fetchAdmin('/rare-roll-status');document.getElementById('rareRollToggle').checked=d.enabled;
+document.getElementById('rareRollStatus').textContent=d.enabled?'enabled':'disabled';}
 async function toggleAutoBot(e){const d=await fetchAdmin('/toggle-auto-bot','POST',{enabled:e});
 if(d.ok)document.getElementById('autoBotStatus').textContent=d.enabled?'enabled':'disabled';else alert('Error: '+d.error);}
+async function toggleRareRoll(e){const d=await fetchAdmin('/toggle-rare-roll','POST',{enabled:e});
+if(d.ok)document.getElementById('rareRollStatus').textContent=d.enabled?'enabled':'disabled';else alert('Error: '+d.error);}
 async function sendNotification(){const m=document.getElementById('notifInput').value.trim();if(!m){alert('Enter a message');return;}
 const d=await fetchAdmin('/send-notification','POST',{message:m});if(d.ok){alert('Sent!');document.getElementById('notifInput').value='';}else alert('Error: '+d.error);}
 async function refreshPlayers(){const d=await fetchAdmin('/players');const p=d.players||[];
@@ -1148,6 +1172,14 @@ app.post('/admin/api/toggle-auto-bot', adminAuth, (req, res) => {
   res.json({ ok: true, enabled: autoBotEnabled });
 });
 app.get('/admin/api/auto-bot-status', adminAuth, (req, res) => res.json({ enabled: autoBotEnabled }));
+
+app.post('/admin/api/toggle-rare-roll', adminAuth, (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') return res.status(400).json({ ok: false, error: 'Invalid' });
+  rareRollEnabled = enabled;
+  res.json({ ok: true, enabled: rareRollEnabled });
+});
+app.get('/admin/api/rare-roll-status', adminAuth, (req, res) => res.json({ enabled: rareRollEnabled }));
 
 app.post('/admin/api/send-notification', adminAuth, (req, res) => {
   const { message } = req.body;
@@ -1256,6 +1288,7 @@ app.get('/redeem', async (req, res) => {
    ============================================================ */
 
 const ANON_FEES = { name: 50, username: 150, phone: 1500 };
+const RARE_TIERS = ['rare', 'epic', 'legendary', 'mythic'];
 
 const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
                   'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
@@ -1414,9 +1447,12 @@ app.post('/api/roll-phone', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
     }
 
+    const wantRare = rareRollEnabled && Math.random() < 0.90;
+
     let result = null;
-    for(let i = 0; i < 40; i++){
+    for(let i = 0; i < 80; i++){
       const c = generatePhone();
+      if(wantRare && !RARE_TIERS.includes(c.tier)) continue;
       if(!(await isAnonValueTaken('phone', c.phone, userId))){ result = c; break; }
     }
     if(!result){
@@ -1429,7 +1465,14 @@ app.post('/api/roll-phone', async (req, res) => {
     }
     if(!result) return res.status(500).json({ ok: false, error: 'Roll failed, try again' });
 
-    res.json({ ok: true, phone: result.phone, tier: result.tier, fee: ANON_FEES.phone });
+    const isRare = RARE_TIERS.includes(result.tier);
+    res.json({
+      ok: true,
+      phone: result.phone,
+      tier: result.tier,
+      fee: ANON_FEES.phone,
+      rareAnimation: isRare,
+    });
   } catch(err){
     console.error('roll-phone error:', err);
     res.status(500).json({ ok: false, error: 'Internal error' });
