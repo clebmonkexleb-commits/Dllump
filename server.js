@@ -128,6 +128,68 @@ const iceRoom = createIceRoom('ice');
 
 function getIcePlayer(id) { return iceRoom.players.find(p => p.id === id); }
 
+/* ============================================================
+   ICE RTP — dynamic balancing for small-bet players
+   ============================================================ */
+const iceRtp = {
+  boost: 0,
+  maxBoost: 24,
+  minBoost: 0,
+  threshold: 2.5,          // boost value below which no override is possible
+  perPointChance: 0.008,   // override probability per boost point
+  maxChance: 0.22          // hard cap on override probability
+};
+
+function applyIceRtpOverride(geometricWinner) {
+  if (!geometricWinner) return geometricWinner;
+  const players = iceRoom.players;
+  if (players.length < 2) return geometricWinner;
+  if (iceRtp.boost < iceRtp.threshold) return geometricWinner;
+
+  const totalBet = iceRoom.pot || 0;
+  if (totalBet <= 0) return geometricWinner;
+
+  const winnerShare = geometricWinner.bet / totalBet;
+  // Only trigger when the geometric winner is a whale
+  if (winnerShare < 0.4) return geometricWinner;
+
+  const chance = Math.min(iceRtp.maxChance, iceRtp.boost * iceRtp.perPointChance);
+  if (Math.random() > chance) return geometricWinner;
+
+  // Pick a small-bet player, weighted toward the smallest stake
+  const smallPlayers = players.filter(p => (p.bet / totalBet) < 0.28 && p.id !== geometricWinner.id);
+  if (smallPlayers.length === 0) return geometricWinner;
+
+  smallPlayers.sort((a, b) => a.bet - b.bet);
+  const pool = [];
+  smallPlayers.forEach((p, idx) => {
+    const weight = smallPlayers.length - idx;
+    for (let i = 0; i < weight; i++) pool.push(p);
+  });
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+
+  // Consume a large chunk of the boost
+  iceRtp.boost = Math.max(iceRtp.minBoost, iceRtp.boost - (4 + Math.random() * 4));
+  console.log(`[IceRTP] Override: ${geometricWinner.name}(${geometricWinner.bet}) → ${chosen.name}(${chosen.bet}) · boost now ${iceRtp.boost.toFixed(2)}`);
+  return chosen;
+}
+
+function updateIceRtpAfterWin(winner) {
+  if (!winner) return;
+  const players = iceRoom.players;
+  if (players.length < 2) return;
+  const totalBet = iceRoom.pot || 0;
+  if (totalBet <= 0) return;
+
+  const winnerShare = winner.bet / totalBet;
+  // Build up boost when a whale wins — with randomness so it's never guaranteed
+  if (winnerShare > 0.32 && Math.random() < 0.75) {
+    const increase = winnerShare * (1.2 + Math.random() * 1.3);
+    iceRtp.boost = Math.min(iceRtp.maxBoost, iceRtp.boost + increase);
+    console.log(`[IceRTP] Boost → ${iceRtp.boost.toFixed(2)} after ${winner.name} won with share ${(winnerShare * 100).toFixed(0)}%`);
+  }
+}
+
 let botCounter = 0;
 const botIds = new Set();
 let autoBotEnabled = false;
@@ -175,7 +237,7 @@ function stopAutoBot() {
 }
 
 /* ============================================================
-   POLYGON PARTITION
+   POLYGON PARTITION — Portals-style angled segments
    ============================================================ */
 
 function bboxOf(poly) {
@@ -452,7 +514,26 @@ function getIceWinner() {
 async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
-  const winner = getIceWinner();
+
+  const geometricWinner = getIceWinner();
+  const winner = applyIceRtpOverride(geometricWinner);
+
+  // If the RTP override changed the winner, teleport the puck into their slice
+  // so the client sees the puck sitting inside the winning area.
+  if (winner && geometricWinner && winner.id !== geometricWinner.id && winner.poly) {
+    const c = polyCentroid(winner.poly);
+    let px = c.x, py = c.y;
+    for (let i = 0; i < 25; i++) {
+      const tx = c.x + (Math.random() - 0.5) * 60;
+      const ty = c.y + (Math.random() - 0.5) * 60;
+      if (pointInPoly(tx, ty, winner.poly)) { px = tx; py = ty; break; }
+    }
+    iceRoom.puck.x = px;
+    iceRoom.puck.y = py;
+    iceRoom.puck.vx = 0;
+    iceRoom.puck.vy = 0;
+  }
+
   let payload = null;
   if (winner) {
     const totalPot = iceRoom.pot;
@@ -460,8 +541,15 @@ async function endIceGame() {
     const losersBets = totalPot - winnerBet;
     const commission = Math.floor(losersBets * 0.02);
     const winnings = totalPot - commission;
-    payload = { winnerId: winner.id, winnerName: winner.name, winnerPfp: winner.pfp, winnings,
-      multiplier: +(winnings / winnerBet).toFixed(2) };
+    payload = {
+      winnerId: winner.id,
+      winnerName: winner.name,
+      winnerPfp: winner.pfp,
+      winnings,
+      multiplier: +(winnings / winnerBet).toFixed(2),
+      puckX: iceRoom.puck.x,
+      puckY: iceRoom.puck.y
+    };
     iceRoom.recentWinners.unshift({ name: winner.name, pfp: winner.pfp, amount: winnings });
     if (iceRoom.recentWinners.length > 8) iceRoom.recentWinners.length = 8;
     if (!isBot(winner.id)) {
@@ -480,6 +568,10 @@ async function endIceGame() {
     try { await addWinToHistory(winner.id, winner.name, winner.pfp, winnings); }
     catch (err) { console.error('endIceGame: history:', err); }
   }
+
+  // Update boost AFTER the round, so this round's result decides the next round's odds
+  updateIceRtpAfterWin(winner);
+
   io.emit('iceRoundEnd', payload);
   setTimeout(() => {
     iceRoom.players = [];
@@ -933,119 +1025,6 @@ function broadcastState() {
 }
 
 /* ============================================================
-   ANONYMOUS IDENTITY SYSTEM
-   ============================================================ */
-
-const ANON_FEES = { name: 50, username: 150, phone: 1500 };
-
-const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
-                  'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
-                  'Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
-const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther',
-                   'Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter',
-                   'Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
-
-function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
-function generateAnonName(){ return pick(ANON_ADJ) + ' ' + pick(ANON_NOUN); }
-function generateAnonUsername(){
-  const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase();
-  return base + Math.floor(Math.random() * 9000 + 1000);
-}
-
-function formatPhone(digits){
-  return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
-}
-
-// Weighted phone generator with rarity tiers
-function generatePhone(){
-  const r = Math.random() * 100000;
-
-  if(r < 2){
-    const pool = [
-      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
-      '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
-      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
-    ];
-    return { phone: pick(pool), tier: 'mythic' };
-  }
-
-  if(r < 22){
-    const d = 1 + Math.floor(Math.random() * 9);
-    return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
-  }
-
-  if(r < 122){
-    // Palindromic 9 digits
-    const a = Math.floor(Math.random() * 10);
-    const b = Math.floor(Math.random() * 10);
-    const c = Math.floor(Math.random() * 10);
-    const d = Math.floor(Math.random() * 10);
-    const digits = `${a}${b}${c}${d}${c}${b}${a}`;   // 7 digits - pad to 9 by repeating head
-    const full = digits + `${a}${b}`;
-    return { phone: formatPhone(full), tier: 'epic' };
-  }
-
-  if(r < 522){
-    const d = Math.floor(Math.random() * 10);
-    const triple = String(d).repeat(3);
-    let rest = '';
-    for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10);
-    const digits = Math.random() < 0.5
-      ? triple + rest
-      : rest + triple;
-    return { phone: formatPhone(digits), tier: 'rare' };
-  }
-
-  if(r < 2022){
-    const digits = [];
-    for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
-    const pos = Math.floor(Math.random() * 7);
-    const d = Math.floor(Math.random() * 10);
-    digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
-    return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
-  }
-
-  let s = '';
-  for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
-  return { phone: formatPhone(s), tier: 'common' };
-}
-
-async function isAnonValueTaken(field, value, excludeUserId){
-  const all = await getAllUsers();
-  const lc = String(value).toLowerCase();
-  for(const u of all){
-    if(String(u.id) === String(excludeUserId)) continue;
-    if(field === 'name'){
-      if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true;
-    } else if(field === 'username'){
-      if((u.username || '').toLowerCase() === lc) return true;
-      if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true;
-    } else if(field === 'phone'){
-      if((u.anonymousPhone || '') === value) return true;
-    }
-  }
-  return false;
-}
-
-async function refreshLiveIdentity(userId){
-  const user = await getUser(userId);
-  if(!user) return;
-  const isAnon = !!user.anonymousEnabled;
-  const pvpPlayer = getPlayer(userId);
-  if(pvpPlayer){
-    pvpPlayer.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
-    pvpPlayer.pfp  = isAnon ? null : (user.pfp || '');
-    broadcastState();
-  }
-  const iceP = getIcePlayer(userId);
-  if(iceP){
-    iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
-    iceP.pfp  = isAnon ? null : (user.pfp || '');
-    broadcastIceState();
-  }
-}
-
-/* ============================================================
    SOCKET
    ============================================================ */
 
@@ -1357,6 +1336,110 @@ app.get('/redeem', async (req, res) => {
 /* ============================================================
    ANONYMOUS IDENTITY ENDPOINTS
    ============================================================ */
+
+const ANON_FEES = { name: 50, username: 150, phone: 1500 };
+
+const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
+                  'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
+                  'Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
+const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther',
+                   'Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter',
+                   'Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
+
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function generateAnonName(){ return pick(ANON_ADJ) + ' ' + pick(ANON_NOUN); }
+function generateAnonUsername(){
+  const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase();
+  return base + Math.floor(Math.random() * 9000 + 1000);
+}
+function formatPhone(digits){
+  return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+}
+
+function generatePhone(){
+  const r = Math.random() * 100000;
+
+  if(r < 2){
+    const pool = [
+      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
+      '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
+      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
+    ];
+    return { phone: pick(pool), tier: 'mythic' };
+  }
+
+  if(r < 22){
+    const d = 1 + Math.floor(Math.random() * 9);
+    return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
+  }
+
+  if(r < 122){
+    const a = Math.floor(Math.random() * 10);
+    const b = Math.floor(Math.random() * 10);
+    const c = Math.floor(Math.random() * 10);
+    const d = Math.floor(Math.random() * 10);
+    const digits = `${a}${b}${c}${d}${c}${b}${a}`;
+    const full = digits + `${a}${b}`;
+    return { phone: formatPhone(full), tier: 'epic' };
+  }
+
+  if(r < 522){
+    const d = Math.floor(Math.random() * 10);
+    const triple = String(d).repeat(3);
+    let rest = '';
+    for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10);
+    const digits = Math.random() < 0.5 ? triple + rest : rest + triple;
+    return { phone: formatPhone(digits), tier: 'rare' };
+  }
+
+  if(r < 2022){
+    const digits = [];
+    for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
+    const pos = Math.floor(Math.random() * 7);
+    const d = Math.floor(Math.random() * 10);
+    digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
+    return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
+  }
+
+  let s = '';
+  for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
+  return { phone: formatPhone(s), tier: 'common' };
+}
+
+async function isAnonValueTaken(field, value, excludeUserId){
+  const all = await getAllUsers();
+  const lc = String(value).toLowerCase();
+  for(const u of all){
+    if(String(u.id) === String(excludeUserId)) continue;
+    if(field === 'name'){
+      if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true;
+    } else if(field === 'username'){
+      if((u.username || '').toLowerCase() === lc) return true;
+      if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true;
+    } else if(field === 'phone'){
+      if((u.anonymousPhone || '') === value) return true;
+    }
+  }
+  return false;
+}
+
+async function refreshLiveIdentity(userId){
+  const user = await getUser(userId);
+  if(!user) return;
+  const isAnon = !!user.anonymousEnabled;
+  const pvpPlayer = getPlayer(userId);
+  if(pvpPlayer){
+    pvpPlayer.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
+    pvpPlayer.pfp  = isAnon ? null : (user.pfp || '');
+    broadcastState();
+  }
+  const iceP = getIcePlayer(userId);
+  if(iceP){
+    iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
+    iceP.pfp  = isAnon ? null : (user.pfp || '');
+    broadcastIceState();
+  }
+}
 
 app.post('/api/toggle-anonymous', async (req, res) => {
   try {
