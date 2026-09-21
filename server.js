@@ -139,11 +139,10 @@ const iceRtp = {
   threshold: 2.5,
   perPointChance: 0.008,
   maxChance: 0.22,
-  forceOverride: false       // 100% test mode — always picks a low-bet target
+  forceOverride: false       // 100% test mode — always picks the smallest bettor
 };
 
-// Per-round override state. Populated at launch, used during physics, cleared at end.
-let iceRoundOverride = null;   // { targetPlayerId, turnBase, turnMax } or null
+let iceRoundOverride = null;
 
 function decideIceRoundOverride() {
   iceRoundOverride = null;
@@ -152,22 +151,41 @@ function decideIceRoundOverride() {
   const totalBet = iceRoom.pot || 0;
   if (totalBet <= 0) return;
 
+  // ----- FORCE MODE (testing) -----
+  // Pick the absolute smallest bettor among REAL (non-bot) players so the
+  // tester is always the target, then fall back to including bots if there
+  // are no non-bot candidates.
+  if (iceRtp.forceOverride) {
+    let candidates = players.filter(p => !isBot(p.id));
+    if (candidates.length === 0) candidates = players.slice();
+    // Need at least 2 candidates so we're not chasing ourselves
+    if (candidates.length < 2) candidates = players.slice();
+
+    candidates.sort((a, b) => a.bet - b.bet);
+    const minBet = candidates[0].bet;
+    const finalists = candidates.filter(p => p.bet === minBet);
+    const target = finalists[Math.floor(Math.random() * finalists.length)];
+
+    iceRoundOverride = {
+      targetPlayerId: target.id,
+      turnBase: 0.0025,
+      turnMax: 0.030
+    };
+    console.log(`[IceRTP] FORCE → target: ${target.name} (bet ${target.bet}, ${finalists.length} finalist${finalists.length>1?'s':''})`);
+    return;
+  }
+
+  // ----- NATURAL MODE (boosted) -----
   const smallPlayers = players.filter(p => (p.bet / totalBet) < 0.30);
   if (smallPlayers.length === 0) return;
 
   let shouldOverride = false;
-  let chance = 0;
-
-  if (iceRtp.forceOverride) {
-    shouldOverride = true;
-  } else if (iceRtp.boost >= iceRtp.threshold) {
-    chance = Math.min(iceRtp.maxChance, iceRtp.boost * iceRtp.perPointChance);
+  if (iceRtp.boost >= iceRtp.threshold) {
+    const chance = Math.min(iceRtp.maxChance, iceRtp.boost * iceRtp.perPointChance);
     if (Math.random() < chance) shouldOverride = true;
   }
-
   if (!shouldOverride) return;
 
-  // Weight toward the smallest bet
   smallPlayers.sort((a, b) => a.bet - b.bet);
   const pool = [];
   smallPlayers.forEach((p, idx) => {
@@ -182,14 +200,10 @@ function decideIceRoundOverride() {
     turnMax: 0.030
   };
 
-  // Consume boost if we used it organically (not forced)
-  if (!iceRtp.forceOverride) {
-    iceRtp.boost = Math.max(iceRtp.minBoost, iceRtp.boost - (4 + Math.random() * 4));
-  }
-  console.log(`[IceRTP] Round override → target: ${target.name} (bet ${target.bet}, share ${(target.bet/totalBet*100).toFixed(0)}%)`);
+  iceRtp.boost = Math.max(iceRtp.minBoost, iceRtp.boost - (4 + Math.random() * 4));
+  console.log(`[IceRTP] Natural override → target: ${target.name} (bet ${target.bet}, share ${(target.bet/totalBet*100).toFixed(0)}%)`);
 }
 
-// Rotate velocity direction toward (targetX, targetY) without changing speed.
 function steerTowards(puck, targetX, targetY, turnRate) {
   const speed = Math.hypot(puck.vx, puck.vy);
   if (speed < 0.01) return;
@@ -513,7 +527,6 @@ function launchIcePuck() {
   iceRoom.lastBounceTime = 0;
   iceRoom.finalRoll = null;
 
-  // Decide RTP override for this round
   decideIceRoundOverride();
 }
 
@@ -538,7 +551,7 @@ function polyCentroid(poly) {
 
 function randomPointInPoly(poly) {
   const c = polyCentroid(poly);
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 60; i++) {
     const r = Math.random() * 90;
     const a = Math.random() * Math.PI * 2;
     const px = c.x + Math.cos(a) * r;
@@ -570,7 +583,25 @@ async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
 
-  const winner = getIceWinner();
+  let winner = null;
+
+  // If an RTP override is active, trust the target — the physics has steered
+  // the puck into their slice, but floating-point edge cases can leave the
+  // final position a hair outside. Committing to the target guarantees the
+  // override actually applies.
+  if (iceRoundOverride) {
+    const target = iceRoom.players.find(p => p.id === iceRoundOverride.targetPlayerId);
+    if (target) {
+      winner = target;
+      if (target.poly && !pointInPoly(iceRoom.puck.x, iceRoom.puck.y, target.poly)) {
+        const dest = randomPointInPoly(target.poly);
+        iceRoom.puck.x = dest.x;
+        iceRoom.puck.y = dest.y;
+      }
+    }
+  }
+
+  if (!winner) winner = getIceWinner();
 
   let payload = null;
   if (winner) {
@@ -607,10 +638,8 @@ async function endIceGame() {
     catch (err) { console.error('endIceGame: history:', err); }
   }
 
-  // Update boost AFTER the round (based on the actual winner)
   updateIceRtpAfterWin(winner);
 
-  // Clear round override
   iceRoundOverride = null;
   iceRoom.finalRoll = null;
 
@@ -728,7 +757,6 @@ function updateIcePhysics(dt) {
     if (target && target.poly && !pointInPoly(puck.x, puck.y, target.poly)) {
       const c = polyCentroid(target.poly);
       const speed = Math.hypot(puck.vx, puck.vy);
-      // Higher turn rate as the puck slows (imperceptible at full speed)
       const speedFactor = 1 - Math.min(1, speed / 20);
       const turnRate = iceRoundOverride.turnBase + speedFactor * (iceRoundOverride.turnMax - iceRoundOverride.turnBase);
       steerTowards(puck, c.x, c.y, turnRate);
@@ -737,12 +765,9 @@ function updateIcePhysics(dt) {
 
   const finalSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
   if (finalSpeed < 0.15) {
-    // Puck is basically stopped.
     puck.vx = 0;
     puck.vy = 0;
 
-    // If an override is active and the puck did NOT land in the target, do a
-    // short smooth "roll" so it settles inside. This is the last-resort safety net.
     if (iceRoundOverride) {
       const target = iceRoom.players.find(p => p.id === iceRoundOverride.targetPlayerId);
       if (target && target.poly && !pointInPoly(puck.x, puck.y, target.poly)) {
@@ -1072,14 +1097,12 @@ setInterval(() => {
     if (iceRoom.gameState === 'sliding') {
       updateIcePhysics(dt);
     } else if (iceRoom.gameState === 'rolling') {
-      // Smooth final roll so the puck settles into the target slice
       const r = iceRoom.finalRoll;
       if (r) {
         const t = Math.min(1, (now - r.startTime) / r.duration);
-        const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        const e = 1 - Math.pow(1 - t, 3);
         iceRoom.puck.x = r.fromX + (r.toX - r.fromX) * e;
         iceRoom.puck.y = r.fromY + (r.toY - r.fromY) * e;
-        // Fake a small decaying velocity for display purposes
         iceRoom.puck.vx = (r.toX - r.fromX) * (1 - e) * 0.05;
         iceRoom.puck.vy = (r.toY - r.fromY) * (1 - e) * 0.05;
         if (t >= 1) {
@@ -1268,7 +1291,7 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <div class="section"><h3>RTP Test Controls (temporary)</h3>
 <p style="font-size:12px;color:#888;margin:0 0 10px;">Live control over the ice RTP. Remove before release.</p>
 <div class="switch-wrap">
-  <span style="color:#ccc;">100% Test Mode (force low-bet player to win)</span>
+  <span style="color:#ccc;">100% Test Mode (smallest non-bot player always wins)</span>
   <label class="switch"><input type="checkbox" id="rtpForce" onchange="saveRtp()"/><span class="slider"></span></label>
 </div>
 <div class="bot-row">
