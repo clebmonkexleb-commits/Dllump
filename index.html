@@ -85,6 +85,12 @@
   }
   #topbar > *{pointer-events:auto}
   #tl{display:flex;align-items:center;gap:6px;min-width:0}
+  #user-info{display:flex;align-items:center;gap:6px;min-width:0;padding-left:2px;max-width:132px}
+  #user-info .ui-text{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+  #user-info .ui-name{font-size:12.5px;font-weight:800;color:var(--text);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.1px}
+  #user-info .ui-sub{font-size:10px;font-weight:600;color:var(--text2);opacity:.6;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0}
+  #sd{width:6.5px;height:6.5px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0;transition:.3s}
+  #sd.offline{background:var(--red);box-shadow:0 0 8px var(--red)}
   #menu-btn{width:32px;height:32px;border-radius:10px;border:.5px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
   #menu-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
   #tr{display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -663,18 +669,29 @@
   .anon-open-btn > span{flex:1;text-align:left}
   .anon-open-btn .chev{width:16px;height:16px;stroke:rgba(255,255,255,.4);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 
-  /* Transparent fullscreen overlay — the card slides up, the page behind fades into a blur */
+  /* Fullscreen overlay. Fully transparent — background blur fades in AFTER the card slides up. */
   .anon-full{
     position:fixed;inset:0;z-index:10000;max-width:440px;margin:0 auto;
     background:transparent;
     display:none;flex-direction:column;overflow:hidden;
     opacity:0;
-    -webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);
-    transition:opacity .45s ease,-webkit-backdrop-filter .55s ease,backdrop-filter .55s ease;
+    -webkit-backdrop-filter:blur(0px);
+    backdrop-filter:blur(0px);
+    /* Default: blur fades in with a delay so it only appears after card arrives */
+    transition:opacity .3s ease,
+               -webkit-backdrop-filter .55s ease .38s,
+               backdrop-filter .55s ease .38s;
   }
   .anon-full.show{
     display:flex;opacity:1;
-    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+  }
+  /* When closing, blur fades out immediately (no delay) */
+  .anon-full.closing{
+    transition:opacity .3s ease,
+               -webkit-backdrop-filter .35s ease,
+               backdrop-filter .35s ease;
   }
   .anon-full .anon-card-3d{will-change:transform,opacity}
   .anon-full-inner{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
@@ -686,14 +703,24 @@
   .anon-full-status{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .25s ease,box-shadow .25s ease}
   .anon-full-status.on{background:#4CC38A;box-shadow:0 0 12px rgba(76,195,138,.85)}
 
-  .anon-full-scroll{flex:1;overflow-y:auto;padding:4px 20px calc(30px + var(--safe-bottom));display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;align-items:center}
+  /* Center the card vertically */
+  .anon-full-scroll{
+    flex:1;
+    overflow-y:auto;
+    padding:4px 20px calc(30px + var(--safe-bottom));
+    display:flex;flex-direction:column;
+    align-items:center;
+    justify-content:center;      /* <- vertically centre the block */
+    gap:14px;
+    -webkit-overflow-scrolling:touch;
+  }
 
   .anon-card-3d{
     position:relative;
     width:88%;
     max-width:360px;
     aspect-ratio:1.586/1;
-    margin:12px auto 0;
+    margin:0 auto;
     border-radius:22px;
     padding:18px 20px 16px;
     background:
@@ -908,6 +935,9 @@
 
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
+    #un-name{max-width:100px;font-size:11.5px}
+    #un{max-width:100px;font-size:9.5px}
+    #user-info{max-width:110px}
     .page-title{font-size:24px}
     #wallet-page,#profile-page,#top-page{padding-left:14px;padding-right:14px}
     #ice-bet-overlay-wrap{width:92%;max-width:320px}
@@ -954,6 +984,13 @@
 <div id="app">
   <div id="topbar">
     <div id="tl">
+      <div id="user-info">
+        <div class="ui-text">
+          <div class="ui-name" id="un-name">Player</div>
+          <div class="ui-sub" id="un">@player</div>
+        </div>
+        <span id="sd"></span>
+      </div>
       <button id="menu-btn" aria-label="Open panel"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
     </div>
     <div id="tr">
@@ -4090,27 +4127,33 @@
   }
 
   function openAnonFull(){
+    anonFull.classList.remove('closing');
     anonFull.style.display = 'flex';
+    // add .show on next frame — card slides up (translateY) & opacity fades in.
+    // Backdrop blur has a transition-delay so it fades in AFTER the card arrives.
     requestAnimationFrame(() => requestAnimationFrame(() => anonFull.classList.add('show')));
     haptic('medium');
     updateAnonUI(true);
-    // Slide-up animation for the card, no background colour change.
     anonCard.style.transition = 'none';
     anonCard.style.opacity = '0';
-    anonCard.style.transform = 'perspective(900px) translateY(70px) rotateX(9deg) rotateY(-5deg) scale(.92)';
+    anonCard.style.transform = 'perspective(900px) translateY(80px) rotateX(9deg) rotateY(-5deg) scale(.92)';
     void anonCard.offsetWidth;
-    anonCard.style.transition = 'transform .65s cubic-bezier(.34,1.56,.64,1), opacity .4s ease';
+    anonCard.style.transition = 'transform .7s cubic-bezier(.34,1.56,.64,1), opacity .45s ease';
     anonCard.style.transform = 'perspective(900px) translateY(0) rotateX(3deg) rotateY(-2deg) scale(1)';
     anonCard.style.opacity = '1';
   }
   function closeAnonFull(){
     cancelFieldEdit();
+    anonFull.classList.add('closing');
     anonFull.classList.remove('show');
     haptic('light');
     anonCard.style.transition = 'transform .3s ease, opacity .25s ease';
-    anonCard.style.transform = 'perspective(900px) translateY(40px) rotateX(6deg) rotateY(-4deg) scale(.96)';
+    anonCard.style.transform = 'perspective(900px) translateY(50px) rotateX(6deg) rotateY(-4deg) scale(.96)';
     anonCard.style.opacity = '0';
-    setTimeout(() => { anonFull.style.display = 'none'; }, 400);
+    setTimeout(() => {
+      anonFull.style.display = 'none';
+      anonFull.classList.remove('closing');
+    }, 400);
   }
   anonOpenBtn.addEventListener('click', openAnonFull);
   anonBack.addEventListener('click', closeAnonFull);
