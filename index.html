@@ -19,12 +19,12 @@
     --safe-bottom:env(safe-area-inset-bottom,0px);
     --safe-top:env(safe-area-inset-top,0px);
   }
-  body.tg-fullscreen #topbar{ padding-top: calc(28px + var(--safe-top)); }
+  body.tg-fullscreen #topbar{ padding-top: calc(46px + var(--safe-top)); }
   body.tg-fullscreen #wallet-page,
   body.tg-fullscreen #profile-page,
-  body.tg-fullscreen #top-page{ padding-top: calc(24px + var(--safe-top)); }
+  body.tg-fullscreen #top-page{ padding-top: calc(80px + var(--safe-top)); }
   @media (display-mode: fullscreen){
-    #topbar{ padding-top: calc(24px + var(--safe-top)); }
+    #topbar{ padding-top: calc(40px + var(--safe-top)); }
   }
   html[data-theme="onyx"]{--bg-base:#000;--surface:rgba(255,255,255,.045);--surface2:rgba(255,255,255,.075);--surface3:rgba(255,255,255,.11);--border:rgba(255,255,255,.075);--border2:rgba(255,255,255,.13)}
   html[data-theme="dark"]{--bg-base:#0f0f0f;--surface:rgba(255,255,255,.05);--surface2:rgba(255,255,255,.085);--surface3:rgba(255,255,255,.12);--border:rgba(255,255,255,.09);--border2:rgba(255,255,255,.15)}
@@ -40,7 +40,9 @@
     -webkit-overflow-scrolling:touch;
     background:var(--bg-base,#000);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter','Segoe UI',Roboto,sans-serif;
-    -webkit-font-smoothing:antialiased;transition:background .4s ease;touch-action:manipulation
+    -webkit-font-smoothing:antialiased;transition:background .4s ease;
+    touch-action:manipulation;
+    overscroll-behavior-y:none;
   }
   body{position:fixed;inset:0;width:100%}
 
@@ -79,7 +81,7 @@
     position:absolute;
     top:0;left:0;right:0;
     display:flex;align-items:center;justify-content:space-between;
-    padding:calc(18px + var(--safe-top)) 10px 10px;
+    padding:calc(30px + var(--safe-top)) 10px 10px;
     z-index:12;gap:8px;
     pointer-events:none;
   }
@@ -94,6 +96,33 @@
   #menu-btn{width:32px;height:32px;border-radius:10px;border:.5px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
   #menu-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
   #tr{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  #tc{
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,calc(-50% + 4px));
+    display:flex;align-items:center;gap:6px;
+    pointer-events:auto;cursor:pointer;
+    user-select:none;-webkit-tap-highlight-color:transparent;
+    padding:4px 8px;border-radius:99px;
+    transition:transform .18s var(--ease-spring);
+  }
+  #tc:active{transform:translate(-50%,calc(-50% + 4px)) scale(.94)}
+  #tc .tc-text{
+    font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;
+    color:var(--text);
+    text-shadow:0 1px 4px rgba(0,0,0,.55),0 0 12px rgba(140,180,255,.25);
+  }
+  #tc #brand-gif{
+    width:16px;height:16px;display:block;object-fit:contain;
+    filter:drop-shadow(0 1px 4px rgba(0,0,0,.55));
+    will-change:transform;
+  }
+  #tc #brand-gif.playing{animation:brandGifPlay .9s var(--ease-spring)}
+  @keyframes brandGifPlay{
+    0%{transform:scale(1)}
+    35%{transform:scale(1.55) rotate(-6deg)}
+    65%{transform:scale(1.10) rotate(3deg)}
+    100%{transform:scale(1) rotate(0deg)}
+  }
   #bp{display:flex;align-items:center;gap:6px;cursor:pointer;background:var(--surface2);border:.5px solid var(--border);padding:5px 12px 5px 5px;border-radius:99px;flex-shrink:0;position:relative;overflow:hidden}
   #di{width:20px;height:20px;display:block;object-fit:contain;animation:glowDiamond 2.8s ease-in-out infinite}
   @keyframes glowDiamond{0%,100%{filter:drop-shadow(0 0 6px rgba(200,168,78,.3))}50%{filter:drop-shadow(0 0 24px rgba(200,168,78,.7)) brightness(1.2)}}
@@ -108,6 +137,7 @@
     overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
     touch-action:pan-y;
+    overscroll-behavior:contain;
     opacity:0;visibility:hidden;transform:translateX(30px);
     transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s ease,visibility .35s ease;
     will-change:transform,opacity;
@@ -154,6 +184,24 @@
   .win-panel .panel-amount.big{color:#fff;font-size:15px}
 
   #ice-waiting-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:2;text-align:center;color:rgba(255,255,255,.7);font-size:17px;font-weight:500;letter-spacing:.5px;text-shadow:0 0 40px rgba(0,0,0,.9);line-height:1.6;display:none;width:80%;max-width:300px}
+  #ice-waiting-frog{
+    display:block;
+    width:110px;height:110px;
+    margin:0 auto 12px;
+    object-fit:contain;
+    pointer-events:none;
+    filter:drop-shadow(0 8px 26px rgba(90,150,220,.35));
+    animation:iceFrogPulse 3.6s ease-in-out infinite;
+    will-change:opacity,transform;
+  }
+  @keyframes iceFrogPulse{
+    0%   { opacity:.35; transform:scale(.94); }
+    50%  { opacity:1;   transform:scale(1.06); }
+    100% { opacity:.35; transform:scale(.94); }
+  }
+  @media (max-height:640px){
+    #ice-waiting-frog{width:80px;height:80px;margin-bottom:8px}
+  }
   .waiting-letter{display:inline-block;opacity:0;transform:translateY(20px);animation:letterBounce 1.2s cubic-bezier(.34,1.56,.64,1) forwards}
   .waiting-letter.light{text-shadow:0 0 20px rgba(255,255,255,.8),0 0 60px rgba(255,255,255,.4);color:#fff}
   @keyframes letterBounce{0%{opacity:0;transform:translateY(30px) scale(.8)}40%{opacity:1;transform:translateY(-10px) scale(.85)}70%{transform:translateY(5px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
@@ -164,6 +212,13 @@
   #ice-bet-overlay{padding:9px 12px 10px;background:linear-gradient(135deg,rgba(40,50,80,.72),rgba(18,24,40,.82));backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(180,210,255,.22);border-radius:16px;display:flex;flex-direction:column;gap:6px;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.20);overflow:hidden;transition:max-height .42s cubic-bezier(.34,1.56,.64,1),padding .35s cubic-bezier(.34,1.56,.64,1),gap .35s ease,border-radius .3s ease;max-height:220px}
   #ice-bet-overlay.collapsed{padding:8px 14px;gap:0;max-height:40px;cursor:pointer;border-radius:16px;justify-content:center;align-items:center}
   .ice-bet-toggle{display:flex;cursor:pointer;background:none;border:none;color:rgba(200,220,250,.8);font-size:14px;padding:0;font-family:inherit;align-items:center;gap:6px;position:absolute;top:11px;right:12px;opacity:.7;z-index:2;font-weight:600;letter-spacing:.4px}
+  #bet-closed-gif{display:none;width:20px;height:20px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  #ice-bet-overlay.collapsed #bet-closed-gif{display:block;animation:betFrogBob 2.4s ease-in-out infinite}
+  @keyframes betFrogBob{
+    0%,100%{transform:translateY(0) scale(1)}
+    50%{transform:translateY(-2px) scale(1.08)}
+  }
+  #ice-bet-overlay:not(.collapsed) #bet-closed-gif{display:none}
   #ice-bet-overlay:not(.collapsed) .ice-bet-toggle::before{content:'>';display:inline-block;transform:rotate(90deg);font-family:monospace;font-size:15px}
   #ice-bet-overlay.collapsed .ice-bet-toggle{position:static;font-size:14px;opacity:1;width:auto;justify-content:center;color:rgba(200,220,250,.85);font-weight:700}
   #ice-bet-overlay.collapsed .ice-bet-toggle::before{content:'>';display:inline-block;transform:rotate(-90deg);margin-right:4px;font-family:monospace;font-size:16px;color:#b8d2ff;text-shadow:0 0 10px rgba(140,180,255,.6)}
@@ -208,7 +263,7 @@
   #ice-win-multiplier{font-size:30px;font-weight:800;color:#fff;text-align:center}
   #ice-win-continue-btn{padding:12px 0;border-radius:14px;border:1px solid rgba(140,180,255,.35);background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);color:#fff;font-weight:800;font-size:15px;cursor:pointer;width:100%;text-align:center;margin-top:6px;font-family:inherit;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(91,157,255,.4)}
 
-  #wallet-page,#profile-page,#top-page{padding:calc(46px + var(--safe-top)) 16px calc(90px + var(--safe-bottom));display:block;touch-action:pan-y}
+  #wallet-page,#profile-page,#top-page{padding:calc(80px + var(--safe-top)) 16px calc(90px + var(--safe-bottom));display:block;touch-action:pan-y}
   .page-head{margin:6px 0 18px}
   .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);display:flex;margin-bottom:4px;min-height:14px}
   .page-title{font-size:27px;font-weight:800;letter-spacing:-.8px;line-height:1;color:var(--text)}
@@ -304,7 +359,6 @@
   .stat-num.rate{color:#6ab8f0}
   .stat-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 
-  /* ============ ANON PROFILE INFO (profile tab) ============ */
   .anon-profile-info{
     display:none;
     flex-direction:column;
@@ -397,7 +451,6 @@
   html[data-theme="silver"] .promo button{background:#111;color:#fff}
   .promo-msg{font-size:12px;color:var(--text3);text-align:center;min-height:16px;margin-top:8px}
 
-  /* ============ TOP TAB ============ */
   .rank-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
   .top-entry{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid var(--border);border-radius:14px;padding:10px 14px}
   .top-entry .rank{font-size:14px;font-weight:800;color:var(--text2);min-width:28px;text-align:center}
@@ -1089,6 +1142,10 @@
       </div>
       <button id="menu-btn" aria-label="Open panel"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
     </div>
+    <div id="tc" role="button" aria-label="Dllump">
+      <span class="tc-text">Dllump</span>
+      <img id="brand-gif" src="https://i.postimg.cc/02py3B1x/ezgif-6c7a20c68e565b96.gif" alt="">
+    </div>
     <div id="tr">
       <div id="bp">
         <img id="di" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
@@ -1108,7 +1165,11 @@
         </div>
         <div id="ice-last-game-panel" class="win-panel left"><span class="panel-label">Last</span><div class="panel-content"><img class="panel-pfp" id="ice-last-game-pfp" src="" alt=""><span class="panel-amount" id="ice-last-game-amount">+0</span></div></div>
         <div id="ice-best-win-panel" class="win-panel right"><span class="panel-label">Best</span><div class="panel-content"><img class="panel-pfp" id="ice-best-win-pfp" src="" alt=""><span class="panel-amount big" id="ice-best-win-amount">+0</span></div></div>
-        <div id="ice-waiting-text"><span>waiting for players</span><div class="sub">place a bet to claim the rink</div></div>
+        <div id="ice-waiting-text">
+          <img id="ice-waiting-frog" src="https://i.postimg.cc/vmv8BgZy/ezgif-6a209cbdb9670fbd.gif" alt="" aria-hidden="true">
+          <span>waiting for players</span>
+          <div class="sub">place a bet to claim the rink</div>
+        </div>
         <div id="ice-win-panel">
           <div id="ice-win-gif-container"><img id="ice-win-gif" src="" alt=""></div>
           <div id="ice-win-avatar-container"><img id="ice-win-avatar" src="" alt="winner"></div>
@@ -1118,7 +1179,10 @@
         </div>
         <div id="ice-bet-overlay-wrap">
           <div id="ice-bet-overlay">
-            <button class="ice-bet-toggle" id="ice-bet-toggle-btn" type="button"><span class="ice-bet-toggle-text">bet</span></button>
+            <button class="ice-bet-toggle" id="ice-bet-toggle-btn" type="button">
+              <img id="bet-closed-gif" src="https://i.postimg.cc/bvFykX1f/ezgif-6611b82ad94fcfa6.gif" alt="" aria-hidden="true">
+              <span class="ice-bet-toggle-text">bet</span>
+            </button>
             <div class="ice-bet-row">
               <input type="text" id="ice-bet-input" placeholder="10" inputmode="numeric" enterkeyhint="done">
               <button id="ice-all-in-btn" type="button">All In</button>
@@ -1587,15 +1651,21 @@
 
   const tg=window.Telegram?.WebApp;
   if(tg){
-    tg.expand();
-    tg.enableClosingConfirmation();
+    try{ tg.expand(); }catch(_){}
+    try{ tg.enableClosingConfirmation(); }catch(_){}
+    try{ if(typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); }catch(_){}
+    try{ tg.setHeaderColor?.('#0a0a0a'); }catch(_){}
+    try{ tg.setBackgroundColor?.('#0a0a0a'); }catch(_){}
+
     function applyTgFullscreen(){
       const isFs = !!tg.isFullscreen || (tg.viewportHeight && tg.viewportHeight >= window.innerHeight - 2);
       document.body.classList.toggle('tg-fullscreen', isFs);
+      try{ if(typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); }catch(_){}
     }
     applyTgFullscreen();
     try{ tg.onEvent('fullscreenChanged', applyTgFullscreen); }catch(_){}
     try{ tg.onEvent('viewportChanged', applyTgFullscreen); }catch(_){}
+    try{ tg.onEvent('safeAreaChanged', applyTgFullscreen); }catch(_){}
     window.addEventListener('resize', applyTgFullscreen);
   }
 
@@ -4551,11 +4621,6 @@
 
     const isRare = !!serverResult.rareAnimation;
 
-    // --------- ROLL PHASE ---------
-    // Same starting speed for both rolls so the beginning looks identical.
-    // Rare rolls keep the roll alive longer with a bigger growth factor,
-    // making the number changes slow down dramatically toward the end
-    // (the "slow-motion" feel).
     const startTime = performance.now();
     const DURATION_MS = isRare ? 4200 : 2200;
     let delay = 42;
@@ -4568,26 +4633,19 @@
       delay = delay * growth;
     }
 
-    // --------- FINAL NUMBER ---------
     setPhoneValue(serverResult.phone);
 
     if(isRare){
       await new Promise(res => setTimeout(res, 360));
-
-      // Reward animation: grow a bit, blink gold a few times, then
-      // smoothly reset to the normal white size.
       phoneCurrent.classList.add('rare-pop');
       try { haptic('heavy'); } catch(_){}
-
       await new Promise(res => setTimeout(res, 2300));
-
       phoneCurrent.classList.remove('rare-pop');
     } else {
       haptic('medium');
       await new Promise(res => setTimeout(res, 420));
     }
 
-    // --------- COMMIT ---------
     try {
       const r = await fetch(SERVER_URL + '/api/change-anonymous', {
         method: 'POST',
@@ -4629,6 +4687,24 @@
     updateAnonUI(false);
     applyIdentity();
   };
+
+  // ---------- Brand gif: plays once on click ----------
+  (function(){
+    const brand = document.getElementById('tc');
+    const gif = document.getElementById('brand-gif');
+    if(!brand || !gif) return;
+    const baseSrc = gif.getAttribute('src');
+    function playOnce(){
+      gif.classList.remove('playing');
+      void gif.offsetWidth;
+      gif.classList.add('playing');
+      gif.src = baseSrc + '?p=' + Date.now();
+      try{ haptic('light'); }catch(_){}
+    }
+    brand.addEventListener('click', e => { e.stopPropagation(); playOnce(); });
+    gif.addEventListener('click', e => { e.stopPropagation(); playOnce(); });
+    setTimeout(()=> gif.classList.remove('playing'), 1000);
+  })();
 
   updateAnonUI(false);
 
