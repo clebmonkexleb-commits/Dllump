@@ -1029,44 +1029,65 @@
     pointer-events:none;
   }
 
+  /* Pointer — smaller, higher, white, black text, tilts during fill */
   .lvl-pointer{
     position:absolute;
-    top:-34px;
-    width:44px;
-    height:48px;
-    transform:translateX(-50%);
-    transition:left .95s cubic-bezier(.34,1.56,.64,1);
+    top:-32px;
+    width:30px;
+    height:32px;
+    transform:translateX(-50%) rotate(0deg);
+    transform-origin:50% 20%;
+    transition:left .95s cubic-bezier(.34,1.56,.64,1),
+               transform .7s cubic-bezier(.34,1.9,.4,1);
     pointer-events:none;
     z-index:3;
-    will-change:left;
+    will-change:left,transform;
+  }
+  .lvl-pointer.tilt{
+    transform:translateX(-50%) rotate(16deg);
+    transition:left .95s cubic-bezier(.34,1.56,.64,1),
+               transform .28s cubic-bezier(.2,.9,.3,1.15);
   }
   .lvl-pointer svg{
     width:100%;height:100%;display:block;
-    filter:drop-shadow(0 5px 12px rgba(0,0,0,.5));
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
   }
   .lvl-pointer .lvl-ptr-fill{
-    fill:rgba(255,255,255,.14);
-    stroke:rgba(255,255,255,.72);
-    stroke-width:1.2;
+    fill:#ffffff;
+    stroke:rgba(0,0,0,.10);
+    stroke-width:.6;
     stroke-linejoin:round;
   }
   .lvl-pointer .lvl-ptr-shine{
     fill:none;
-    stroke:rgba(255,255,255,.35);
+    stroke:rgba(0,0,0,.06);
     stroke-width:.8;
   }
   .lvl-pointer-num{
     position:absolute;
     left:0;right:0;
-    top:9px;
+    top:4px;
     text-align:center;
-    font-size:11.5px;
+    font-size:10px;
     font-weight:900;
-    color:#fff;
+    color:#000000;
     font-variant-numeric:tabular-nums;
-    letter-spacing:-.3px;
-    text-shadow:0 1px 3px rgba(0,0,0,.85);
+    letter-spacing:-.4px;
     pointer-events:none;
+  }
+  .lvl-progress-track.flash{
+    animation: trackFlash .7s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes trackFlash{
+    0%{box-shadow:inset 0 2px 6px rgba(0,0,0,.55),
+                    inset 0 -1px 0 rgba(255,255,255,.05),
+                    0 0 0 0 rgba(255,255,255,.5)}
+    40%{box-shadow:inset 0 2px 6px rgba(0,0,0,.55),
+                    inset 0 -1px 0 rgba(255,255,255,.05),
+                    0 0 20px 4px rgba(255,255,255,.35)}
+    100%{box-shadow:inset 0 2px 6px rgba(0,0,0,.55),
+                    inset 0 -1px 0 rgba(255,255,255,.05),
+                    0 0 0 0 rgba(255,255,255,0)}
   }
 
   .lvl-quests{
@@ -1665,16 +1686,16 @@
     <div class="lvl-progress-wrap">
       <div class="lvl-progress-head">
         <span id="lvl-xp-label">0 XP</span>
-        <span id="lvl-xp-next">100 XP TO GO</span>
+        <span id="lvl-xp-next">200 XP TO GO</span>
       </div>
       <div class="lvl-progress-track">
         <div class="lvl-progress-fill" id="lvl-progress-fill"></div>
         <div class="lvl-progress-next" id="lvl-progress-next">2</div>
       </div>
       <div class="lvl-pointer" id="lvl-pointer">
-        <svg viewBox="0 0 44 48" preserveAspectRatio="none">
-          <polygon class="lvl-ptr-fill" points="1,1 43,1 43,28 22,47 1,28"/>
-          <path class="lvl-ptr-shine" d="M 4,4 L 40,4"/>
+        <svg viewBox="0 0 30 32" preserveAspectRatio="none">
+          <polygon class="lvl-ptr-fill" points="1,1 29,1 29,18 15,31 1,18"/>
+          <path class="lvl-ptr-shine" d="M 4,4 L 26,4"/>
         </svg>
         <span class="lvl-pointer-num" id="lvl-pointer-num">0</span>
       </div>
@@ -1976,6 +1997,7 @@
         state.anonymousName=res.user.anonymousName||'Anonymous';
         if(window.__syncAnonFromJoin) window.__syncAnonFromJoin(res.user);
         if(window.__applyLevelFromJoin) window.__applyLevelFromJoin(res.level, res.quests);
+        window.__levelState = res.level;
         SERVER_ARENA_SIZE=res.arena.size;
         iceState.perimeterPoints=res.iceArena?.perimeter||res.arena.perimeter;
         iceState.cornerRadius=res.iceArena?.cornerRadius||res.arena.cornerRadius;
@@ -2155,7 +2177,8 @@
       if(r===1)rc+=' gold';else if(r===2)rc+=' silver';else if(r===3)rc+=' bronze';
       const pfp=p.anonymous?state.defaultAvatar:(p.pfp||state.defaultAvatar);
       const phoneLine = (p.anonymous && p.phone) ? '<div class="t-phone">'+escapeHtml(p.phone)+'</div>' : '';
-      const lvlBadge = '<span class="t-lvl">' + badgeSvgMarkup(p.level || 1, 16) + '</span>';
+      const badgeFn = window.__badgeSvgMarkup || function(){ return ''; };
+      const lvlBadge = '<span class="t-lvl">' + badgeFn(p.level || 1, 16) + '</span>';
       html += '<div class="top-entry">'
             +   '<div class="'+rc+'">#'+r+'</div>'
             +   '<img class="t-pfp" src="'+pfp+'" onerror="this.src=\''+state.defaultAvatar+'\'">'
@@ -2437,7 +2460,14 @@
     buildRinkCache();
   }
   function iceScaleFactor(){return iceState.arenaSize/SERVER_ARENA_SIZE}
-  window.addEventListener('resize',()=>resizeIceCanvas());
+  let _resizeDebounceTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeDebounceTimer);
+    _resizeDebounceTimer = setTimeout(() => {
+      resizeIceCanvas();
+      updateIndicator(false);
+    }, 120);
+  });
 
   const iceState={
     gameState:'idle',players:[],pot:0,arenaSize:0,perimeterPoints:[],cornerRadius:0,
@@ -2706,7 +2736,7 @@
     if(payload.winnerId===state.userId){state.balance+=payload.winnings;state.wins++;state.winStreak++}
     else{state.losses++;state.winStreak=0;addTransaction('loss',-payload.winnings,'Ice Loss vs '+payload.winnerName)}
     updateBalance();updateProfile();
-    if(window.__refreshLevel) window.__refreshLevel();
+    if(window.__refreshLevel) window.__refreshLevel(true);
     iceWinGif.src=WIN_GIFS[Math.floor(Math.random()*WIN_GIFS.length)];
     iceWinAvatar.src=payload.winnerPfp||state.defaultAvatar;
     iceWinName.textContent=payload.winnerName+' wins the rink!';
@@ -2737,7 +2767,11 @@
       if(!res?.ok){haptic('light');return}
       state.balance=res.balance;updateBalance();updateProfile();haptic('medium');
       addTransaction('bet',-v,'Ice Bet');
-      if(window.__refreshLevel) window.__refreshLevel();
+      if(res.level && window.__applyLevelFromJoin){
+        window.__applyLevelFromJoin(res.level, null);
+        window.__levelState = res.level;
+      }
+      if(window.__refreshLevel) window.__refreshLevel(true);
     });
     iceBetInput.value='';iceBetInput.blur();updateIceBetUI();
   }
@@ -3026,12 +3060,18 @@
       const p = iceState.players[pi];
 
       if(p._displayPoly && p._targetPoly && p._displayPoly.length === p._targetPoly.length){
-        const k = 0.22;
         const dp = p._displayPoly, tp = p._targetPoly;
+        let moved = false;
         for(let i=0;i<dp.length;i++){
-          dp[i].x += (tp[i].x - dp[i].x) * k;
-          dp[i].y += (tp[i].y - dp[i].y) * k;
+          const ddx = tp[i].x - dp[i].x;
+          const ddy = tp[i].y - dp[i].y;
+          if (Math.abs(ddx) > 0.03 || Math.abs(ddy) > 0.03) {
+            dp[i].x += ddx * 0.22;
+            dp[i].y += ddy * 0.22;
+            moved = true;
+          }
         }
+        if (moved) p._polyVersion = (p._polyVersion || 0) + 1;
       }
       const poly = p._displayPoly;
       if(!poly || poly.length < 3) continue;
@@ -3082,7 +3122,12 @@
 
       iceCtx.restore();
 
-      const meta = polyMeta(poly);
+      let meta = p._cachedMeta;
+      if (!meta || p._polyVersion !== p._metaVersion) {
+        meta = polyMeta(poly);
+        p._cachedMeta = meta;
+        p._metaVersion = p._polyVersion || 0;
+      }
       const cx = meta.cx * s;
       const cy = meta.cy * s;
       const inR = meta.inR * s;
@@ -4803,7 +4848,7 @@
   updateAnonUI(false);
 
   /* ============================================================
-     LEVEL SYSTEM (client)
+     LEVEL SYSTEM (client) — live updates + wipe-and-refill
      ============================================================ */
   const LEVEL_RANK_NAMES = [
     'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
@@ -4814,17 +4859,19 @@
 
   let levelState = {
     level: 1, rank: 'Starter', xp: 0, edges: 3, maxLevel: 22,
-    currentLevelXp: 0, nextLevelXp: 100, xpIntoLevel: 0, xpForLevel: 100,
-    xpToNext: 100, progress: 0, isMax: false,
+    currentLevelXp: 0, nextLevelXp: 200, xpIntoLevel: 0, xpForLevel: 200,
+    xpToNext: 200, progress: 0, isMax: false,
   };
   let levelQuests = [];
   let levelMenuOpen = false;
+  let levelTiltTimer = null;
+  let levelUpInProgress = false;
 
   function badgeSvgMarkup(level, size) {
     level = Math.max(1, Math.min(22, level | 0));
     const edges = 3 + Math.floor((level - 1) / 2);
     const cx = 50, cy = 50, r = 46;
-    const offset = Math.PI / edges; // rotate half a segment → flat-top orientation
+    const offset = Math.PI / edges;
     const pts = [];
     for (let i = 0; i < edges; i++) {
       const a = -Math.PI / 2 + offset + (i / edges) * Math.PI * 2;
@@ -4832,7 +4879,6 @@
     }
     const ptsStr = pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ');
     const fs = edges > 10 ? 30 : edges > 7 ? 34 : edges > 5 ? 38 : 42;
-    // number shifted slightly up (y=46 instead of 50)
     return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" aria-hidden="true">' +
       '<polygon points="' + ptsStr + '" fill="currentColor" stroke="none"/>' +
       '<text x="50" y="46" text-anchor="middle" dominant-baseline="central" ' +
@@ -4840,6 +4886,7 @@
       'font-size="' + fs + '" font-weight="900" letter-spacing="-1">' + level + '</text>' +
       '</svg>';
   }
+  window.__badgeSvgMarkup = badgeSvgMarkup;
 
   const lvlBadgeBtn      = document.getElementById('lvl-badge-btn');
   const lvlOverlay       = document.getElementById('lvl-overlay');
@@ -4855,6 +4902,7 @@
   const lvlPointer       = document.getElementById('lvl-pointer');
   const lvlPointerNum    = document.getElementById('lvl-pointer-num');
   const lvlQuestList     = document.getElementById('lvl-quest-list');
+  const lvlProgressTrack = document.querySelector('.lvl-progress-track');
 
   const FLYER_BASE = 200;
   const FLYER_END_SCALE = 0.72;
@@ -4907,16 +4955,100 @@
     lvlPointer.style.left = clamped + '%';
   }
 
-  async function refreshLevel() {
+  function triggerPointerTilt(duration) {
+    if (!lvlPointer) return;
+    clearTimeout(levelTiltTimer);
+    lvlPointer.classList.remove('tilt');
+    void lvlPointer.offsetWidth;
+    lvlPointer.classList.add('tilt');
+    levelTiltTimer = setTimeout(() => lvlPointer.classList.remove('tilt'), Math.max(200, duration - 60));
+  }
+
+  function flashProgressTrack() {
+    if (!lvlProgressTrack) return;
+    lvlProgressTrack.classList.remove('flash');
+    void lvlProgressTrack.offsetWidth;
+    lvlProgressTrack.classList.add('flash');
+  }
+
+  function updateBarLive() {
+    const pct = levelState.isMax ? 100 : (levelState.progress * 100);
+    lvlProgressFill.style.transition = '';
+    lvlProgressFill.style.width = pct + '%';
+    lvlPointer.style.transition = '';
+    positionPointerAt(pct);
+    if (lvlPointerNum) lvlPointerNum.textContent = levelState.xpIntoLevel;
+    if (lvlXpLabel) lvlXpLabel.textContent = levelState.xpIntoLevel + ' XP';
+    if (lvlXpNext) lvlXpNext.textContent = levelState.isMax ? 'MAX LEVEL' : (levelState.xpToNext + ' XP TO GO');
+    flashProgressTrack();
+    triggerPointerTilt(950);
+  }
+
+  function playLevelUpSequence() {
+    if (levelUpInProgress) return;
+    levelUpInProgress = true;
+
+    const newLevel = levelState.level;
+
+    lvlProgressFill.style.transition = 'width .5s cubic-bezier(.34,1.56,.64,1)';
+    lvlProgressFill.style.width = '100%';
+    lvlPointer.style.transition = 'left .5s cubic-bezier(.34,1.56,.64,1), transform .7s cubic-bezier(.34,1.9,.4,1)';
+    lvlPointer.style.left = '96%';
+    triggerPointerTilt(500);
+    flashProgressTrack();
+
+    if (lvlRankEl) lvlRankEl.textContent = levelState.rank;
+    if (lvlLevelLine) lvlLevelLine.textContent = 'Level ' + newLevel;
+    if (lvlProgressNext) lvlProgressNext.textContent = levelState.isMax ? '—' : String(newLevel + 1);
+    if (lvlPointerNum) lvlPointerNum.textContent = levelState.xpForLevel;
+    if (lvlXpLabel) lvlXpLabel.textContent = levelState.xpForLevel + ' XP';
+
+    setTimeout(() => {
+      lvlProgressFill.style.transition = 'width .38s cubic-bezier(.4,0,.5,1)';
+      lvlProgressFill.style.width = '0%';
+      lvlPointer.style.transition = 'left .38s cubic-bezier(.4,0,.5,1)';
+      lvlPointer.style.left = '4%';
+      if (lvlPointerNum) lvlPointerNum.textContent = '0';
+
+      setTimeout(() => {
+        const pct = levelState.isMax ? 100 : (levelState.progress * 100);
+        lvlProgressFill.style.transition = 'width .9s cubic-bezier(.34,1.56,.64,1)';
+        lvlProgressFill.style.width = pct + '%';
+        lvlPointer.style.transition = 'left .9s cubic-bezier(.34,1.56,.64,1), transform .7s cubic-bezier(.34,1.9,.4,1)';
+        positionPointerAt(pct);
+        if (lvlPointerNum) lvlPointerNum.textContent = levelState.xpIntoLevel;
+        if (lvlXpLabel) lvlXpLabel.textContent = levelState.xpIntoLevel + ' XP';
+        if (lvlXpNext) lvlXpNext.textContent = levelState.isMax ? 'MAX LEVEL' : (levelState.xpToNext + ' XP TO GO');
+        triggerPointerTilt(900);
+
+        setTimeout(() => { levelUpInProgress = false; }, 950);
+      }, 140);
+    }, 620);
+  }
+
+  async function refreshLevel(silent) {
     if (!state.userId || !socket) return;
     try {
       const r = await fetch(SERVER_URL + '/api/level?userId=' + encodeURIComponent(state.userId));
       const d = await r.json();
       if (!d.ok) return;
+      const prevXp = levelState.xp;
+      const prevLevel = levelState.level;
       levelState = d.level;
       levelQuests = d.quests || [];
+      window.__levelState = levelState;
       renderBadgeButton();
-      if (levelMenuOpen) renderLevelContent();
+
+      if (levelMenuOpen) {
+        if (levelState.level > prevLevel) {
+          playLevelUpSequence();
+        } else if (levelState.xp > prevXp) {
+          updateBarLive();
+          renderQuestList();
+        } else if (!silent) {
+          renderLevelContent();
+        }
+      }
     } catch (_) {}
   }
 
@@ -4935,7 +5067,6 @@
     lvlFlyer.style.transform = 'scale(' + (rect.width / FLYER_BASE) + ')';
 
     lvlBadgeBtn.style.opacity = '0';
-
     lvlBackdrop.classList.remove('visible');
     lvlContent.classList.remove('visible');
 
@@ -4945,7 +5076,6 @@
     lvlPointer.style.left = '4%';
 
     renderLevelContent();
-
     lvlOverlay.style.display = 'block';
     void lvlFlyer.offsetWidth;
 
@@ -4955,11 +5085,8 @@
         lvlFlyer.style.left = (cx - FLYER_BASE / 2) + 'px';
         lvlFlyer.style.top  = (cy - FLYER_BASE / 2) + 'px';
         lvlFlyer.style.transform = 'scale(' + FLYER_END_SCALE + ')';
-
         lvlBackdrop.classList.add('visible');
-
         setTimeout(() => lvlContent.classList.add('visible'), 220);
-
         setTimeout(() => {
           const pct = levelState.isMax ? 100 : (levelState.progress * 100);
           lvlProgressFill.style.transition = '';
@@ -4970,23 +5097,19 @@
       });
     });
 
-    refreshLevel();
+    refreshLevel(true);
   }
 
   function closeLevelMenu() {
     if (!levelMenuOpen || !lvlOverlay) return;
     levelMenuOpen = false;
-
     const rect = lvlBadgeBtn.getBoundingClientRect();
-
     lvlBackdrop.classList.remove('visible');
     lvlContent.classList.remove('visible');
-
     lvlFlyer.style.transition = 'left .5s cubic-bezier(.4,0,.6,1), top .5s cubic-bezier(.4,0,.6,1), transform .5s cubic-bezier(.4,0,.6,1)';
     lvlFlyer.style.left = (rect.left + rect.width / 2 - FLYER_BASE / 2) + 'px';
     lvlFlyer.style.top  = (rect.top  + rect.height / 2 - FLYER_BASE / 2) + 'px';
     lvlFlyer.style.transform = 'scale(' + (rect.width / FLYER_BASE) + ')';
-
     setTimeout(() => {
       lvlBadgeBtn.style.opacity = '1';
       lvlOverlay.style.display = 'none';
@@ -5003,12 +5126,20 @@
       });
       const d = await r.json();
       if (!d.ok) { showNotif(d.error || 'Failed'); return; }
+
+      const prevLevel = levelState.level;
       levelState = d.level;
       levelQuests = d.quests || [];
+      window.__levelState = levelState;
       renderBadgeButton();
-      renderLevelContent();
       haptic('heavy');
       showNotif('+' + d.reward + ' XP · ' + levelState.rank);
+
+      if (levelMenuOpen) {
+        if (levelState.level > prevLevel) playLevelUpSequence();
+        else updateBarLive();
+        renderQuestList();
+      }
     } catch (_) { showNotif('Network error'); }
   }
 
@@ -5029,7 +5160,7 @@
     applyIdentity();applyLayout(layoutMode);resizeIceCanvas();initWalletCard();
     setOnline(false);updateIndicator(false);requestAnimationFrame(renderLoop);refreshCardUI();
     renderBadgeButton();
-    setTimeout(() => { if(window.__refreshLevel) window.__refreshLevel(); }, 1500);
+    setTimeout(() => { if(window.__refreshLevel) window.__refreshLevel(true); }, 1500);
   }
   init();
   setTimeout(()=>{resizeIceCanvas();updateIndicator(false)},4200);
