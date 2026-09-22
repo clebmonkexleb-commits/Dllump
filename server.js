@@ -101,6 +101,109 @@ function speedForRadius(radius) {
 const COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#e84393'];
 const MAX_PLAYERS = 8;
 
+/* ============================================================
+   LEVEL / XP SYSTEM
+   ============================================================ */
+
+const LEVEL_RANKS = [
+  'Starter',        // 1
+  'Rookie',         // 2
+  'Pepe Lover',     // 3
+  'Meme Fan',       // 4
+  'NFT Lover',      // 5
+  'Degen',          // 6
+  'Crypto Bro',     // 7
+  'Airdrop Hunter', // 8
+  'Diamond Hands',  // 9
+  'Whale',          // 10
+  'Ice Skater',     // 11
+  'Puck Master',    // 12
+  'Arena Regular',  // 13
+  'High Roller',    // 14
+  'Ice Veteran',    // 15
+  'Rink Legend',    // 16
+  'Arena Champion', // 17
+  'Ice King',       // 18
+  'Arena Master',   // 19
+  'Ice Lord',       // 20
+  'Rink Royalty',   // 21
+  'Arena Friend'    // 22
+];
+const MAX_LEVEL = LEVEL_RANKS.length;
+
+// Cumulative XP needed to reach each level (level 1 = 0 XP)
+const LEVEL_XP = (() => {
+  const arr = [0];
+  for (let l = 1; l < MAX_LEVEL; l++) {
+    arr.push(arr[l - 1] + 100 + (l - 1) * 50);
+  }
+  return arr;
+})();
+
+function levelFromXp(xp) {
+  xp = Math.max(0, xp | 0);
+  let lvl = 1;
+  for (let i = 1; i < MAX_LEVEL; i++) {
+    if (xp >= LEVEL_XP[i]) lvl = i + 1; else break;
+  }
+  return lvl;
+}
+
+function getLevelInfo(user) {
+  const xp = Math.max(0, (user && user.xp) | 0);
+  const level = levelFromXp(xp);
+  const rank = LEVEL_RANKS[level - 1];
+  const curBase = LEVEL_XP[level - 1];
+  const nextBase = level < MAX_LEVEL ? LEVEL_XP[level] : curBase;
+  const isMax = level >= MAX_LEVEL;
+  const span = Math.max(1, nextBase - curBase);
+  const progress = isMax ? 1 : Math.min(1, Math.max(0, (xp - curBase) / span));
+  const edges = 3 + Math.floor((level - 1) / 2);
+  return {
+    level, rank, xp, edges, maxLevel: MAX_LEVEL,
+    currentLevelXp: curBase,
+    nextLevelXp: isMax ? null : nextBase,
+    xpIntoLevel: xp - curBase,
+    xpForLevel: isMax ? 0 : nextBase - curBase,
+    xpToNext: isMax ? 0 : nextBase - xp,
+    progress, isMax,
+  };
+}
+
+const QUESTS = [
+  {
+    id: 'ice_bets_5',
+    title: 'Arena Regular',
+    description: 'Place 5 bets in the Ice Arena',
+    target: 5,
+    reward: 250,
+  },
+  {
+    id: 'ice_win_1',
+    title: 'First Victory',
+    description: 'Win 1 Ice Arena game',
+    target: 1,
+    reward: 500,
+  },
+];
+
+function buildQuestList(user) {
+  return QUESTS.map(q => {
+    const progress = Math.max(0, (user['q_' + q.id + '_p'] | 0));
+    const claimed  = !!user['q_' + q.id + '_c'];
+    return {
+      id: q.id,
+      title: q.title,
+      description: q.description,
+      target: q.target,
+      reward: q.reward,
+      progress: Math.min(progress, q.target),
+      claimed,
+      complete: progress >= q.target,
+    };
+  });
+}
+
 function createRoom(id) {
   return { id, gameState: 'idle', players: [], pot: 0, opening: null, openingTimer: 0,
     gameTime: 0, countdownStartTime: 0, prestartTimer: 0, recentWinners: [] };
@@ -477,7 +580,12 @@ async function endIceGame() {
     if (!isBot(winner.id)) {
       try {
         const winnerUser = await getUser(winner.id);
-        if (winnerUser) { winnerUser.balance += winnings; winnerUser.wins += 1; await saveUser(winnerUser); }
+        if (winnerUser) {
+          winnerUser.balance += winnings;
+          winnerUser.wins += 1;
+          winnerUser['q_ice_win_1_p'] = (winnerUser['q_ice_win_1_p'] | 0) + 1;
+          await saveUser(winnerUser);
+        }
       } catch (err) { console.error('endIceGame: credit winner:', err); }
     }
     for (const p of iceRoom.players) {
@@ -978,7 +1086,10 @@ io.on('connection', (socket) => {
           anonymousName: user.anonymousName || '',
           anonymousUsername: user.anonymousUsername || '',
           anonymousPhone: user.anonymousPhone || '',
-          hidePfp: user.hidePfp || false },
+          hidePfp: user.hidePfp || false,
+          xp: user.xp || 0 },
+        level: getLevelInfo(user),
+        quests: buildQuestList(user),
         arena: { size: ARENA_SIZE, cornerRadius: CORNER_RADIUS, perimeter: PERIMETER },
         iceArena: { size: ICE_SIZE, cornerRadius: ICE_CORNER_RADIUS, perimeter: ICE_PERIMETER },
         recentWinners: room.recentWinners,
@@ -1003,6 +1114,7 @@ io.on('connection', (socket) => {
         return ack?.({ ok: false, error: 'Arena is full.' });
       }
       user.balance -= amt;
+      user.xp = (user.xp | 0) + amt;
       await saveUser(user);
       const existing = getPlayer(userId);
       if (existing) { existing.bet += amt; computeRadii(); }
@@ -1020,13 +1132,17 @@ io.on('connection', (socket) => {
       const map = new Map(all.map(u => [String(u.id), u]));
       const enriched = top.map(t => {
         const full = map.get(String(t.id));
-        if (!full) return t;
+        const base = full || t;
+        const lvl = getLevelInfo(base);
+        if (!full) return { ...t, level: lvl.level, rank: lvl.rank };
         return {
           ...t,
           anonymousName: full.anonymousName || '',
           anonymousUsername: full.anonymousUsername || '',
           anonymousPhone: full.anonymousPhone || '',
           anonymousEnabled: !!full.anonymousEnabled,
+          level: lvl.level,
+          rank: lvl.rank,
         };
       });
       ack?.({ ok: true, top: enriched });
@@ -1048,6 +1164,8 @@ io.on('connection', (socket) => {
         return ack?.({ ok: false, error: 'Rink is full.' });
       }
       user.balance -= amt;
+      user.xp = (user.xp | 0) + amt;
+      user['q_ice_bets_5_p'] = (user['q_ice_bets_5_p'] | 0) + 1;
       await saveUser(user);
       const existing = getIcePlayer(userId);
       if (existing) { existing.bet += amt; repartitionIceArena(); }
@@ -1537,6 +1655,56 @@ app.post('/api/toggle-hide-pfp', async (req, res) => {
     if (iceP) { iceP.pfp = newHide ? null : (await getUser(userId)).pfp; broadcastIceState(); }
     res.json({ ok: true, hidePfp: newHide });
   } catch (err) { res.status(500).json({ ok: false, error: err.message || 'Internal error' }); }
+});
+
+/* ============================================================
+   LEVEL / QUESTS ENDPOINTS
+   ============================================================ */
+
+app.get('/api/level', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    res.json({ ok: true, level: getLevelInfo(user), quests: buildQuestList(user) });
+  } catch (err) {
+    console.error('level endpoint:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+app.post('/api/claim-quest', async (req, res) => {
+  try {
+    const { userId, questId } = req.body || {};
+    if (!userId || !questId) return res.status(400).json({ ok: false, error: 'Missing fields' });
+    const quest = QUESTS.find(q => q.id === questId);
+    if (!quest) return res.status(400).json({ ok: false, error: 'Invalid quest' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
+    const pField = 'q_' + questId + '_p';
+    const cField = 'q_' + questId + '_c';
+    const progress = Math.max(0, user[pField] | 0);
+    if (progress < quest.target) return res.status(400).json({ ok: false, error: 'Quest not complete' });
+    if (user[cField]) return res.status(400).json({ ok: false, error: 'Already claimed' });
+
+    user[cField] = true;
+    user.xp = (user.xp | 0) + quest.reward;
+    await saveUser(user);
+
+    res.json({
+      ok: true,
+      reward: quest.reward,
+      xp: user.xp,
+      level: getLevelInfo(user),
+      quests: buildQuestList(user),
+    });
+  } catch (err) {
+    console.error('claim-quest:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 /* ============================================================
