@@ -966,10 +966,6 @@
     white-space:nowrap;
   }
 
-  /* ============ RARE ROLL REWARD ANIMATION ============
-     No visual difference at the start of the roll — the number just
-     grows a bit, blinks gold a few times, then smoothly settles back
-     to the normal white size. */
   .phone-current.rare-pop{
     animation: phoneRareReward 2.2s cubic-bezier(.34,1.56,.64,1) forwards;
     will-change: transform, color, text-shadow;
@@ -1081,6 +1077,206 @@
     0%{opacity:0;transform:translateY(6px)}
     100%{opacity:1;transform:translateY(0)}
   }
+
+  /* ============================================================
+     LEVEL SYSTEM
+     ============================================================ */
+  .lvl-badge {
+    display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;line-height:0;background:none;border:none;padding:0;
+    cursor:pointer;color:var(--text);-webkit-tap-highlight-color:transparent;
+  }
+  .lvl-badge svg{display:block;transition:transform .28s var(--ease-spring)}
+  .lvl-badge:active svg{transform:scale(1.10)}
+  .lvl-badge text{fill:var(--bg-base)}
+
+  .prof-name-row{display:flex;align-items:center;gap:8px;min-width:0}
+  .prof-name-row .prof-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .t-name-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .t-name-row .t-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .t-lvl{display:inline-flex;flex-shrink:0;color:var(--text);line-height:0}
+  .t-lvl text{fill:var(--bg-base)}
+
+  .lvl-overlay{
+    position:fixed;inset:0;z-index:10050;max-width:440px;margin:0 auto;
+    display:none;align-items:center;justify-content:center;padding:20px;
+    opacity:0;pointer-events:none;
+    transition:opacity .38s ease;
+  }
+  .lvl-overlay.show{display:flex;opacity:1;pointer-events:auto}
+  .lvl-backdrop{
+    position:absolute;inset:0;background:rgba(0,0,0,.4);
+    -webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);
+    transition:-webkit-backdrop-filter .55s ease,backdrop-filter .55s ease,background .4s ease;
+  }
+  .lvl-overlay.blurred .lvl-backdrop{
+    background:rgba(0,0,0,.62);
+    -webkit-backdrop-filter:blur(22px) saturate(120%);
+    backdrop-filter:blur(22px) saturate(120%);
+  }
+
+  .lvl-burst-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .lvl-burst{
+    position:absolute;left:50%;top:50%;
+    width:120px;height:120px;margin:-60px 0 0 -60px;
+    opacity:0;color:#fff;
+    animation:lvlBurst 1.15s cubic-bezier(.22,.61,.36,1) forwards;
+  }
+  .lvl-burst svg{width:100%;height:100%;display:block}
+  .lvl-burst polygon{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
+  @keyframes lvlBurst{
+    0%  {opacity:0;transform:scale(.4) rotate(-25deg)}
+    15% {opacity:.9}
+    100%{opacity:0;transform:scale(4.2) rotate(35deg)}
+  }
+
+  .lvl-panel{
+    position:relative;width:100%;max-width:360px;max-height:84vh;
+    background:linear-gradient(180deg,#0d0d0d 0%,#050505 100%);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:24px;padding:26px 20px 22px;
+    box-shadow:0 30px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.02) inset;
+    display:flex;flex-direction:column;gap:18px;
+    transform:scale(.55) rotate(-6deg);opacity:0;filter:blur(12px);
+    transform-origin:center center;
+    overflow:hidden;
+  }
+  .lvl-overlay.show .lvl-panel{
+    animation:lvlPanelIn .82s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes lvlPanelIn{
+    0%   {transform:scale(.55) rotate(-6deg);opacity:0;filter:blur(12px)}
+    50%  {transform:scale(1.04) rotate(1.5deg);opacity:1;filter:blur(0)}
+    72%  {transform:scale(.985) rotate(-.4deg)}
+    100% {transform:scale(1) rotate(0);opacity:1;filter:blur(0)}
+  }
+  html[data-theme="silver"] .lvl-panel{
+    background:linear-gradient(180deg,#f6f6f6 0%,#e2e2e2 100%);
+    border-color:rgba(0,0,0,.14);
+    box-shadow:0 30px 80px rgba(0,0,0,.35);
+  }
+
+  .lvl-close{
+    position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+    color:var(--text2);font-size:12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .2s var(--ease-spring),background .2s ease;
+  }
+  html[data-theme="silver"] .lvl-close{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08);color:#333}
+  .lvl-close:active{transform:scale(.9)}
+
+  .lvl-hero{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:6px}
+  .lvl-badge-large{display:inline-flex;color:var(--text);line-height:0}
+  .lvl-badge-large svg{display:block;transform-origin:center center}
+  .lvl-overlay.show .lvl-badge-large svg{
+    animation:lvlBadgeSpinIn 1s cubic-bezier(.34,1.56,.64,1) .12s backwards;
+  }
+  @keyframes lvlBadgeSpinIn{
+    0%  {transform:rotate(-200deg) scale(0);opacity:0}
+    55% {transform:rotate(15deg) scale(1.15);opacity:1}
+    78% {transform:rotate(-4deg) scale(.97)}
+    100%{transform:rotate(0deg) scale(1);opacity:1}
+  }
+  .lvl-badge-large text{fill:var(--bg-base)}
+
+  .lvl-rank{
+    font-size:17px;font-weight:800;letter-spacing:-.2px;color:var(--text);
+    text-align:center;margin-top:4px;
+  }
+  .lvl-level-line{
+    font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+    color:var(--text3);
+  }
+
+  .lvl-progress-block{display:flex;flex-direction:column;gap:6px}
+  .lvl-progress-head{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--text3);
+  }
+  .lvl-progress-track{
+    position:relative;width:100%;height:10px;border-radius:999px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07);
+    overflow:hidden;
+  }
+  html[data-theme="silver"] .lvl-progress-track{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.08)}
+  .lvl-progress-fill{
+    position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:999px;
+    background:linear-gradient(180deg,#ffffff,#c8c8c8);
+    box-shadow:0 0 12px rgba(255,255,255,.28);
+    transition:width .7s cubic-bezier(.34,1.56,.64,1);
+  }
+  html[data-theme="silver"] .lvl-progress-fill{
+    background:linear-gradient(180deg,#111,#000);
+    box-shadow:0 0 10px rgba(0,0,0,.25);
+  }
+
+  .lvl-quests{display:flex;flex-direction:column;gap:8px}
+  .lvl-quests-head{
+    font-size:10px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;
+    color:var(--text3);
+    display:flex;align-items:center;gap:8px;
+  }
+  .lvl-quests-head::after{
+    content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.10),transparent);
+  }
+  html[data-theme="silver"] .lvl-quests-head::after{background:linear-gradient(90deg,rgba(0,0,0,.12),transparent)}
+
+  .lvl-quest-list{display:flex;flex-direction:column;gap:8px}
+  .lvl-quest{
+    position:relative;display:flex;flex-direction:column;gap:8px;
+    padding:12px 14px;border-radius:14px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+    opacity:0;transform:translateY(10px);
+    animation:lvlQuestIn .5s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  html[data-theme="silver"] .lvl-quest{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.07)}
+  @keyframes lvlQuestIn{to{opacity:1;transform:translateY(0)}}
+  .lvl-quest-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .lvl-quest-title{font-size:13px;font-weight:800;color:var(--text);letter-spacing:-.1px}
+  .lvl-quest-reward{
+    font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--text2);padding:3px 8px;border-radius:6px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  }
+  html[data-theme="silver"] .lvl-quest-reward{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08);color:#333}
+  .lvl-quest-desc{font-size:11.5px;font-weight:600;color:var(--text3);line-height:1.4}
+  .lvl-quest-bar{
+    position:relative;height:6px;border-radius:999px;
+    background:rgba(255,255,255,.06);overflow:hidden;
+  }
+  html[data-theme="silver"] .lvl-quest-bar{background:rgba(0,0,0,.07)}
+  .lvl-quest-fill{
+    position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:999px;
+    background:#e6e6e6;transition:width .6s cubic-bezier(.34,1.56,.64,1);
+  }
+  html[data-theme="silver"] .lvl-quest-fill{background:#111}
+  .lvl-quest-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .lvl-quest-count{font-size:10.5px;font-weight:800;color:var(--text3);letter-spacing:.6px}
+  .lvl-quest-btn{
+    padding:7px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);color:var(--text);
+    font-family:inherit;font-size:10.5px;font-weight:800;letter-spacing:1.2px;
+    text-transform:uppercase;cursor:pointer;
+    transition:transform .18s var(--ease-spring),background .2s ease,border-color .2s ease;
+  }
+  html[data-theme="silver"] .lvl-quest-btn{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.10);color:#111}
+  .lvl-quest-btn:active{transform:scale(.94)}
+  .lvl-quest-btn.ready{
+    background:#ffffff;color:#000000;border-color:#ffffff;
+    box-shadow:0 6px 18px rgba(255,255,255,.18);
+  }
+  html[data-theme="silver"] .lvl-quest-btn.ready{
+    background:#111;color:#fff;border-color:#111;box-shadow:0 6px 18px rgba(0,0,0,.18);
+  }
+  .lvl-quest-btn.done{
+    background:transparent;color:var(--text3);border-color:rgba(255,255,255,.06);
+    pointer-events:none;
+  }
+  html[data-theme="silver"] .lvl-quest-btn.done{color:#888;border-color:rgba(0,0,0,.08)}
 
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
@@ -1260,7 +1456,10 @@
       <div class="profile-hero">
         <div class="prof-pfp-wrap"><img class="prof-pfp" id="profile-pfp" src="" alt=""><div class="online-dot" id="profile-dot"></div></div>
         <div class="prof-info">
-          <div class="prof-name" id="profile-name">Player</div>
+          <div class="prof-name-row">
+            <div class="prof-name" id="profile-name">Player</div>
+            <button class="lvl-badge" id="lvl-badge-btn" type="button" aria-label="Level"></button>
+          </div>
           <div class="prof-username" id="profile-username">@player</div>
           <div class="prof-status" id="profile-status">● connecting…</div>
         </div>
@@ -1600,6 +1799,32 @@
   </div>
 </div>
 
+<div class="lvl-overlay" id="lvl-overlay" role="dialog" aria-modal="true">
+  <div class="lvl-backdrop"></div>
+  <div class="lvl-burst-layer" id="lvl-burst-layer"></div>
+  <div class="lvl-panel">
+    <button class="lvl-close" id="lvl-close" type="button" aria-label="Close">✕</button>
+    <div class="lvl-hero">
+      <div class="lvl-badge-large" id="lvl-badge-large"></div>
+      <div class="lvl-rank" id="lvl-rank">Starter</div>
+      <div class="lvl-level-line" id="lvl-level-line">Level 1</div>
+    </div>
+    <div class="lvl-progress-block">
+      <div class="lvl-progress-head">
+        <span id="lvl-progress-left">0 XP</span>
+        <span id="lvl-progress-right">100 XP</span>
+      </div>
+      <div class="lvl-progress-track">
+        <div class="lvl-progress-fill" id="lvl-progress-fill"></div>
+      </div>
+    </div>
+    <div class="lvl-quests">
+      <div class="lvl-quests-head">Quests</div>
+      <div class="lvl-quest-list" id="lvl-quest-list"></div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -1888,6 +2113,7 @@
         state.anonymous=!!res.user.anonymousEnabled;state.hidePfp=!!res.user.hidePfp;
         state.anonymousName=res.user.anonymousName||'Anonymous';
         if(window.__syncAnonFromJoin) window.__syncAnonFromJoin(res.user);
+        if(window.__applyLevelFromJoin) window.__applyLevelFromJoin(res.level, res.quests);
         SERVER_ARENA_SIZE=res.arena.size;
         iceState.perimeterPoints=res.iceArena?.perimeter||res.arena.perimeter;
         iceState.cornerRadius=res.iceArena?.cornerRadius||res.arena.cornerRadius;
@@ -2049,7 +2275,8 @@
           score: u.balance,
           rank: i+1,
           anonymous: a,
-          phone: a ? (u.anonymousPhone || '') : ''
+          phone: a ? (u.anonymousPhone || '') : '',
+          level: u.level || 1
         };
       });
       state.topPlayerIds.clear();
@@ -2066,10 +2293,14 @@
       if(r===1)rc+=' gold';else if(r===2)rc+=' silver';else if(r===3)rc+=' bronze';
       const pfp=p.anonymous?state.defaultAvatar:(p.pfp||state.defaultAvatar);
       const phoneLine = (p.anonymous && p.phone) ? '<div class="t-phone">'+escapeHtml(p.phone)+'</div>' : '';
+      const lvlBadge = '<span class="t-lvl">' + badgeSvgMarkup(p.level || 1, 16) + '</span>';
       html += '<div class="top-entry">'
             +   '<div class="'+rc+'">#'+r+'</div>'
             +   '<img class="t-pfp" src="'+pfp+'" onerror="this.src=\''+state.defaultAvatar+'\'">'
-            +   '<div class="t-main"><div class="t-name">'+escapeHtml(p.name)+'</div>'+phoneLine+'</div>'
+            +   '<div class="t-main">'
+            +     '<div class="t-name-row"><span class="t-name">'+escapeHtml(p.name)+'</span>'+lvlBadge+'</div>'
+            +     phoneLine
+            +   '</div>'
             +   '<div class="t-wins">'+p.wins+' wins</div>'
             + '</div>';
     });
@@ -2613,6 +2844,7 @@
     if(payload.winnerId===state.userId){state.balance+=payload.winnings;state.wins++;state.winStreak++}
     else{state.losses++;state.winStreak=0;addTransaction('loss',-payload.winnings,'Ice Loss vs '+payload.winnerName)}
     updateBalance();updateProfile();
+    if(window.__refreshLevel) window.__refreshLevel();
     iceWinGif.src=WIN_GIFS[Math.floor(Math.random()*WIN_GIFS.length)];
     iceWinAvatar.src=payload.winnerPfp||state.defaultAvatar;
     iceWinName.textContent=payload.winnerName+' wins the rink!';
@@ -2643,6 +2875,7 @@
       if(!res?.ok){haptic('light');return}
       state.balance=res.balance;updateBalance();updateProfile();haptic('medium');
       addTransaction('bet',-v,'Ice Bet');
+      if(window.__refreshLevel) window.__refreshLevel();
     });
     iceBetInput.value='';iceBetInput.blur();updateIceBetUI();
   }
@@ -4708,10 +4941,175 @@
 
   updateAnonUI(false);
 
+  /* ============================================================
+     LEVEL SYSTEM (client)
+     ============================================================ */
+  const LEVEL_RANK_NAMES = [
+    'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
+    'Airdrop Hunter','Diamond Hands','Whale','Ice Skater','Puck Master','Arena Regular',
+    'High Roller','Ice Veteran','Rink Legend','Arena Champion','Ice King','Arena Master',
+    'Ice Lord','Rink Royalty','Arena Friend'
+  ];
+  let levelState = {
+    level: 1, rank: 'Starter', xp: 0, edges: 3, maxLevel: 22,
+    currentLevelXp: 0, nextLevelXp: 100, xpIntoLevel: 0, xpForLevel: 100,
+    xpToNext: 100, progress: 0, isMax: false,
+  };
+  let levelQuests = [];
+
+  function badgeSvgMarkup(level, size) {
+    level = Math.max(1, Math.min(22, level | 0));
+    const edges = 3 + Math.floor((level - 1) / 2);
+    const cx = 50, cy = 50, r = 46;
+    const pts = [];
+    for (let i = 0; i < edges; i++) {
+      const a = -Math.PI / 2 + (i / edges) * Math.PI * 2;
+      pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
+    }
+    const fs = edges > 10 ? 30 : edges > 7 ? 34 : edges > 5 ? 38 : 42;
+    return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">
+      <polygon points="${pts.join(' ')}" fill="currentColor" stroke="none"/>
+      <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
+        dy="0.02em" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,sans-serif"
+        font-size="${fs}" font-weight="900" letter-spacing="-1">${level}</text>
+    </svg>`;
+  }
+
+  const lvlBadgeBtn     = document.getElementById('lvl-badge-btn');
+  const lvlOverlay      = document.getElementById('lvl-overlay');
+  const lvlClose        = document.getElementById('lvl-close');
+  const lvlBadgeLarge   = document.getElementById('lvl-badge-large');
+  const lvlRankEl       = document.getElementById('lvl-rank');
+  const lvlLevelLine    = document.getElementById('lvl-level-line');
+  const lvlProgressFill = document.getElementById('lvl-progress-fill');
+  const lvlProgressLeft = document.getElementById('lvl-progress-left');
+  const lvlProgressRight= document.getElementById('lvl-progress-right');
+  const lvlQuestList    = document.getElementById('lvl-quest-list');
+  const lvlBurstLayer   = document.getElementById('lvl-burst-layer');
+
+  function renderBadgeButton() {
+    if (!lvlBadgeBtn) return;
+    lvlBadgeBtn.innerHTML = badgeSvgMarkup(levelState.level, 22);
+  }
+  function renderLargeBadge() {
+    if (!lvlBadgeLarge) return;
+    lvlBadgeLarge.innerHTML = badgeSvgMarkup(levelState.level, 92);
+  }
+  function renderLevelPanel() {
+    renderLargeBadge();
+    if (lvlRankEl)     lvlRankEl.textContent = levelState.rank;
+    if (lvlLevelLine)  lvlLevelLine.textContent = 'Level ' + levelState.level;
+    const pct = Math.round((levelState.progress || 0) * 100);
+    if (lvlProgressFill) lvlProgressFill.style.width = pct + '%';
+    if (lvlProgressLeft) lvlProgressLeft.textContent = levelState.xpIntoLevel + ' XP';
+    if (lvlProgressRight){
+      lvlProgressRight.textContent = levelState.isMax ? 'MAX' : (levelState.xpForLevel + ' XP');
+    }
+    renderQuestList();
+  }
+  function renderQuestList() {
+    if (!lvlQuestList) return;
+    if (!levelQuests.length) { lvlQuestList.innerHTML = ''; return; }
+    lvlQuestList.innerHTML = levelQuests.map((q, i) => {
+      const pct = Math.min(100, Math.round((q.progress / Math.max(1, q.target)) * 100));
+      const btnClass = q.claimed ? 'lvl-quest-btn done' : q.complete ? 'lvl-quest-btn ready' : 'lvl-quest-btn';
+      const btnText  = q.claimed ? 'Claimed' : q.complete ? 'Claim' : 'Locked';
+      const disabled = q.claimed || !q.complete ? 'disabled' : '';
+      return `
+        <div class="lvl-quest" style="animation-delay:${(i * 80) + 140}ms">
+          <div class="lvl-quest-top">
+            <div class="lvl-quest-title">${q.title}</div>
+            <div class="lvl-quest-reward">+${q.reward} XP</div>
+          </div>
+          <div class="lvl-quest-desc">${q.description}</div>
+          <div class="lvl-quest-bar"><div class="lvl-quest-fill" style="width:${pct}%"></div></div>
+          <div class="lvl-quest-foot">
+            <div class="lvl-quest-count">${q.progress} / ${q.target}</div>
+            <button class="${btnClass}" data-quest-id="${q.id}" ${disabled} type="button">${btnText}</button>
+          </div>
+        </div>`;
+    }).join('');
+    lvlQuestList.querySelectorAll('button[data-quest-id]').forEach(btn => {
+      if (btn.disabled) return;
+      btn.addEventListener('click', () => claimQuest(btn.dataset.questId));
+    });
+  }
+  function spawnLevelBurst() {
+    if (!lvlBurstLayer) return;
+    const el = document.createElement('div');
+    el.className = 'lvl-burst';
+    el.innerHTML = badgeSvgMarkup(levelState.level, 120).replace(/<text[\s\S]*?<\/text>/, '');
+    lvlBurstLayer.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+  async function refreshLevel() {
+    if (!state.userId || !socket) return;
+    try {
+      const r = await fetch(SERVER_URL + '/api/level?userId=' + encodeURIComponent(state.userId));
+      const d = await r.json();
+      if (!d.ok) return;
+      levelState = d.level;
+      levelQuests = d.quests || [];
+      renderBadgeButton();
+      if (lvlOverlay && lvlOverlay.classList.contains('show')) renderLevelPanel();
+    } catch (_) {}
+  }
+  async function claimQuest(questId) {
+    if (!state.userId) return;
+    try {
+      const r = await fetch(SERVER_URL + '/api/claim-quest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: state.userId, questId }),
+      });
+      const d = await r.json();
+      if (!d.ok) { showNotif(d.error || 'Failed'); return; }
+      levelState = d.level;
+      levelQuests = d.quests || [];
+      renderBadgeButton();
+      renderLevelPanel();
+      haptic('heavy');
+      showNotif('+' + d.reward + ' XP · ' + levelState.rank);
+    } catch (_) { showNotif('Network error'); }
+  }
+  function openLevelMenu() {
+    if (!lvlOverlay) return;
+    renderLevelPanel();
+    lvlOverlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      lvlOverlay.classList.add('show');
+      setTimeout(() => lvlOverlay.classList.add('blurred'), 30);
+      spawnLevelBurst();
+      haptic('medium');
+    }));
+    refreshLevel();
+  }
+  function closeLevelMenu() {
+    if (!lvlOverlay) return;
+    lvlOverlay.classList.remove('blurred');
+    lvlOverlay.classList.remove('show');
+    haptic('light');
+    setTimeout(() => { lvlOverlay.style.display = 'none'; }, 400);
+  }
+  if (lvlBadgeBtn) lvlBadgeBtn.addEventListener('click', openLevelMenu);
+  if (lvlClose) lvlClose.addEventListener('click', closeLevelMenu);
+  if (lvlOverlay) {
+    lvlOverlay.addEventListener('click', e => {
+      if (e.target === lvlOverlay || e.target.classList.contains('lvl-backdrop')) closeLevelMenu();
+    });
+  }
+  window.__refreshLevel = refreshLevel;
+  window.__applyLevelFromJoin = function(level, quests) {
+    if (level) { levelState = level; renderBadgeButton(); }
+    if (Array.isArray(quests)) levelQuests = quests;
+  };
+
   function init(){
     if(tg?.initDataUnsafe?.user){const u=tg.initDataUnsafe.user;state.username=u.username||u.first_name||'player';state.pfp=u.photo_url||''}
     applyIdentity();applyLayout(layoutMode);resizeIceCanvas();initWalletCard();
     setOnline(false);updateIndicator(false);requestAnimationFrame(renderLoop);refreshCardUI();
+    renderBadgeButton();
+    setTimeout(() => { if(window.__refreshLevel) window.__refreshLevel(); }, 1500);
   }
   init();
   setTimeout(()=>{resizeIceCanvas();updateIndicator(false)},4200);
