@@ -1177,7 +1177,13 @@ input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:
 <input id="addUserId" placeholder="User ID"/><input id="addAmount" placeholder="Amount"/><button onclick="addMoney()">Add Money</button><br/>
 <input id="setUserId" placeholder="User ID"/><input id="setAmount" placeholder="New Balance"/><button onclick="setMoney()">Set Balance</button><br/>
 <input id="banUserId" placeholder="User ID"/><button class="danger" onclick="banPlayer()">Ban/Unban</button><br/>
-<input id="resetUserId" placeholder="User ID"/><button class="warning" onclick="resetPlayer()">Reset Player</button></div></div>
+<input id="resetUserId" placeholder="User ID"/><button class="warning" onclick="resetPlayer()">Reset Player</button></div>
+
+<div class="section"><h3>XP &amp; Level</h3>
+<input id="xpUserId" placeholder="User ID"/><input id="xpAmount" placeholder="XP (+/-)" type="number"/><button onclick="addXp()">Add XP</button><br/>
+<input id="setXpUserId" placeholder="User ID"/><input id="setXpAmount" placeholder="New XP" type="number" min="0"/><button onclick="setXp()">Set XP</button><br/>
+<input id="questUserId" placeholder="User ID"/><button class="warning" onclick="resetQuests()">Reset Quests</button></div>
+</div>
 <script>
 const ADMIN_SECRET='${ADMIN_SECRET}';
 async function fetchAdmin(path,method='GET',body=null){const h={'admin-secret':document.getElementById('secret').value};
@@ -1196,8 +1202,8 @@ if(d.ok)document.getElementById('rareRollStatus').textContent=d.enabled?'enabled
 async function sendNotification(){const m=document.getElementById('notifInput').value.trim();if(!m){alert('Enter a message');return;}
 const d=await fetchAdmin('/send-notification','POST',{message:m});if(d.ok){alert('Sent!');document.getElementById('notifInput').value='';}else alert('Error: '+d.error);}
 async function refreshPlayers(){const d=await fetchAdmin('/players');const p=d.players||[];
-let h='<table><tr><th>ID</th><th>Username</th><th>Balance</th><th>Wins</th><th>Losses</th><th>Banned</th><th>Actions</th></tr>';
-p.forEach(x=>{h+=\`<tr><td>\${x.id}</td><td>\${x.username}</td><td>\${x.balance}</td><td>\${x.wins}</td><td>\${x.losses}</td><td>\${x.banned?'YES':''}</td><td><button onclick="banPlayer('\${x.id}')">Toggle Ban</button></td></tr>\`;});
+let h='<table><tr><th>ID</th><th>Username</th><th>Balance</th><th>XP</th><th>Wins</th><th>Losses</th><th>Banned</th><th>Actions</th></tr>';
+p.forEach(x=>{h+=\`<tr><td>\${x.id}</td><td>\${x.username}</td><td>\${x.balance}</td><td>\${x.xp||0}</td><td>\${x.wins}</td><td>\${x.losses}</td><td>\${x.banned?'YES':''}</td><td><button onclick="banPlayer('\${x.id}')">Toggle Ban</button></td></tr>\`;});
 h+='</table>';document.getElementById('players').innerHTML=h;}
 async function refreshPromoCodes(){const d=await fetchAdmin('/promo-codes');const c=d.codes||[];
 let h='<table><tr><th>Code</th><th>Amount</th><th>Uses</th><th>Max</th><th>Actions</th></tr>';
@@ -1224,6 +1230,12 @@ const c=document.getElementById('promoCode').value||null;const m=parseInt(docume
 const d=await fetchAdmin('/create-promo','POST',{amount:a,code:c,maxUses:m});
 if(d.ok){alert('Promo: '+d.code);refreshPromoCodes();}else alert('Error: '+d.error);}
 async function deletePromo(code){if(!confirm('Delete '+code+'?'))return;await fetchAdmin('/delete-promo','POST',{code});refreshPromoCodes();}
+async function addXp(){const id=document.getElementById('xpUserId').value;const a=parseInt(document.getElementById('xpAmount').value);
+if(!id||isNaN(a))return;const d=await fetchAdmin('/add-xp','POST',{id,amount:a});if(d.ok)alert('XP: '+d.xp+' · Level: '+d.level);else alert('Error: '+d.error);refreshPlayers();}
+async function setXp(){const id=document.getElementById('setXpUserId').value;const a=parseInt(document.getElementById('setXpAmount').value);
+if(!id||isNaN(a)||a<0)return;const d=await fetchAdmin('/set-xp','POST',{id,amount:a});if(d.ok)alert('XP: '+d.xp+' · Level: '+d.level);else alert('Error: '+d.error);refreshPlayers();}
+async function resetQuests(){const id=document.getElementById('questUserId').value;if(!id)return;
+if(!confirm('Reset daily quests for '+id+'?'))return;const d=await fetchAdmin('/reset-quests','POST',{id});if(d.ok)alert('Quests reset');else alert('Error: '+d.error);}
 </script></body></html>`;
 
 function adminAuth(req, res, next) {
@@ -1272,6 +1284,39 @@ app.post('/admin/api/reset-top', adminAuth, async (req, res) => {
 app.post('/admin/api/wipe', adminAuth, async (req, res) => {
   try { const all = await getAllUsers(); for (const u of all) { u.balance = 50; u.wins = 0; u.losses = 0; u.banned = false; u.winHistory = []; await saveUser(u); } res.json({ ok: true }); }
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+app.post('/admin/api/add-xp', adminAuth, async (req, res) => {
+  try {
+    const { id, amount } = req.body;
+    if (!id || isNaN(amount)) return res.status(400).json({ ok: false, error: 'Invalid' });
+    const user = await getUser(id);
+    if (!user) return res.status(404).json({ ok: false, error: 'Not found' });
+    user.xp = Math.max(0, (user.xp || 0) + Math.floor(Number(amount)));
+    await saveUser(user);
+    res.json({ ok: true, xp: user.xp, level: computeLevel(user.xp) });
+  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+app.post('/admin/api/set-xp', adminAuth, async (req, res) => {
+  try {
+    const { id, amount } = req.body;
+    if (!id || isNaN(amount) || amount < 0) return res.status(400).json({ ok: false, error: 'Invalid' });
+    const user = await getUser(id);
+    if (!user) return res.status(404).json({ ok: false, error: 'Not found' });
+    user.xp = Math.floor(Number(amount));
+    await saveUser(user);
+    res.json({ ok: true, xp: user.xp, level: computeLevel(user.xp) });
+  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+app.post('/admin/api/reset-quests', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ ok: false, error: 'Missing id' });
+    const user = await getUser(id);
+    if (!user) return res.status(404).json({ ok: false, error: 'Not found' });
+    user.dailyQuest = { date: '', roundsPlayed: 0, diamondsWagered: 0, claimed1: false, claimed2: false };
+    await saveUser(user);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 app.post('/admin/api/add-money', adminAuth, async (req, res) => {
   try { const { id, amount } = req.body;
