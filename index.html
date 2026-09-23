@@ -359,26 +359,26 @@
   .stat-num.rate{color:#6ab8f0}
   .stat-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 
-  /* WINRATE LINE */
+  /* WINRATE LINE — green wins over red losses, no wrapper card */
   .winrate-line{
     position:relative;
     width:100%;
-    height:28px;
+    height:26px;
     margin:0 0 18px;
-    border-radius:6px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.10);
+    border-radius:3px;
+    background:linear-gradient(180deg,#e0556b,#b83d52);
     overflow:hidden;
-    box-shadow:inset 0 1px 3px rgba(0,0,0,.35);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.4);
   }
-  .wr-line-fill{
+  .wr-line-win{
     position:absolute;
     left:0;top:0;bottom:0;
     width:0%;
-    border-radius:5px;
-    background:linear-gradient(180deg, rgba(198,220,255,.95), rgba(146,184,240,.88));
+    background:linear-gradient(180deg,#4CC38A,#37a472);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
     transition:width .95s cubic-bezier(.34,1.56,.64,1);
     will-change:width;
+    z-index:1;
   }
   .wr-line-pct{
     position:absolute;
@@ -391,7 +391,7 @@
     letter-spacing:.4px;
     color:#fff;
     font-variant-numeric:tabular-nums;
-    text-shadow:0 1px 4px rgba(0,0,0,.85),0 0 10px rgba(0,0,0,.55);
+    text-shadow:0 1px 4px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.6);
     pointer-events:none;
     z-index:2;
   }
@@ -1256,6 +1256,24 @@
   }
   .lvl-flyer svg{width:100%;height:100%;display:block}
   .lvl-flyer text{fill:var(--bg-base)}
+  .lvl-flyer poly-enter{animation:polyFade .7s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes polyFade{
+    0%{opacity:0;transform:scale(.72) rotate(-14deg)}
+    60%{opacity:1;transform:scale(1.06) rotate(3deg)}
+    100%{opacity:1;transform:scale(1) rotate(0)}
+  }
+  .lvl-flyer .num-enter{animation:numPop .55s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes numPop{
+    0%{opacity:0;transform:translateY(-6px) scale(.6)}
+    60%{opacity:1;transform:translateY(0) scale(1.12)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .lvl-flyer.pulse{animation:badgePulse .7s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes badgePulse{
+    0%{transform:scale(1)}
+    45%{transform:scale(1.10)}
+    100%{transform:scale(1)}
+  }
 
   .lvl-content{
     position:absolute;
@@ -1404,13 +1422,12 @@
     font-variant-numeric:tabular-nums;
     letter-spacing:-.4px;
     pointer-events:none;
+    transform-origin:50% 50%;
+    will-change:transform,opacity;
   }
-  .lvl-pointer-num.pop{animation:ptrNumPop .78s cubic-bezier(.34,1.9,.4,1)}
-  @keyframes ptrNumPop{
-    0%  {transform:scale(.25) rotate(-28deg);opacity:0}
-    50% {transform:scale(1.28) rotate(9deg);opacity:1}
-    74% {transform:scale(.92) rotate(-3deg);opacity:1}
-    100%{transform:scale(1) rotate(0deg);opacity:1}
+  /* When the arrow svg spins, the number spins with it in sync */
+  .lvl-pointer svg.spin ~ .lvl-pointer-num{
+    animation: pointerSpin 1.1s cubic-bezier(.34,1.9,.4,1);
   }
 
   .lvl-progress-track.flash{
@@ -1690,7 +1707,7 @@
       </div>
 
       <div class="winrate-line">
-        <div class="wr-line-fill" id="wr-line-fill"></div>
+        <div class="wr-line-win" id="wr-line-win"></div>
         <div class="wr-line-pct" id="wr-label">0%</div>
       </div>
 
@@ -2439,13 +2456,6 @@
     socket.on('icePuck',d=>{
       if(!d||d.g!=='sliding')return;
       pushPuckSnapshot(d.x,d.y,d.vx,d.vy);
-      if(currentRecording){
-        const t = performance.now() - currentRecordingStartTs;
-        const p = currentRecording.path;
-        if(p.length === 0 || t - p[p.length-1].t > 25){
-          p.push({ x: d.x, y: d.y, t });
-        }
-      }
     });
     socket.on('iceRoundEnd',p=>handleIceRoundEnd(p));
     socket.on('icePuckBounce',d=>{if(!d||!state.bounceLightsEnabled)return;iceState.wallPulses.push({x:d.x,y:d.y,intensity:d.intensity||.6,startTime:performance.now(),duration:700});if(iceState.wallPulses.length>6)iceState.wallPulses.shift()});
@@ -2535,10 +2545,10 @@
     const total = state.wins + state.losses;
     const wr = total > 0 ? (state.wins / total) * 100 : 0;
     const wrLabel = document.getElementById('wr-label');
-    const wrFill  = document.getElementById('wr-line-fill');
-    if(!wrLabel || !wrFill) return;
+    const wrWin   = document.getElementById('wr-line-win');
+    if(!wrLabel || !wrWin) return;
     wrLabel.textContent = Math.round(wr) + '%';
-    wrFill.style.width = Math.max(0, Math.min(100, wr)).toFixed(1) + '%';
+    wrWin.style.width = Math.max(0, Math.min(100, wr)).toFixed(1) + '%';
   }
 
   function addTransaction(type,amount,label){
@@ -2615,7 +2625,6 @@
     if(rsLevelEl) rsLevelEl.textContent = topLevel;
 
     const badgeFn = window.__badgeSvgMarkup || function(){ return ''; };
-    const rankNames = window.__levelRankNames || [];
 
     /* ---- CHAMPION CARD ---- */
     const champ = sorted[0];
@@ -3199,20 +3208,6 @@
     }
 
     if(snapshot.gameState==='sliding'&&prev!=='sliding'){
-      currentRecording = {
-        path: [{ x: snapshot.puck.x, y: snapshot.puck.y, t: 0 }],
-        players: snapshot.players.map(p => ({
-          id: p.id, name: p.name, pfp: p.pfp, color: p.color, bet: p.bet,
-          poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null
-        })),
-        pot: snapshot.pot,
-        startedAt: Date.now(),
-        duration: 5000,
-        winner: null,
-        gameNumber: 0
-      };
-      currentRecordingStartTs = performance.now();
-
       puckBuffer.length = 0;
       puckLastSnapshotT = 0;
       pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
@@ -3375,19 +3370,25 @@
   }
 
   function handleIceRoundEnd(payload){
-    if(currentRecording){
-      currentRecording.winner = payload ? {
-        id: payload.winnerId,
-        name: payload.winnerName,
-        pfp: payload.winnerPfp,
-        winnings: payload.winnings,
-        multiplier: payload.multiplier
-      } : null;
-      const p = currentRecording.path;
-      currentRecording.duration = p.length > 0 ? p[p.length-1].t : 5000;
-      currentRecording.endedAt = Date.now();
-      recordGameInHistory(currentRecording);
-      currentRecording = null;
+    if(payload){
+      recordGameInHistory({
+        gameNumber: 0,
+        players: iceState.players.map(p => ({
+          id: p.id, name: p.name, pfp: p.pfp, color: p.color, bet: p.bet,
+          poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null
+        })),
+        pot: iceState.pot,
+        startedAt: Date.now(),
+        endedAt: Date.now(),
+        duration: 5000,
+        winner: {
+          id: payload.winnerId,
+          name: payload.winnerName,
+          pfp: payload.winnerPfp,
+          winnings: payload.winnings,
+          multiplier: payload.multiplier
+        }
+      });
     }
     if(!payload){hideIceWinPanelAndReset();return}
     iceState.winnerId=payload.winnerId;
@@ -4582,8 +4583,6 @@
   let gameCounter = 0;
   const MAX_HISTORY = 20;
   const gameHistory = [];
-  let currentRecording = null;
-  let currentRecordingStartTs = 0;
 
   const hsOverlay = document.getElementById('history-overlay');
   const hsList    = document.getElementById('hs-list');
@@ -4607,7 +4606,7 @@
   function saveHistoryToStorage(){
     try{
       const slim = gameHistory.map(g => ({
-        gameNumber: g.gameNumber, path: g.path, players: g.players,
+        gameNumber: g.gameNumber, players: g.players,
         pot: g.pot, startedAt: g.startedAt, endedAt: g.endedAt,
         duration: g.duration, winner: g.winner
       }));
@@ -5185,7 +5184,7 @@
   updateAnonUI(false);
 
   /* ============================================================
-     LEVEL SYSTEM — rounded polygon, morph edges, spin-in pointer
+     LEVEL SYSTEM — polygon morph, synced number spin
      ============================================================ */
   const LEVEL_RANK_NAMES = [
     'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
@@ -5219,7 +5218,7 @@
   function badgeSvgMarkup(level, size) {
     level = Math.max(1, Math.min(22, level | 0));
     const edges = 3 + Math.floor((level - 1) / 2);
-    const strokeW = 7;           // thickness of stroke used to round corners
+    const strokeW = 7;
     const outerR = 46;
     const r = outerR - strokeW / 2;
     const pts = badgePolygonPoints(edges, 50, 50, r);
@@ -5259,17 +5258,100 @@
     lvlBadgeBtn.innerHTML = badgeSvgMarkup(levelState.level, 22);
   }
 
+  /* read/align helpers for polygon morph animation */
+  function readCurrentPoints(svg){
+    const poly = svg.querySelector('polygon');
+    if (!poly) return null;
+    const raw = poly.getAttribute('points');
+    if (!raw) return null;
+    return raw.trim().split(/\s+/).map(pair => {
+      const [x, y] = pair.split(',').map(Number);
+      return [x, y];
+    });
+  }
+  function alignPoints(pts, n){
+    if (!pts || !pts.length){
+      const out = [];
+      for (let i = 0; i < n; i++) out.push([50, 50]);
+      return out;
+    }
+    const out = pts.slice(0, n);
+    while (out.length < n) out.push(out[out.length - 1].slice());
+    return out;
+  }
+
+  /* swap the flyer's SVG in-place; animate polygon vertices on level change */
   function setFlyerBadge(animate){
     if (!lvlFlyer) return;
-    lvlFlyer.innerHTML = badgeSvgMarkup(levelState.level, FLYER_BASE);
-    if (!animate) return;
+
+    const level  = Math.max(1, Math.min(22, levelState.level | 0));
+    const edges  = 3 + Math.floor((level - 1) / 2);
+    const strokeW = 7;
+    const outerR  = 46;
+    const r       = outerR - strokeW / 2;
+    const toPts   = badgePolygonPoints(edges, 50, 50, r);
+    const toPtsStr= toPts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ');
+    const fs      = edges > 10 ? 26 : edges > 7 ? 30 : edges > 5 ? 34 : 38;
+
+    let svg = lvlFlyer.querySelector('svg');
+    if (!svg){
+      // first render — fresh SVG string
+      lvlFlyer.innerHTML = badgeSvgMarkup(level, FLYER_BASE);
+      return;
+    }
+
+    const poly = svg.querySelector('polygon');
+    const text = svg.querySelector('text');
+    if (!poly) return;
+
+    if (!animate){
+      poly.setAttribute('points', toPtsStr);
+      if (text){ text.setAttribute('font-size', fs); text.textContent = String(level); }
+      return;
+    }
+
+    const fromPts = readCurrentPoints(svg);
+    const from = alignPoints(fromPts, toPts.length);
+
+    if (text){
+      text.setAttribute('font-size', fs);
+      if (text.textContent !== String(level)){
+        text.textContent = String(level);
+        // pop the number
+        try {
+          text.animate([
+            { transform: 'scale(.55)', opacity: 0 },
+            { transform: 'scale(1.18)', opacity: 1, offset: 0.55 },
+            { transform: 'scale(.96)', opacity: 1, offset: 0.78 },
+            { transform: 'scale(1)', opacity: 1 }
+          ], { duration: 560, easing: 'cubic-bezier(.34,1.56,.64,1)', transformOrigin:'50% 50%' });
+        } catch(_){}
+      }
+    }
+
+    // morph polygon vertices
+    const start = performance.now();
+    const dur = 900;
+    function frame(t){
+      const k = Math.min(1, (t - start) / dur);
+      const e = easeInOutCubic(k);
+      const cur = from.map((p, i) => [
+        p[0] + (toPts[i][0] - p[0]) * e,
+        p[1] + (toPts[i][1] - p[1]) * e
+      ]);
+      poly.setAttribute('points', cur.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' '));
+      if (k < 1) requestAnimationFrame(frame);
+      else poly.setAttribute('points', toPtsStr);
+    }
+    requestAnimationFrame(frame);
+
+    // subtle pulse of the whole flyer
     try {
       lvlFlyer.animate([
-        { transform: 'scale(' + (FLYER_END_SCALE * 0.55) + ') rotate(-30deg)', opacity: 0 },
-        { transform: 'scale(' + (FLYER_END_SCALE * 1.22) + ') rotate(10deg)',  opacity: 1, offset: 0.55 },
-        { transform: 'scale(' + (FLYER_END_SCALE * 0.96) + ') rotate(-3deg)',  opacity: 1, offset: 0.78 },
-        { transform: 'scale(' + FLYER_END_SCALE + ') rotate(0deg)',            opacity: 1 }
-      ], { duration: 780, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+        { transform: 'scale(' + FLYER_END_SCALE + ')' },
+        { transform: 'scale(' + (FLYER_END_SCALE * 1.08) + ')', offset: 0.5 },
+        { transform: 'scale(' + FLYER_END_SCALE + ')' }
+      ], { duration: 700, easing:'cubic-bezier(.34,1.56,.64,1)' });
     } catch(_){}
   }
 
@@ -5334,18 +5416,6 @@
         try { lvlPointerSvg.classList.remove('spin'); } catch(_){}
       }, 1200);
     }
-    popPointerNum();
-  }
-
-  function popPointerNum(){
-    if (!lvlPointerNum) return;
-    lvlPointerNum.classList.remove('pop');
-    void lvlPointerNum.offsetWidth;
-    lvlPointerNum.classList.add('pop');
-    clearTimeout(lvlPointerNum._popTimer);
-    lvlPointerNum._popTimer = setTimeout(() => {
-      try { lvlPointerNum.classList.remove('pop'); } catch(_){}
-    }, 820);
   }
 
   function animateNumber(el, from, to, duration){
@@ -5404,8 +5474,8 @@
     if (lvlProgressNext) lvlProgressNext.textContent = levelState.isMax ? '—' : String(newLevel + 1);
     if (lvlXpLabel) lvlXpLabel.textContent = levelState.xpForLevel + ' XP';
     animateNumber(lvlPointerNum, 0, levelState.xpForLevel, 520);
-    popPointerNum();
 
+    // live badge morph with the polygon animation
     setTimeout(() => setFlyerBadge(true), 520);
 
     setTimeout(() => {
@@ -5425,7 +5495,6 @@
         if (lvlXpNext)  lvlXpNext.textContent  = levelState.isMax ? 'MAX LEVEL' : (levelState.xpToNext + ' XP TO GO');
         animateNumber(lvlPointerNum, 0, levelState.xpIntoLevel, 900);
         triggerPointerTilt(900);
-        popPointerNum();
 
         setTimeout(() => { levelUpInProgress = false; }, 950);
       }, 140);
@@ -5499,6 +5568,7 @@
           lvlProgressFill.style.width = pct + '%';
           lvlPointer.style.transition = '';
           positionPointerAt(pct);
+          // spin arrow + number together
           triggerPointerSpin();
         }, 460);
       });
