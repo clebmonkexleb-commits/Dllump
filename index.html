@@ -452,26 +452,6 @@
   .promo-msg{font-size:12px;color:var(--text3);text-align:center;min-height:16px;margin-top:8px}
 
   .rank-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-  .top-entry{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid var(--border);border-radius:14px;padding:10px 14px}
-  .top-entry .rank{font-size:14px;font-weight:800;color:var(--text2);min-width:28px;text-align:center}
-  .top-entry .rank.gold{color:var(--gold)}
-  .top-entry .rank.silver{color:#c8c8d8}
-  .top-entry .rank.bronze{color:#cd8a5a}
-  .top-entry .t-pfp{width:32px;height:32px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);object-fit:cover;flex-shrink:0}
-  .top-entry .t-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-  .top-entry .t-name{font-weight:700;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.1px}
-  .top-entry .t-phone{
-    font-size:10.5px;
-    font-family:'SF Mono',ui-monospace,monospace;
-    font-weight:700;
-    color:rgba(140,180,255,.8);
-    letter-spacing:.3px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    text-shadow:0 0 6px rgba(91,157,255,.25);
-  }
-  .top-entry .t-wins{font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0}
   .rank-empty{padding:48px 20px;text-align:center;color:var(--text3);font-size:13.5px;font-weight:500;line-height:1.6}
   .rank-empty svg{width:48px;height:48px;stroke:var(--text3);fill:none;stroke-width:1.4;margin:0 auto 14px;opacity:.5;display:block}
 
@@ -883,8 +863,7 @@
   @keyframes typeCharIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
 
   /* ============================================================
-     LEVEL SYSTEM — pointer now lives INSIDE the track so its
-     left % matches the fill's width % exactly.
+     LEVEL SYSTEM — pointer inside track
      ============================================================ */
   .lvl-badge{
     display:inline-flex;align-items:center;justify-content:center;
@@ -1031,7 +1010,6 @@
     z-index:4;
   }
 
-  /* Pointer — child of the track, positioned in track-width %. */
   .lvl-pointer{
     position:absolute;
     top:-28px;
@@ -1155,6 +1133,222 @@
     background:transparent;color:var(--text3);border-color:rgba(255,255,255,.06);
     pointer-events:none;
   }
+
+  /* ============================================================
+     TOP / LEADERBOARD UI
+     ============================================================ */
+  .rank-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .rank-stat{
+    padding:12px 6px 11px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .rank-stat::before{
+    content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+  }
+  .rank-stat .rs-label{font-size:8.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;display:block}
+  .rank-stat .rs-value{font-size:19px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.5px;line-height:1;display:block}
+  .rank-stat .rs-value.gold{color:#f0d080;text-shadow:0 0 14px rgba(240,208,128,.45)}
+
+  .rank-filters{
+    display:flex;gap:4px;padding:4px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;
+    margin-bottom:16px;
+  }
+  .rank-filter{
+    flex:1;padding:9px 4px;border:none;background:none;
+    color:var(--text3);font-family:inherit;
+    font-size:10.5px;font-weight:800;letter-spacing:1.2px;
+    text-transform:uppercase;cursor:pointer;border-radius:10px;
+    transition:color .25s ease, background .25s ease, transform .18s var(--ease-spring);
+    position:relative;
+  }
+  .rank-filter.active{color:var(--text);background:rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  .rank-filter:active{transform:scale(.97)}
+
+  .rank-podium{
+    display:flex;align-items:flex-end;justify-content:center;
+    gap:8px;margin:6px 0 22px;height:190px;
+    position:relative;
+    padding-top:16px;
+  }
+  .rank-podium::after{
+    content:'';position:absolute;bottom:0;left:8%;right:8%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);
+    pointer-events:none;
+  }
+  .podium-item{
+    flex:1;max-width:110px;
+    display:flex;flex-direction:column;align-items:center;
+    opacity:0;transform:translateY(-16px);
+    animation:podiumDrop .55s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes podiumDrop{to{opacity:1;transform:translateY(0)}}
+  .podium-item:nth-child(1){animation-delay:.06s}
+  .podium-item:nth-child(2){animation-delay:.14s}
+  .podium-item:nth-child(3){animation-delay:.22s}
+  .podium-item .podium-pfp-wrap{position:relative;margin-bottom:6px}
+  .podium-item .podium-pfp{
+    width:58px;height:58px;border-radius:50%;
+    object-fit:cover;background:var(--surface3);
+    border:2px solid rgba(255,255,255,.12);
+    display:block;
+  }
+  .podium-item.p1 .podium-pfp{width:72px;height:72px;border-color:#f0d080;box-shadow:0 0 26px rgba(240,208,128,.55),inset 0 0 0 1px rgba(255,255,255,.3)}
+  .podium-item.p2 .podium-pfp{border-color:#c8c8d8;box-shadow:0 0 16px rgba(200,200,216,.35)}
+  .podium-item.p3 .podium-pfp{border-color:#cd8a5a;box-shadow:0 0 16px rgba(205,138,90,.35)}
+  .podium-item .podium-crown{
+    position:absolute;top:-14px;left:50%;
+    width:22px;height:22px;
+    filter:drop-shadow(0 4px 8px rgba(240,208,128,.7));
+    animation:crownFloat 2.4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes crownFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
+  .podium-item .podium-rank-tag{
+    font-size:9px;font-weight:900;letter-spacing:1.6px;
+    text-transform:uppercase;margin-bottom:3px;
+  }
+  .podium-item.p1 .podium-rank-tag{color:#f0d080}
+  .podium-item.p2 .podium-rank-tag{color:#c8c8d8}
+  .podium-item.p3 .podium-rank-tag{color:#cd8a5a}
+  .podium-item .podium-name{
+    font-size:11.5px;font-weight:800;color:var(--text);
+    max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    margin-bottom:3px;
+    letter-spacing:-.1px;
+  }
+  .podium-item .podium-score{
+    font-size:10.5px;font-weight:800;color:var(--text2);
+    font-variant-numeric:tabular-nums;
+    display:flex;align-items:center;gap:3px;
+  }
+  .podium-item .podium-score img{width:10px;height:10px;object-fit:contain}
+  .podium-item .podium-pedestal{
+    width:100%;border-radius:12px 12px 0 0;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding-top:8px;margin-top:8px;
+    position:relative;overflow:hidden;
+    transition:transform .3s var(--ease-spring);
+  }
+  .podium-item:active .podium-pedestal{transform:scale(.97)}
+  .podium-item.p1 .podium-pedestal{height:56px;background:linear-gradient(180deg,rgba(240,208,128,.28),rgba(240,208,128,.02))}
+  .podium-item.p2 .podium-pedestal{height:38px;background:linear-gradient(180deg,rgba(200,200,216,.24),rgba(200,200,216,.02))}
+  .podium-item.p3 .podium-pedestal{height:28px;background:linear-gradient(180deg,rgba(205,138,90,.24),rgba(205,138,90,.02))}
+  .podium-item .podium-pedestal .pp-num{
+    font-size:20px;font-weight:900;letter-spacing:-1px;
+    font-family:'SF Mono',ui-monospace,monospace;
+    color:rgba(255,255,255,.9);
+    line-height:1;
+  }
+  .podium-item.p1 .podium-pedestal .pp-num{font-size:26px;color:#f0d080;text-shadow:0 0 14px rgba(240,208,128,.55)}
+  .podium-item.p2 .podium-pedestal .pp-num{color:#c8c8d8}
+  .podium-item.p3 .podium-pedestal .pp-num{color:#cd8a5a}
+
+  .top-entry{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);
+    border:.5px solid var(--border);
+    border-radius:14px;padding:10px 14px;
+    position:relative;overflow:hidden;
+    transition:transform .2s var(--ease-spring),background .25s ease,border-color .25s ease;
+  }
+  .top-entry:active{transform:scale(.985)}
+  .top-entry.is-you{
+    background:linear-gradient(135deg,rgba(91,157,255,.14),rgba(91,157,255,.05));
+    border-color:rgba(140,180,255,.35);
+  }
+  .top-entry.is-you::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(180deg,#6da9ff,#4a86e8);
+  }
+  .top-entry .rank{
+    font-size:12.5px;font-weight:900;min-width:28px;text-align:center;
+    color:var(--text3);font-family:'SF Mono',ui-monospace,monospace;letter-spacing:-.3px;
+  }
+  .top-entry .rank.gold{color:#f0d080;text-shadow:0 0 8px rgba(240,208,128,.4)}
+  .top-entry .rank.silver{color:#c8c8d8}
+  .top-entry .rank.bronze{color:#cd8a5a}
+  .top-entry .t-pfp{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--surface3);border:1.5px solid var(--border);
+    object-fit:cover;flex-shrink:0;
+  }
+  .top-entry .t-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .top-entry .t-name-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .top-entry .t-name{
+    font-weight:800;font-size:13px;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    letter-spacing:-.1px;
+  }
+  .top-entry .t-phone{
+    font-size:10px;font-family:'SF Mono',ui-monospace,monospace;
+    font-weight:700;color:rgba(140,180,255,.8);letter-spacing:.3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .top-entry .t-value{
+    font-size:12.5px;font-weight:800;color:var(--text);
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;flex-shrink:0;
+    display:flex;align-items:center;gap:4px;
+  }
+  .top-entry .t-value .tv-label{
+    font-size:8.5px;font-weight:800;color:var(--text3);
+    letter-spacing:.8px;text-transform:uppercase;margin-right:1px;
+  }
+  .top-entry .t-value img{width:11px;height:11px;object-fit:contain}
+  .top-entry .t-value.wins{color:#6ab8f0}
+  .top-entry .t-value.score{color:#f0d080}
+  .top-entry .t-value.level{color:#8fbdff}
+
+  .rank-your-position{
+    position:sticky;bottom:6px;
+    margin-top:14px;
+    padding:12px 14px;
+    background:linear-gradient(135deg,rgba(91,157,255,.18),rgba(91,157,255,.06));
+    border:1px solid rgba(140,180,255,.35);
+    border-radius:16px;
+    display:none;align-items:center;gap:10px;
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    box-shadow:0 8px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15);
+    z-index:10;
+    animation:yourPosIn .45s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes yourPosIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .rank-your-position .yp-rank{
+    font-size:13px;font-weight:900;color:#b8d2ff;
+    font-family:'SF Mono',ui-monospace,monospace;
+    min-width:34px;text-align:center;
+    padding:5px 8px;border-radius:8px;
+    background:rgba(91,157,255,.15);
+    border:1px solid rgba(140,180,255,.3);
+  }
+  .rank-your-position .yp-pfp{
+    width:34px;height:34px;border-radius:50%;
+    object-fit:cover;border:1.5px solid rgba(140,180,255,.5);
+    background:var(--surface3);flex-shrink:0;
+  }
+  .rank-your-position .yp-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .rank-your-position .yp-name{
+    font-size:13px;font-weight:800;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    letter-spacing:-.1px;
+  }
+  .rank-your-position .yp-sub{font-size:10.5px;font-weight:700;color:rgba(200,220,250,.65);letter-spacing:.2px}
+  .rank-your-position .yp-score{
+    font-size:14px;font-weight:800;color:#f0d080;
+    font-variant-numeric:tabular-nums;
+    display:flex;align-items:center;gap:4px;flex-shrink:0;
+  }
+  .rank-your-position .yp-score img{width:13px;height:13px;object-fit:contain}
 
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
@@ -1415,9 +1609,35 @@
 
     <div class="tab-page" id="top-page">
       <div class="page-head"><div class="eyebrow">LEADERBOARD</div><div class="page-title">Top</div></div>
+
+      <div class="rank-stats-row">
+        <div class="rank-stat">
+          <span class="rs-label">Players</span>
+          <span class="rs-value" id="rs-total">—</span>
+        </div>
+        <div class="rank-stat">
+          <span class="rs-label">Top Level</span>
+          <span class="rs-value" id="rs-level">—</span>
+        </div>
+        <div class="rank-stat">
+          <span class="rs-label">Top Balance</span>
+          <span class="rs-value gold" id="rs-balance">—</span>
+        </div>
+      </div>
+
+      <div class="rank-filters" id="rank-filters">
+        <button class="rank-filter active" data-sort="balance" type="button">Balance</button>
+        <button class="rank-filter" data-sort="wins" type="button">Wins</button>
+        <button class="rank-filter" data-sort="level" type="button">Level</button>
+      </div>
+
+      <div class="rank-podium" id="rank-podium"></div>
+
       <div class="rank-list" id="rank-list">
         <div class="rank-empty"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v6a5 5 0 0 0 10 0zM7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>Loading rankings…</div>
       </div>
+
+      <div class="rank-your-position" id="rank-your-position"></div>
     </div>
   </div>
 
@@ -1690,7 +1910,7 @@
     <div class="lvl-progress-wrap">
       <div class="lvl-progress-head">
         <span id="lvl-xp-label">0 XP</span>
-        <span id="lvl-xp-next">200 XP TO GO</span>
+        <span id="lvl-xp-next">300 XP TO GO</span>
       </div>
       <div class="lvl-progress-track">
         <div class="lvl-progress-fill" id="lvl-progress-fill"></div>
@@ -1896,7 +2116,7 @@
     step();
   }
 
-  const RIPPLE_SEL='button, .quick-btn, .layout-tile, .round-tile, .swatch, .setting, .top-entry, .stat-card, .panel-user';
+  const RIPPLE_SEL='button, .quick-btn, .layout-tile, .round-tile, .swatch, .setting, .top-entry, .stat-card, .panel-user, .rank-stat, .rank-filter, .podium-item';
   document.addEventListener('pointerdown',e=>{
     if(!PERF.heavyEffects) return;
     const target=e.target.closest(RIPPLE_SEL);
@@ -2121,11 +2341,13 @@
     animateBalanceTo(target);
     const cv=cardBalanceValue.querySelector('span');if(cv)cv.textContent=target.toLocaleString();
     panelSub.textContent=getDisplayHandle()+' · '+target.toLocaleString()+' ◆';
+    if (state.currentTab === 'top') renderRanks();
   }
   function updateProfile(){
     pWins.textContent=state.wins;pLosses.textContent=state.losses;
     const total=state.wins+state.losses;
     pRate.textContent=total>0?Math.round(state.wins/total*100)+'%':'0%';
+    if (state.currentTab === 'top') renderRanks();
   }
 
   function addTransaction(type,amount,label){
@@ -2172,28 +2394,182 @@
       renderRanks();
     });
   }
-  function renderRanks(){
-    if(!rankList)return;
-    if(state.topPlayers.length===0){rankList.innerHTML='<div class="rank-empty"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v6a5 5 0 0 0 10 0zM7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>No players yet — be the first!</div>';return}
-    let html='';
-    state.topPlayers.forEach(p=>{
-      const r=p.rank;let rc='rank';
-      if(r===1)rc+=' gold';else if(r===2)rc+=' silver';else if(r===3)rc+=' bronze';
-      const pfp=p.anonymous?state.defaultAvatar:(p.pfp||state.defaultAvatar);
-      const phoneLine = (p.anonymous && p.phone) ? '<div class="t-phone">'+escapeHtml(p.phone)+'</div>' : '';
-      const badgeFn = window.__badgeSvgMarkup || function(){ return ''; };
-      const lvlBadge = '<span class="t-lvl">' + badgeFn(p.level || 1, 16) + '</span>';
-      html += '<div class="top-entry">'
-            +   '<div class="'+rc+'">#'+r+'</div>'
-            +   '<img class="t-pfp" src="'+pfp+'" onerror="this.src=\''+state.defaultAvatar+'\'">'
-            +   '<div class="t-main">'
-            +     '<div class="t-name-row"><span class="t-name">'+escapeHtml(p.name)+'</span>'+lvlBadge+'</div>'
-            +     phoneLine
-            +   '</div>'
-            +   '<div class="t-wins">'+p.wins+' wins</div>'
-            + '</div>';
+
+  /* ============================================================
+     RANKINGS — podium + filters + stats + your-position card
+     ============================================================ */
+  let rankSortMode = 'balance';
+
+  const rankPodiumEl = document.getElementById('rank-podium');
+  const rankFiltersEl = document.getElementById('rank-filters');
+  const rankYourPosEl = document.getElementById('rank-your-position');
+  const rsTotalEl = document.getElementById('rs-total');
+  const rsLevelEl = document.getElementById('rs-level');
+  const rsBalanceEl = document.getElementById('rs-balance');
+
+  if (rankFiltersEl) {
+    rankFiltersEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rank-filter');
+      if (!btn || btn.classList.contains('active')) return;
+      haptic('light');
+      rankSortMode = btn.dataset.sort;
+      rankFiltersEl.querySelectorAll('.rank-filter').forEach(b =>
+        b.classList.toggle('active', b === btn));
+      renderRanks();
     });
-    rankList.innerHTML=html;
+  }
+
+  function getSortedPlayers() {
+    const arr = state.topPlayers.slice();
+    if (rankSortMode === 'wins') {
+      arr.sort((a, b) => (b.wins - a.wins) || (b.score - a.score));
+    } else if (rankSortMode === 'level') {
+      arr.sort((a, b) => ((b.level || 1) - (a.level || 1)) || (b.score - a.score));
+    } else {
+      arr.sort((a, b) => b.score - a.score);
+    }
+    return arr;
+  }
+
+  function getPlayerValueInfo(p) {
+    if (rankSortMode === 'wins')  return { text: String(p.wins), label: 'W', cls: 'wins', isScore: false };
+    if (rankSortMode === 'level') return { text: String(p.level || 1), label: 'LV', cls: 'level', isScore: false };
+    return { text: p.score.toLocaleString(), label: '', cls: 'score', isScore: true };
+  }
+
+  function podiumItemMarkup(p, pos) {
+    const pfp = p.anonymous ? state.defaultAvatar : (p.pfp || state.defaultAvatar);
+    const rankTag = pos === 1 ? 'Champion' : pos === 2 ? 'Runner up' : 'Third';
+    const crown = pos === 1
+      ? '<svg class="podium-crown" viewBox="0 0 24 20" fill="#f0d080" aria-hidden="true">' +
+          '<path d="M2 18 L4 6 L9 11 L12 3 L15 11 L20 6 L22 18 Z" ' +
+          'stroke="rgba(0,0,0,.18)" stroke-width=".6" stroke-linejoin="round"/>' +
+        '</svg>'
+      : '';
+    let scoreHtml;
+    if (rankSortMode === 'wins') {
+      scoreHtml = '<div class="podium-score">' + p.wins + ' wins</div>';
+    } else if (rankSortMode === 'level') {
+      scoreHtml = '<div class="podium-score">Level ' + (p.level || 1) + '</div>';
+    } else {
+      scoreHtml = '<div class="podium-score"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
+                  p.score.toLocaleString() + '</div>';
+    }
+    return '<div class="podium-item p' + pos + '">' +
+      '<div class="podium-pfp-wrap">' + crown +
+        '<img class="podium-pfp" src="' + escapeHtml(pfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
+      '</div>' +
+      '<div class="podium-rank-tag">' + rankTag + '</div>' +
+      '<div class="podium-name">' + escapeHtml(p.name) + '</div>' +
+      scoreHtml +
+      '<div class="podium-pedestal"><span class="pp-num">' + pos + '</span></div>' +
+    '</div>';
+  }
+
+  function renderRanks() {
+    if (!rankList) return;
+
+    if (state.topPlayers.length === 0) {
+      if (rankPodiumEl) rankPodiumEl.innerHTML = '';
+      if (rankYourPosEl) rankYourPosEl.style.display = 'none';
+      if (rsTotalEl) rsTotalEl.textContent = '0';
+      if (rsLevelEl) rsLevelEl.textContent = '—';
+      if (rsBalanceEl) rsBalanceEl.textContent = '0';
+      rankList.innerHTML =
+        '<div class="rank-empty">' +
+          '<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v6a5 5 0 0 0 10 0zM7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>' +
+          'No players yet — be the first!' +
+        '</div>';
+      return;
+    }
+
+    const sorted = getSortedPlayers();
+    const top3 = sorted.slice(0, 3);
+    const rest = sorted.slice(3);
+
+    /* ---- STATS ROW ---- */
+    const totalPlayers = sorted.length;
+    const topLevel = sorted.reduce((m, p) => Math.max(m, p.level || 1), 1);
+    const topBalance = sorted.reduce((m, p) => Math.max(m, p.score || 0), 0);
+    if (rsTotalEl)   rsTotalEl.textContent = totalPlayers;
+    if (rsLevelEl)   rsLevelEl.textContent = topLevel;
+    if (rsBalanceEl) rsBalanceEl.textContent = topBalance.toLocaleString();
+
+    /* ---- PODIUM (order: 2nd, 1st, 3rd) ---- */
+    if (rankPodiumEl) {
+      let podHtml = '';
+      if (top3[1]) podHtml += podiumItemMarkup(top3[1], 2);
+      if (top3[0]) podHtml += podiumItemMarkup(top3[0], 1);
+      if (top3[2]) podHtml += podiumItemMarkup(top3[2], 3);
+      rankPodiumEl.innerHTML = podHtml;
+    }
+
+    /* ---- LIST (rest of players) ---- */
+    const badgeFn = window.__badgeSvgMarkup || function(){ return ''; };
+    let html = '';
+    rest.forEach((p, i) => {
+      const r = i + 4;
+      const rc = 'rank';
+      const pfp = p.anonymous ? state.defaultAvatar : (p.pfp || state.defaultAvatar);
+      const phoneLine = (p.anonymous && p.phone)
+        ? '<div class="t-phone">' + escapeHtml(p.phone) + '</div>'
+        : '';
+      const lvlBadge = '<span class="t-lvl">' + badgeFn(p.level || 1, 14) + '</span>';
+      const isYou = String(p.id) === String(state.userId);
+      const v = getPlayerValueInfo(p);
+      const valueHtml = v.isScore
+        ? '<div class="t-value score"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' + v.text + '</div>'
+        : '<div class="t-value ' + v.cls + '"><span class="tv-label">' + v.label + '</span>' + v.text + '</div>';
+
+      html +=
+        '<div class="top-entry' + (isYou ? ' is-you' : '') + '">' +
+          '<div class="' + rc + '">#' + r + '</div>' +
+          '<img class="t-pfp" src="' + escapeHtml(pfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
+          '<div class="t-main">' +
+            '<div class="t-name-row"><span class="t-name">' + escapeHtml(p.name) + '</span>' + lvlBadge + '</div>' +
+            phoneLine +
+          '</div>' +
+          valueHtml +
+        '</div>';
+    });
+
+    rankList.innerHTML = html ||
+      '<div class="rank-empty" style="padding:24px 16px">Only the top 3 so far</div>';
+
+    /* ---- YOUR POSITION STICKY CARD ---- */
+    if (rankYourPosEl) {
+      const meInList = sorted.find(p => String(p.id) === String(state.userId));
+      const defaultAvatarUrl = state.hidePfp ? state.defaultAvatar : (state.pfp || state.defaultAvatar);
+      const balanceNum = Math.floor(state.balance || 0);
+
+      if (meInList) {
+        const myRank = sorted.indexOf(meInList) + 1;
+        const myPfp = meInList.anonymous ? state.defaultAvatar : (meInList.pfp || state.defaultAvatar);
+        rankYourPosEl.innerHTML =
+          '<div class="yp-rank">#' + myRank + '</div>' +
+          '<img class="yp-pfp" src="' + escapeHtml(myPfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
+          '<div class="yp-main">' +
+            '<div class="yp-name">You · ' + escapeHtml(meInList.name) + '</div>' +
+            '<div class="yp-sub">' + meInList.wins + ' wins · Level ' + (meInList.level || 1) + '</div>' +
+          '</div>' +
+          '<div class="yp-score"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
+            meInList.score.toLocaleString() +
+          '</div>';
+        rankYourPosEl.style.display = 'flex';
+      } else {
+        rankYourPosEl.innerHTML =
+          '<div class="yp-rank">—</div>' +
+          '<img class="yp-pfp" src="' + escapeHtml(defaultAvatarUrl) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
+          '<div class="yp-main">' +
+            '<div class="yp-name">You · ' + escapeHtml(getDisplayName()) + '</div>' +
+            '<div class="yp-sub">' + state.wins + ' wins · Not in top 20</div>' +
+          '</div>' +
+          '<div class="yp-score"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
+            balanceNum.toLocaleString() +
+          '</div>';
+        rankYourPosEl.style.display = 'flex';
+      }
+    }
   }
 
   const tabPages={ice:$('#ice-page'),wallet:$('#wallet-page'),profile:$('#profile-page'),top:$('#top-page')};
@@ -2353,12 +2729,7 @@
     img.src=src;
   }
 
-  /* ============================================================
-     AREA-WEIGHTED CENTROID — this is what fixes the off-center PFP.
-     The previous version averaged vertices, which skews towards
-     whichever side of the polygon has more vertices. The proper
-     polygon centroid weights by area.
-     ============================================================ */
+  /* AREA-WEIGHTED CENTROID — fixes off-center PFP */
   function polyMeta(poly){
     const n = poly.length;
     if (n < 3) {
@@ -2904,7 +3275,6 @@
     return cv;
   }
 
-  /* FIXED-SIZE avatar sprites — cache is stable across frames */
   const AVATAR_SPRITE_SIZE = 192;
   const avatarSpriteCache = new Map();
   function getAvatarSprite(p){
@@ -3087,10 +3457,8 @@
     for(let pi=0; pi<iceState.players.length; pi++){
       const p = iceState.players[pi];
 
-      /* FIXED smoothing — always moves toward target, snaps when close */
       if(p._displayPoly && p._targetPoly && p._displayPoly.length === p._targetPoly.length){
         const dp = p._displayPoly, tp = p._targetPoly;
-        let anyMoved = false;
         for(let i=0;i<dp.length;i++){
           const ddx = tp[i].x - dp[i].x;
           const ddy = tp[i].y - dp[i].y;
@@ -3100,7 +3468,6 @@
           } else {
             dp[i].x += ddx * 0.22;
             dp[i].y += ddy * 0.22;
-            anyMoved = true;
           }
         }
       }
@@ -3153,7 +3520,6 @@
 
       iceCtx.restore();
 
-      /* Compute centroid fresh every frame — no cache, matches visual */
       const meta = polyMeta(poly);
       const cx = meta.cx * s;
       const cy = meta.cy * s;
@@ -3366,7 +3732,7 @@
       }
     });
   }
-  const STORY_RING_SEL='button, .tab, .quick-btn, .setting, .round-tile, .layout-tile, .swatch, .panel-tab, .top-entry, .ice-bet-toggle';
+  const STORY_RING_SEL='button, .tab, .quick-btn, .setting, .round-tile, .layout-tile, .swatch, .panel-tab, .top-entry, .ice-bet-toggle, .rank-filter, .rank-stat';
   document.addEventListener('pointerdown',e=>{
     if(!state.storyRingsEnabled)return;
     const target=e.target.closest(STORY_RING_SEL);
@@ -4875,8 +5241,7 @@
   updateAnonUI(false);
 
   /* ============================================================
-     LEVEL SYSTEM (client) — pointer is inside the track so its
-     left % matches the fill width %.
+     LEVEL SYSTEM (client) — pointer inside track
      ============================================================ */
   const LEVEL_RANK_NAMES = [
     'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
@@ -4887,8 +5252,8 @@
 
   let levelState = {
     level: 1, rank: 'Starter', xp: 0, edges: 3, maxLevel: 22,
-    currentLevelXp: 0, nextLevelXp: 200, xpIntoLevel: 0, xpForLevel: 200,
-    xpToNext: 200, progress: 0, isMax: false,
+    currentLevelXp: 0, nextLevelXp: 300, xpIntoLevel: 0, xpForLevel: 300,
+    xpToNext: 300, progress: 0, isMax: false,
   };
   let levelQuests = [];
   let levelMenuOpen = false;
@@ -4977,7 +5342,6 @@
     });
   }
 
-  /* FULL RANGE — the pointer now goes 0..100 exactly like the fill */
   function positionPointerAt(pct) {
     if (!lvlPointer) return;
     const clamped = Math.max(0, Math.min(100, pct));
