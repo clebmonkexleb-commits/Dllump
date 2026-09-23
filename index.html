@@ -986,7 +986,6 @@
   body.perf-lite .pc-shine{ animation:none; }
   body.perf-lite .champion-card::after{ animation:none; }
 
-  /* TRANSFER */
   .tr-overlay{position:fixed;inset:0;z-index:9998;max-width:440px;margin:0 auto;background:#0b0c10;display:none;flex-direction:column;overflow:hidden;opacity:0;transform:translateX(100%);transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
   .tr-overlay::before{content:'';position:absolute;top:-40%;left:-30%;right:-30%;height:80%;background:radial-gradient(ellipse at 50% 0%, rgba(91,157,255,.16), transparent 55%);pointer-events:none}
   .tr-overlay.show{display:flex;opacity:1;transform:translateX(0)}
@@ -1067,51 +1066,6 @@
   @keyframes continueReady{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
   #tr-continue.success{background:linear-gradient(135deg,#4ade80,#22c55e);border-color:rgba(120,220,160,.6);box-shadow:0 14px 32px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.3)}
 
-  /* HISTORY */
-  .hs-overlay{position:fixed;inset:0;z-index:9997;max-width:440px;margin:0 auto;display:none;flex-direction:column;background:#08090c;opacity:0;transform:translateY(16px);transition:opacity .3s ease,transform .42s cubic-bezier(.34,1.56,.64,1);overflow:hidden}
-  .hs-overlay::before{content:'';position:absolute;top:-30%;left:-20%;right:-20%;height:70%;background:radial-gradient(ellipse at 50% 0%,rgba(91,157,255,.10),transparent 55%);pointer-events:none}
-  .hs-overlay.show{display:flex;opacity:1;transform:translateY(0)}
-  .hs-panel{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
-  .hs-head{display:flex;align-items:center;justify-content:space-between;padding:calc(20px + var(--safe-top)) 20px 12px;flex-shrink:0}
-  .hs-title{font-size:18px;font-weight:700;letter-spacing:-.3px;color:#fff;display:flex;align-items:center;gap:10px}
-  .hs-title .hs-title-mark{width:6px;height:6px;border-radius:50%;background:#5b9dff;box-shadow:0 0 10px rgba(91,157,255,.9)}
-  .hs-title .hs-title-sub{font-size:10px;font-weight:800;letter-spacing:2px;color:rgba(200,215,235,.4);text-transform:uppercase}
-  .hs-close{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .18s var(--ease-spring),background .18s ease}
-  .hs-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
-  .hs-close:active{transform:scale(.9);background:rgba(255,255,255,.12)}
-  .hs-tabs{display:flex;gap:4px;padding:6px 20px 12px;flex-shrink:0;position:relative}
-  .hs-tabs::after{content:'';position:absolute;left:20px;right:20px;bottom:8px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)}
-  .hs-tab{flex:1;padding:9px 6px;border:none;background:transparent;color:rgba(200,215,235,.5);font-family:inherit;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;border-radius:8px;cursor:pointer;transition:all .2s ease;position:relative}
-  .hs-tab::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:-6px;width:0;height:2px;border-radius:1px;background:linear-gradient(90deg,transparent,#5b9dff,transparent);transition:width .3s var(--ease-spring),opacity .2s ease;opacity:0}
-  .hs-tab.active{color:#fff}
-  .hs-tab.active::after{width:70%;opacity:1}
-  .hs-list{flex:1;overflow-y:auto;padding:6px 20px calc(30px + var(--safe-bottom));display:flex;flex-direction:column;gap:6px;touch-action:pan-y}
-  .hs-list::-webkit-scrollbar{width:3px}
-  .hs-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
-  .hs-entry{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(135deg,rgba(40,50,80,.32),rgba(18,24,40,.45));border:1px solid rgba(255,255,255,.06);border-radius:14px;position:relative;overflow:hidden;animation:hsEntryIn .4s var(--ease-spring) backwards}
-  @keyframes hsEntryIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .hs-pfp{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
-  .hs-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-  .hs-name-row{display:flex;align-items:center;gap:8px;min-width:0}
-  .hs-name{font-size:13.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.1px}
-  .hs-gamenum{font-size:9.5px;font-weight:800;letter-spacing:.8px;color:rgba(200,215,235,.42);font-family:'SF Mono',ui-monospace,monospace;flex-shrink:0;padding:2px 6px;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05)}
-  .hs-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:rgba(200,215,235,.5);font-weight:600;letter-spacing:.1px}
-  .hs-meta .dot{width:2.5px;height:2.5px;border-radius:50%;background:rgba(200,215,235,.28);flex-shrink:0}
-  .hs-amount{display:inline-flex;align-items:center;gap:4px;color:#f0d080;font-weight:800}
-  .hs-amount img{width:10px;height:10px;object-fit:contain}
-  .hs-mult{display:inline-flex;align-items:center;color:#5b9dff;font-weight:800;font-size:11.5px;padding:1px 6px;border-radius:4px;background:rgba(91,157,255,.10);border:1px solid rgba(91,157,255,.18)}
-  .hs-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .hs-rank-badge{width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:900;letter-spacing:-.2px;font-family:'SF Mono',ui-monospace,monospace}
-  .hs-rank-badge.r1{color:#f0d080;background:rgba(240,208,128,.10);border:1px solid rgba(240,208,128,.32)}
-  .hs-rank-badge.r2{color:#c8c8d8;background:rgba(200,200,216,.08);border:1px solid rgba(200,200,216,.25)}
-  .hs-rank-badge.r3{color:#cd8a5a;background:rgba(205,138,90,.08);border:1px solid rgba(205,138,90,.25)}
-  .hs-empty{text-align:center;padding:70px 24px;display:flex;flex-direction:column;align-items:center;gap:14px}
-  .hs-empty-icon{width:56px;height:56px;opacity:.35;display:flex;align-items:center;justify-content:center}
-  .hs-empty-icon svg{width:100%;height:100%;stroke:rgba(200,215,235,.55);fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
-  .hs-empty-title{font-size:14px;font-weight:700;color:rgba(200,215,235,.55);letter-spacing:-.1px}
-  .hs-empty-sub{font-size:11.5px;font-weight:500;color:rgba(200,215,235,.35);line-height:1.5;max-width:240px}
-
-  /* ANONYMOUS */
   .anon-open-btn{width:100%;display:flex;align-items:center;gap:12px;padding:16px;margin:12px 0 10px;border-radius:16px;background:linear-gradient(135deg,#0b0b0e,#050506);border:1px solid rgba(255,255,255,.06);color:#fff;font-family:inherit;font-size:13.5px;font-weight:800;letter-spacing:.2px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s var(--ease-spring),background .25s ease;box-shadow:0 10px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)}
   .anon-open-btn::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 20% 0%,rgba(140,180,255,.12),transparent 60%)}
   .anon-open-btn:active{transform:scale(.98);background:linear-gradient(135deg,#14161f,#0a0c12)}
@@ -1201,7 +1155,6 @@
   .type-char{display:inline-block;opacity:0;animation:typeCharIn .32s cubic-bezier(.34,1.56,.64,1) forwards;}
   @keyframes typeCharIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
 
-  /* LEVEL */
   .lvl-badge{
     display:inline-flex;align-items:center;justify-content:center;
     flex-shrink:0;line-height:0;background:none;border:none;padding:0;
@@ -1966,21 +1919,6 @@
       </div>
     </div>
     <button id="tr-continue" type="button" disabled>Continue</button>
-  </div>
-</div>
-
-<div id="history-overlay" class="hs-overlay">
-  <div class="hs-panel">
-    <div class="hs-head">
-      <div class="hs-title"><span class="hs-title-mark"></span>Arena History<span class="hs-title-sub" id="hs-count-label"></span></div>
-      <button class="hs-close" id="hs-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    </div>
-    <div class="hs-tabs">
-      <button class="hs-tab active" data-hs-tab="history" type="button">History</button>
-      <button class="hs-tab" data-hs-tab="biggest" type="button">Biggest</button>
-      <button class="hs-tab" data-hs-tab="luckiest" type="button">Luckiest</button>
-    </div>
-    <div class="hs-list" id="hs-list"></div>
   </div>
 </div>
 
@@ -3359,14 +3297,6 @@
     if(iceBetInput.dataset.empty==='true'){ iceBetInput.value=10; delete iceBetInput.dataset.empty; }
   }
 
-  function addIceWinToHistory(name,pfp,amount){
-    const entry={name,pfp,amount};
-    iceState.winHistory.unshift(entry);
-    if(iceState.winHistory.length>8)iceState.winHistory.pop();
-    if(amount>iceState.bestWin.amount) iceState.bestWin={amount,pfp,name};
-    addTransaction('win',amount,'Ice Win vs '+name);
-  }
-
   function spawnSliceConfetti(p){
     if(!PERF.confetti) return;
     const poly = p._displayPoly;
@@ -3389,31 +3319,10 @@
   }
 
   function handleIceRoundEnd(payload){
-    if(payload){
-      recordGameInHistory({
-        gameNumber: 0,
-        players: iceState.players.map(p => ({
-          id: p.id, name: p.name, pfp: p.pfp, color: p.color, bet: p.bet,
-          poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null
-        })),
-        pot: iceState.pot,
-        startedAt: Date.now(),
-        endedAt: Date.now(),
-        duration: 5000,
-        winner: {
-          id: payload.winnerId,
-          name: payload.winnerName,
-          pfp: payload.winnerPfp,
-          winnings: payload.winnings,
-          multiplier: payload.multiplier
-        }
-      });
-    }
     if(!payload){hideIceWinPanelAndReset();return}
     iceState.winnerId=payload.winnerId;
     const winnerPlayer=iceState.players.find(p=>p.id===payload.winnerId);
     if(winnerPlayer)spawnSliceConfetti(winnerPlayer);
-    addIceWinToHistory(payload.winnerName,payload.winnerPfp,payload.winnings);
     refreshLeaderboard();
     if(payload.winnerId===state.userId){state.balance+=payload.winnings;state.wins++;state.winStreak++}
     else{state.losses++;state.winStreak=0;addTransaction('loss',-payload.winnings,'Ice Loss vs '+payload.winnerName)}
@@ -3563,7 +3472,6 @@
     const isMe  = (p.id===state.userId);
     const anon  = isMe && state.anonymous;
     const hide  = isMe && state.hidePfp;
-    // Only treat as ready if the REAL profile image is loaded
     const ready = !!(p.pfpImg && p._realPfpLoaded && p.pfpImg.complete && p.pfpImg.naturalWidth > 0);
 
     let baseKey;
@@ -3591,7 +3499,6 @@
     } else if(ready){
       try { g.drawImage(p.pfpImg, 0, 0, size, size); } catch(_){}
     } else {
-      // solid color placeholder — NO letter
       g.fillStyle = p.color || '#555';
       g.fillRect(0,0,size,size);
     }
@@ -4638,161 +4545,11 @@
     }
   });
 
-  let gameCounter = 0;
-  const MAX_HISTORY = 20;
-  const gameHistory = [];
-
-  const hsOverlay = document.getElementById('history-overlay');
-  const hsList    = document.getElementById('hs-list');
-  const hsClose   = document.getElementById('hs-close');
-  const hsTabs    = document.querySelectorAll('.hs-tab');
-  const hsCountLabel = document.getElementById('hs-count-label');
-
-  let hsCurrentTab = 'history';
-
-  const EMPTY_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1M2 12h20"/><circle cx="12" cy="12" r="3"/></svg>';
-
-  function recordGameInHistory(rec){
-    gameCounter++;
-    rec.gameNumber = gameCounter;
-    gameHistory.unshift(rec);
-    if(gameHistory.length > MAX_HISTORY) gameHistory.pop();
-    saveHistoryToStorage();
-    if(hsOverlay.classList.contains('show')) renderHistoryList();
-  }
-
-  function saveHistoryToStorage(){
-    try{
-      const slim = gameHistory.map(g => ({
-        gameNumber: g.gameNumber, players: g.players,
-        pot: g.pot, startedAt: g.startedAt, endedAt: g.endedAt,
-        duration: g.duration, winner: g.winner
-      }));
-      localStorage.setItem('dllump_ice_history', JSON.stringify(slim));
-    }catch(_){}
-  }
-  function loadHistoryFromStorage(){
-    try{
-      const raw = localStorage.getItem('dllump_ice_history');
-      if(!raw) return;
-      const arr = JSON.parse(raw);
-      if(!Array.isArray(arr)) return;
-      arr.forEach(g => gameHistory.push(g));
-      gameCounter = arr.reduce((m,g)=>Math.max(m, g.gameNumber||0), 0);
-    }catch(_){}
-  }
-
-  function timeAgo(ts){
-    if(!ts) return 'just now';
-    const s = Math.floor((Date.now() - ts) / 1000);
-    if(s < 60) return s + 's ago';
-    const m = Math.floor(s/60);
-    if(m < 60) return m + 'm ago';
-    const h = Math.floor(m/60);
-    if(h < 24) return h + 'h ago';
-    return Math.floor(h/24) + 'd ago';
-  }
-
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
-  function renderHistoryList(){
-    const games = gameHistory.slice();
-    let sorted;
-    if(hsCurrentTab === 'biggest'){
-      sorted = games.filter(g => g.winner).sort((a,b) => (b.winner.winnings||0) - (a.winner.winnings||0)).slice(0, 30);
-    } else if(hsCurrentTab === 'luckiest'){
-      sorted = games.filter(g => g.winner).sort((a,b) => (b.winner.multiplier||0) - (a.winner.multiplier||0)).slice(0, 30);
-    } else {
-      sorted = games.slice(0, 30);
-    }
-
-    if(hsCountLabel){
-      hsCountLabel.textContent = games.length > 0 ? '· ' + games.length + ' games' : '';
-    }
-
-    if(sorted.length === 0){
-      hsList.innerHTML =
-        '<div class="hs-empty">' +
-          '<div class="hs-empty-icon">' + EMPTY_SVG + '</div>' +
-          '<div class="hs-empty-title">No games yet</div>' +
-          '<div class="hs-empty-sub">Play a round in the Ice arena and it will appear here.</div>' +
-        '</div>';
-      return;
-    }
-
-    let html = '';
-    sorted.forEach((g, idx) => {
-      const w = g.winner;
-      const pfp = w && w.pfp ? w.pfp : state.defaultAvatar;
-      const name = w ? w.name : 'No winner';
-      const winnings = w ? (w.winnings || 0) : 0;
-      const mult = w ? (w.multiplier || 0) : 0;
-      const pObj = w ? g.players.find(p => p.id === w.id) : null;
-      const bet = pObj ? pObj.bet : 0;
-
-      let rankBadge = '';
-      if((hsCurrentTab === 'biggest' || hsCurrentTab === 'luckiest') && idx < 3){
-        const cls = idx === 0 ? 'r1' : idx === 1 ? 'r2' : 'r3';
-        rankBadge = '<div class="hs-rank-badge ' + cls + '">' + (idx+1) + '</div>';
-      }
-
-      const numLabel = hsCurrentTab === 'history'
-        ? '<div class="hs-gamenum">#' + g.gameNumber + '</div>' : '';
-
-      html +=
-        '<div class="hs-entry" data-game="' + g.gameNumber + '" style="animation-delay:' + (idx*22) + 'ms">' +
-          '<img class="hs-pfp" src="' + escapeHtml(pfp) + '" onerror="this.src=\'' + state.defaultAvatar + '\'" alt="">' +
-          '<div class="hs-body">' +
-            '<div class="hs-name-row">' +
-              '<div class="hs-name">' + escapeHtml(name) + '</div>' +
-              numLabel +
-            '</div>' +
-            '<div class="hs-meta">' +
-              '<span>' + timeAgo(g.endedAt || g.startedAt) + '</span>' +
-              '<span class="dot"></span>' +
-              '<span>Wager ' + bet + '</span>' +
-              (winnings > 0 ? '<span class="dot"></span><span class="hs-amount">+' + winnings + ' <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt=""></span>' : '') +
-              (mult > 0 ? '<span class="dot"></span><span class="hs-mult">' + mult.toFixed(2) + '×</span>' : '') +
-            '</div>' +
-          '</div>' +
-          '<div class="hs-actions">' +
-            rankBadge +
-          '</div>' +
-        '</div>';
-    });
-
-    hsList.innerHTML = html;
-  }
-
-  function openHistory(tab){
-    hsCurrentTab = tab || 'history';
-    hsTabs.forEach(t => t.classList.toggle('active', t.dataset.hsTab === hsCurrentTab));
-    renderHistoryList();
-    hsOverlay.style.display = 'flex';
-    requestAnimationFrame(() => requestAnimationFrame(() => hsOverlay.classList.add('show')));
-    haptic('medium');
-  }
-  function closeHistory(){
-    hsOverlay.classList.remove('show');
-    haptic('light');
-    setTimeout(() => { hsOverlay.style.display = 'none'; }, 380);
-  }
-
-  hsClose.addEventListener('click', closeHistory);
-  hsTabs.forEach(t => t.addEventListener('click', () => {
-    hsCurrentTab = t.dataset.hsTab;
-    hsTabs.forEach(x => x.classList.toggle('active', x === t));
-    haptic('light');
-    renderHistoryList();
-  }));
-
-  loadHistoryFromStorage();
-
-  /* ============================================================
-     ANONYMOUS IDENTITY (client)
-     ============================================================ */
+  /* ANONYMOUS IDENTITY */
   const ANON_FEES = { name: 50, username: 150, phone: 1500 };
 
   const anonOpenBtn      = document.getElementById('anon-open-btn');
@@ -5238,9 +4995,7 @@
 
   updateAnonUI(false);
 
-  /* ============================================================
-     LEVEL SYSTEM — polygon morph, synced number spin
-     ============================================================ */
+  /* LEVEL SYSTEM */
   const LEVEL_RANK_NAMES = [
     'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
     'Airdrop Hunter','Diamond Hands','Whale','Ice Skater','Puck Master','Arena Regular',
