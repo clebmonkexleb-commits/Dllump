@@ -359,6 +359,96 @@
   .stat-num.rate{color:#6ab8f0}
   .stat-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 
+  /* WINRATE BAR */
+  .winrate-bar-block{
+    margin:0 0 14px;
+    padding:12px 14px 14px;
+    background:var(--surface);
+    border:.5px solid var(--border);
+    border-radius:14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .winrate-bar-head{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:10px;
+    font-size:9.5px;font-weight:800;letter-spacing:1.4px;
+    text-transform:uppercase;color:var(--text3);
+  }
+  .winrate-bar-head .wb-hint{color:rgba(255,255,255,.28)}
+  .winrate-bar{
+    position:relative;
+    width:100%;
+    height:24px;
+    border-radius:999px;
+    overflow:hidden;
+    background:linear-gradient(90deg,
+      rgba(224,85,107,.10) 0%,
+      rgba(224,85,107,.14) 49%,
+      rgba(224,85,107,.20) 50%,
+      rgba(76,195,138,.20) 50%,
+      rgba(76,195,138,.14) 51%,
+      rgba(76,195,138,.10) 100%);
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.4);
+  }
+  .winrate-bar::before{
+    content:'';
+    position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.10),transparent 55%);
+    border-radius:999px;
+  }
+  .wr-fill{
+    position:absolute;top:0;bottom:0;
+    transition:width .95s cubic-bezier(.34,1.56,.64,1), left .95s cubic-bezier(.34,1.56,.64,1);
+    will-change:width;
+  }
+  .wr-fill.green{
+    left:50%;
+    background:linear-gradient(180deg,#4CC38A,#37a472);
+    box-shadow:0 0 14px rgba(76,195,138,.55), inset 0 1px 0 rgba(255,255,255,.35);
+    border-radius:0 999px 999px 0;
+    width:0%;
+  }
+  .wr-fill.red{
+    right:50%;
+    background:linear-gradient(180deg,#e0556b,#b83d52);
+    box-shadow:0 0 14px rgba(224,85,107,.55), inset 0 1px 0 rgba(255,255,255,.35);
+    border-radius:999px 0 0 999px;
+    width:0%;
+  }
+  .wr-center-line{
+    position:absolute;
+    left:50%;top:3px;bottom:3px;
+    width:1.5px;
+    background:rgba(255,255,255,.28);
+    transform:translateX(-50%);
+    border-radius:1px;
+    pointer-events:none;
+    z-index:2;
+  }
+  .wr-label{
+    position:absolute;
+    left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    font-size:11.5px;font-weight:900;
+    color:#fff;
+    letter-spacing:-.2px;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 4px rgba(0,0,0,.9),0 0 12px rgba(0,0,0,.6);
+    z-index:3;
+    pointer-events:none;
+  }
+  .wr-zones{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:8px;
+    font-size:8.5px;font-weight:800;letter-spacing:1.2px;
+    text-transform:uppercase;
+  }
+  .wr-zones .z-left{color:#e0556b;display:flex;align-items:center;gap:4px}
+  .wr-zones .z-right{color:#4CC38A;display:flex;align-items:center;gap:4px}
+  .wr-zones .z-dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
   .anon-profile-info{
     display:none;
     flex-direction:column;
@@ -451,8 +541,8 @@
   html[data-theme="silver"] .promo button{background:#111;color:#fff}
   .promo-msg{font-size:12px;color:var(--text3);text-align:center;min-height:16px;margin-top:8px}
 
-  /* TOP simple */
-  .rank-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  /* TOP */
+  .rank-stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
   .rank-stat{
     padding:12px 6px 11px;
     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
@@ -468,9 +558,85 @@
   }
   .rank-stat .rs-label{font-size:8.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;display:block}
   .rank-stat .rs-value{font-size:19px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.5px;line-height:1;display:block}
-  .rank-stat .rs-value.gold{color:#f0d080;text-shadow:0 0 14px rgba(240,208,128,.45)}
 
-  .rank-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  /* CHAMPION CARD */
+  .champion-card{
+    position:relative;
+    margin-bottom:12px;
+    padding:14px 16px;
+    display:flex;align-items:center;gap:14px;
+    border-radius:20px;
+    background:linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 14px 34px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.16);
+    overflow:hidden;
+    cursor:pointer;
+    opacity:0;transform:translateY(-8px) scale(.97);
+    animation:championIn .65s var(--ease-spring) forwards;
+  }
+  @keyframes championIn{to{opacity:1;transform:translateY(0) scale(1)}}
+  .champion-card::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 15% 0%, rgba(255,255,255,.18), transparent 55%);
+    pointer-events:none;
+  }
+  .champion-card::after{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.10) 50%,transparent 60%);
+    background-size:280% 100%;
+    animation:champShine 5s ease-in-out infinite;
+    mix-blend-mode:screen;
+    opacity:.85;
+  }
+  @keyframes champShine{0%,100%{background-position:170% 0}50%{background-position:-70% 0}}
+  .champion-crown{
+    position:absolute;top:10px;right:12px;
+    width:20px;height:18px;
+    filter:drop-shadow(0 2px 6px rgba(255,255,255,.4));
+    animation:crownFloat2 2.6s ease-in-out infinite;
+    pointer-events:none;
+    z-index:2;
+  }
+  @keyframes crownFloat2{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  .champion-pfp-wrap{
+    position:relative;flex-shrink:0;
+    z-index:1;
+  }
+  .champion-pfp{
+    width:56px;height:56px;border-radius:50%;
+    object-fit:cover;
+    border:2px solid rgba(255,255,255,.6);
+    background:var(--surface3);
+    box-shadow:0 0 22px rgba(255,255,255,.25),0 6px 16px rgba(0,0,0,.5);
+    display:block;
+  }
+  .champion-lvl-badge{
+    position:absolute;bottom:-4px;right:-6px;
+    display:inline-flex;
+    filter:drop-shadow(0 3px 8px rgba(0,0,0,.75));
+  }
+  .champion-lvl-badge svg{display:block}
+  .champion-lvl-badge text{fill:#000}
+  .champion-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;position:relative;z-index:1}
+  .champion-label{
+    font-size:8.5px;font-weight:900;letter-spacing:2.4px;text-transform:uppercase;
+    color:rgba(255,255,255,.55);
+  }
+  .champion-name{
+    font-size:15px;font-weight:800;color:#fff;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    letter-spacing:-.2px;
+  }
+  .champion-stats{
+    font-size:11px;font-weight:700;color:rgba(255,255,255,.6);
+    font-variant-numeric:tabular-nums;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  }
+  .champion-stats .dot{width:2.5px;height:2.5px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0}
+  .champion-stats .cs-amount{color:#fff;font-weight:800;display:inline-flex;align-items:center;gap:3px}
+  .champion-stats .cs-amount img{width:10px;height:10px;object-fit:contain}
+
+  .rank-list{display:flex;flex-direction:column;gap:6px;margin-top:0}
   .top-entry{
     display:flex;align-items:center;gap:10px;
     background:var(--surface);
@@ -478,7 +644,9 @@
     border-radius:14px;padding:10px 14px;
     position:relative;overflow:hidden;cursor:pointer;
     transition:transform .2s var(--ease-spring),background .25s ease,border-color .25s ease;
+    animation:rankIn .35s var(--ease-spring) backwards;
   }
+  @keyframes rankIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .top-entry:active{transform:scale(.985);background:var(--surface2)}
   .top-entry.is-you{
     background:linear-gradient(135deg,rgba(91,157,255,.14),rgba(91,157,255,.05));
@@ -526,9 +694,7 @@
   .rank-empty{padding:48px 20px;text-align:center;color:var(--text3);font-size:13.5px;font-weight:500;line-height:1.6}
   .rank-empty svg{width:48px;height:48px;stroke:var(--text3);fill:none;stroke-width:1.4;margin:0 auto 14px;opacity:.5;display:block}
 
-  /* ============================================================
-     PLAYER 3D CARD POPUP
-     ============================================================ */
+  /* PLAYER 3D CARD */
   .pc-overlay{
     position:fixed;inset:0;z-index:10060;max-width:440px;margin:0 auto;
     display:none;align-items:center;justify-content:center;
@@ -543,12 +709,12 @@
     transition:background .4s ease, -webkit-backdrop-filter .4s ease, backdrop-filter .4s ease;
   }
   .pc-overlay.visible .pc-backdrop{
-    background:rgba(0,0,0,.72);
-    -webkit-backdrop-filter:blur(18px) saturate(130%);
-    backdrop-filter:blur(18px) saturate(130%);
+    background:rgba(0,0,0,.78);
+    -webkit-backdrop-filter:blur(18px) saturate(120%);
+    backdrop-filter:blur(18px) saturate(120%);
   }
   body.perf-lite .pc-overlay.visible .pc-backdrop{
-    background:rgba(0,0,0,.85);
+    background:rgba(0,0,0,.88);
     -webkit-backdrop-filter:blur(8px);
     backdrop-filter:blur(8px);
   }
@@ -580,24 +746,24 @@
   .pc-face{
     position:absolute;inset:0;border-radius:22px;
     overflow:hidden;backface-visibility:hidden;
-    box-shadow:0 30px 80px rgba(0,0,0,.75),0 12px 36px rgba(0,0,0,.55);
-    border:1px solid rgba(180,210,255,.22);
+    box-shadow:0 30px 80px rgba(0,0,0,.8),0 12px 36px rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.14);
     display:flex;flex-direction:column;
   }
   .pc-front{
     background:
-      radial-gradient(ellipse at 20% 15%, rgba(150,190,255,.32) 0%, transparent 62%),
-      radial-gradient(ellipse at 85% 90%, rgba(100,150,230,.28) 0%, transparent 62%),
-      linear-gradient(135deg, #2a3c60 0%, #17233d 55%, #0a1020 100%);
+      radial-gradient(ellipse at 20% 15%, rgba(255,255,255,.08) 0%, transparent 62%),
+      radial-gradient(ellipse at 85% 90%, rgba(255,255,255,.05) 0%, transparent 62%),
+      linear-gradient(135deg, #171717 0%, #0b0b0b 55%, #000 100%);
   }
   .pc-front::before{
     content:'';position:absolute;inset:0;
-    background:linear-gradient(120deg,transparent 38%,rgba(200,220,255,.08) 50%,transparent 62%);
+    background:linear-gradient(120deg,transparent 38%,rgba(255,255,255,.06) 50%,transparent 62%);
     pointer-events:none;
   }
   .pc-shine{
     position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(115deg,transparent 28%,rgba(220,235,255,.06) 42%,rgba(240,248,255,.22) 50%,rgba(220,235,255,.06) 58%,transparent 72%);
+    background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.05) 42%,rgba(255,255,255,.18) 50%,rgba(255,255,255,.05) 58%,transparent 72%);
     background-size:300% 100%;
     animation:pcShine 6s ease-in-out infinite;
     mix-blend-mode:screen;opacity:.7;
@@ -605,10 +771,9 @@
   @keyframes pcShine{0%,100%{background-position:160% 0}50%{background-position:-60% 0}}
   .pc-glare{
     position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.35) 0%,rgba(255,255,255,.05) 25%,transparent 55%);
-    mix-blend-mode:screen;opacity:.9;
+    background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.28) 0%,rgba(255,255,255,.04) 25%,transparent 55%);
+    mix-blend-mode:screen;opacity:.85;
   }
-
   .pc-content{
     position:relative;z-index:1;
     width:100%;height:100%;
@@ -616,79 +781,75 @@
     display:flex;flex-direction:column;gap:12px;
     transform-style:preserve-3d;
   }
-
   .pc-top{
     display:flex;justify-content:space-between;align-items:flex-start;
     transform:translateZ(40px);
   }
   .pc-brand{
     font-size:12px;font-weight:800;letter-spacing:3px;
-    text-transform:uppercase;color:rgba(230,240,255,.85);
+    text-transform:uppercase;color:rgba(255,255,255,.85);
   }
   .pc-rank-tag{
     font-size:8.5px;font-weight:900;letter-spacing:1.8px;
-    text-transform:uppercase;color:#f0d080;
+    text-transform:uppercase;color:#ffffff;
     padding:4px 8px;border-radius:6px;
-    background:rgba(240,208,128,.10);
-    border:1px solid rgba(240,208,128,.28);
-    text-shadow:0 0 10px rgba(240,208,128,.5);
+    background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.28);
+    text-shadow:0 0 10px rgba(255,255,255,.4);
   }
-
   .pc-mid{
     flex:1;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
     transform:translateZ(60px);
     text-align:center;
     min-height:0;
   }
   .pc-pfp-wrap{position:relative;flex-shrink:0}
   .pc-pfp{
-    width:64px;height:64px;border-radius:50%;
+    width:60px;height:60px;border-radius:50%;
     object-fit:cover;
-    border:2px solid rgba(140,180,255,.6);
+    border:2px solid rgba(255,255,255,.55);
     background:var(--surface3);
-    box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 26px rgba(91,157,255,.35);
+    box-shadow:0 8px 24px rgba(0,0,0,.6),0 0 22px rgba(255,255,255,.18);
     display:block;
   }
   .pc-pfp-lvl{
     position:absolute;bottom:-4px;right:-6px;
     display:inline-flex;
-    filter:drop-shadow(0 3px 8px rgba(0,0,0,.7));
+    filter:drop-shadow(0 3px 8px rgba(0,0,0,.75));
   }
   .pc-pfp-lvl svg{display:block}
-  .pc-pfp-lvl text{fill:var(--bg-base)}
-
+  .pc-pfp-lvl text{fill:#000}
   .pc-name{
-    font-size:19px;font-weight:800;letter-spacing:-.3px;
+    font-size:18px;font-weight:800;letter-spacing:-.3px;
     color:#fff;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     line-height:1.1;
     text-shadow:0 2px 8px rgba(0,0,0,.5);
   }
   .pc-username{
-    font-size:11.5px;font-weight:700;
-    color:rgba(200,220,250,.55);
+    font-size:11px;font-weight:700;
+    color:rgba(255,255,255,.55);
     letter-spacing:.3px;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .pc-phone{
     font-size:10.5px;font-weight:700;
     font-family:'SF Mono',ui-monospace,monospace;
-    color:rgba(140,180,255,.85);
+    color:rgba(255,255,255,.8);
     letter-spacing:.4px;
-    text-shadow:0 0 8px rgba(91,157,255,.35);
+    text-shadow:0 0 8px rgba(255,255,255,.25);
   }
   .pc-level-pill{
     display:inline-flex;align-items:center;gap:6px;
     padding:4px 10px;border-radius:999px;
-    background:rgba(140,180,255,.10);
-    border:1px solid rgba(140,180,255,.25);
-    font-size:10.5px;font-weight:800;letter-spacing:1.2px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.22);
+    font-size:10px;font-weight:800;letter-spacing:1.2px;
     text-transform:uppercase;
-    color:#b8d2ff;
+    color:#ffffff;
     margin-top:2px;
   }
-
   .pc-bottom{
     display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
     transform:translateZ(40px);
@@ -696,31 +857,31 @@
   .pc-stat{
     display:flex;flex-direction:column;align-items:center;gap:2px;
     padding:6px 4px;border-radius:10px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.09);
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.10);
   }
   .pc-stat .pc-stat-label{
     font-size:7.5px;font-weight:800;letter-spacing:1px;
-    text-transform:uppercase;color:rgba(200,215,235,.5);
+    text-transform:uppercase;color:rgba(255,255,255,.5);
   }
   .pc-stat .pc-stat-value{
-    font-size:13.5px;font-weight:800;
+    font-size:13px;font-weight:800;
     color:#fff;
     font-variant-numeric:tabular-nums;
     letter-spacing:-.3px;
     display:flex;align-items:center;gap:3px;
   }
   .pc-stat .pc-stat-value img{width:11px;height:11px;object-fit:contain}
-  .pc-stat .pc-stat-value.green{color:#4CC38A}
-  .pc-stat .pc-stat-value.red{color:#e0556b}
-  .pc-stat .pc-stat-value.gold{color:#f0d080}
+  .pc-stat .pc-stat-value.green{color:#ffffff}
+  .pc-stat .pc-stat-value.red{color:rgba(255,255,255,.75)}
+  .pc-stat .pc-stat-value.gold{color:#ffffff}
 
   .pc-close{
     position:absolute;top:-46px;right:0;
     width:36px;height:36px;border-radius:50%;
-    border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.06);
-    color:rgba(255,255,255,.85);
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.05);
+    color:rgba(255,255,255,.9);
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;z-index:3;
     transition:transform .18s var(--ease-spring),background .2s ease;
@@ -728,15 +889,13 @@
   }
   .pc-close:active{transform:scale(.9);background:rgba(255,255,255,.14)}
   .pc-close svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-
   .pc-hint{
     margin-top:18px;text-align:center;
     font-size:10px;font-weight:600;letter-spacing:1.4px;
     text-transform:uppercase;
-    color:rgba(200,215,235,.4);
+    color:rgba(255,255,255,.4);
   }
 
-  /* TABS */
   #tabs{padding:0 10px calc(8px + var(--safe-bottom));flex-shrink:0;z-index:20;position:relative}
   .tab-inner{display:flex;position:relative;background:var(--surface2);border:.5px solid var(--border);padding:6px;border-radius:22px;box-shadow:0 10px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);touch-action:none;cursor:grab;backdrop-filter:blur(14px);overflow:hidden}
   .tab-indicator{position:absolute;top:6px;bottom:6px;left:6px;border-radius:16px;pointer-events:none;background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.2);transform:translate3d(0,0,0);transition:transform .5s var(--ease-spring),width .3s ease,top .32s var(--ease-spring),bottom .32s var(--ease-spring),background .25s ease,box-shadow .25s ease;z-index:0;will-change:transform,top,bottom}
@@ -879,6 +1038,7 @@
   body.perf-lite .ice-auto-bet-toggle{ backdrop-filter:none; }
   body.perf-lite .bet-drag-chip{ backdrop-filter:blur(10px); }
   body.perf-lite .pc-shine{ animation:none; }
+  body.perf-lite .champion-card::after{ animation:none; }
 
   /* TRANSFER */
   .tr-overlay{position:fixed;inset:0;z-index:9998;max-width:440px;margin:0 auto;background:#0b0c10;display:none;flex-direction:column;overflow:hidden;opacity:0;transform:translateX(100%);transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
@@ -1313,6 +1473,17 @@
   .lvl-pointer svg{
     width:100%;height:100%;display:block;
     filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
+    transform-origin:50% 90%;
+  }
+  .lvl-pointer svg.spin{
+    animation: pointerSpin 1.1s cubic-bezier(.34,1.9,.4,1);
+  }
+  @keyframes pointerSpin{
+    0%  {transform:rotate(-180deg) scale(.5);opacity:0}
+    50% {transform:rotate(22deg) scale(1.12);opacity:1}
+    70% {transform:rotate(-10deg) scale(.95)}
+    86% {transform:rotate(4deg) scale(1.02)}
+    100%{transform:rotate(0) scale(1)}
   }
   .lvl-pointer .lvl-ptr-fill{
     fill:#ffffff;
@@ -1433,8 +1604,10 @@
     .anon-toggle-btn{font-size:10px;padding:9px 10px;letter-spacing:1.4px}
     .lvl-content{width:min(90%, 320px)}
     .lvl-rank{font-size:17px}
-    .pc-pfp{width:56px;height:56px}
-    .pc-name{font-size:17px}
+    .pc-pfp{width:52px;height:52px}
+    .pc-name{font-size:16px}
+    .champion-pfp{width:50px;height:50px}
+    .champion-name{font-size:14px}
   }
   @media (max-height:700px){
     #ice-top-panel{padding:6px 10px 8px;border-radius:16px}
@@ -1612,6 +1785,23 @@
         <div class="stat-card"><div class="stat-num rate" id="p-rate">0%</div><div class="stat-label">Winrate</div></div>
       </div>
 
+      <div class="winrate-bar-block">
+        <div class="winrate-bar-head">
+          <span>Winrate Trend</span>
+          <span class="wb-hint">Centered at 50%</span>
+        </div>
+        <div class="winrate-bar">
+          <div class="wr-fill green" id="wr-fill-green"></div>
+          <div class="wr-fill red" id="wr-fill-red"></div>
+          <div class="wr-center-line"></div>
+          <div class="wr-label" id="wr-label">0%</div>
+        </div>
+        <div class="wr-zones">
+          <span class="z-left"><span class="z-dot"></span>Loss Zone</span>
+          <span class="z-right"><span class="z-dot"></span>Win Zone</span>
+        </div>
+      </div>
+
       <div class="anon-profile-info" id="anon-profile-info">
         <div class="anon-profile-row">
           <span class="anon-profile-label">Name</span>
@@ -1686,9 +1876,20 @@
           <span class="rs-label">Top Level</span>
           <span class="rs-value" id="rs-level">—</span>
         </div>
-        <div class="rank-stat">
-          <span class="rs-label">Top Balance</span>
-          <span class="rs-value gold" id="rs-balance">—</span>
+      </div>
+
+      <div class="champion-card" id="champion-card" style="display:none">
+        <svg class="champion-crown" viewBox="0 0 24 20" aria-hidden="true">
+          <path d="M2 18 L4 6 L9 11 L12 3 L15 11 L20 6 L22 18 Z" fill="#ffffff" stroke="rgba(0,0,0,.18)" stroke-width=".7" stroke-linejoin="round"/>
+        </svg>
+        <div class="champion-pfp-wrap">
+          <img class="champion-pfp" id="champion-pfp" src="" alt="">
+          <span class="champion-lvl-badge" id="champion-lvl-badge"></span>
+        </div>
+        <div class="champion-info">
+          <div class="champion-label">Champion</div>
+          <div class="champion-name" id="champion-name">—</div>
+          <div class="champion-stats" id="champion-stats"></div>
         </div>
       </div>
 
@@ -1973,7 +2174,7 @@
         <div class="lvl-progress-fill" id="lvl-progress-fill"></div>
         <div class="lvl-progress-next" id="lvl-progress-next">2</div>
         <div class="lvl-pointer" id="lvl-pointer">
-          <svg viewBox="0 0 28 30" preserveAspectRatio="none">
+          <svg viewBox="0 0 28 30" preserveAspectRatio="none" id="lvl-pointer-svg">
             <polygon class="lvl-ptr-fill" points="1,1 27,1 27,17 14,29 1,17"/>
             <path class="lvl-ptr-shine" d="M 4,4 L 24,4"/>
           </svg>
@@ -2225,7 +2426,7 @@
     step();
   }
 
-  const RIPPLE_SEL='button, .quick-btn, .layout-tile, .round-tile, .swatch, .setting, .top-entry, .stat-card, .panel-user, .rank-stat';
+  const RIPPLE_SEL='button, .quick-btn, .layout-tile, .round-tile, .swatch, .setting, .top-entry, .stat-card, .panel-user, .rank-stat, .champion-card';
   document.addEventListener('pointerdown',e=>{
     if(!PERF.heavyEffects) return;
     const target=e.target.closest(RIPPLE_SEL);
@@ -2355,7 +2556,7 @@
           });
           iceState.pot=res.icePot||0;iceState.players.forEach(p=>loadIcePlayerPFP(p));
         }
-        applyIdentity();updateBalance();updateProfile();refreshLeaderboard();refreshCardUI();
+        applyIdentity();updateBalance();updateProfile();updateWinrate();refreshLeaderboard();refreshCardUI();
         if(window._topRefresh)clearInterval(window._topRefresh);
         window._topRefresh=setInterval(refreshLeaderboard,30000);
         animateWaitingText();setTimeout(resizeIceCanvas,60);
@@ -2456,6 +2657,26 @@
     pWins.textContent=state.wins;pLosses.textContent=state.losses;
     const total=state.wins+state.losses;
     pRate.textContent=total>0?Math.round(state.wins/total*100)+'%':'0%';
+    updateWinrate();
+  }
+
+  function updateWinrate(){
+    const total = state.wins + state.losses;
+    const wr = total > 0 ? (state.wins / total) * 100 : 0;
+    const wrLabel = document.getElementById('wr-label');
+    const wrGreen = document.getElementById('wr-fill-green');
+    const wrRed = document.getElementById('wr-fill-red');
+    if(!wrLabel || !wrGreen || !wrRed) return;
+    wrLabel.textContent = Math.round(wr) + '%';
+    if (wr >= 50) {
+      const w = (wr - 50);
+      wrGreen.style.width = w + '%';
+      wrRed.style.width = '0%';
+    } else {
+      const w = (50 - wr);
+      wrRed.style.width = w + '%';
+      wrGreen.style.width = '0%';
+    }
   }
 
   function addTransaction(type,amount,label){
@@ -2507,39 +2728,69 @@
   }
 
   /* ============================================================
-     SIMPLE LEADERBOARD — click opens player card
+     LEADERBOARD — champion card + list
      ============================================================ */
-  const rsTotalEl   = document.getElementById('rs-total');
-  const rsLevelEl   = document.getElementById('rs-level');
-  const rsBalanceEl = document.getElementById('rs-balance');
+  const rsTotalEl = document.getElementById('rs-total');
+  const rsLevelEl = document.getElementById('rs-level');
+  const championCard = document.getElementById('champion-card');
+  const championPfp = document.getElementById('champion-pfp');
+  const championName = document.getElementById('champion-name');
+  const championStats = document.getElementById('champion-stats');
+  const championLvlBadge = document.getElementById('champion-lvl-badge');
 
   function renderRanks(){
     if(!rankList)return;
 
     if(state.topPlayers.length===0){
-      if(rsTotalEl)   rsTotalEl.textContent = '0';
-      if(rsLevelEl)   rsLevelEl.textContent = '—';
-      if(rsBalanceEl) rsBalanceEl.textContent = '0';
+      if(rsTotalEl) rsTotalEl.textContent = '0';
+      if(rsLevelEl) rsLevelEl.textContent = '—';
+      if(championCard) championCard.style.display = 'none';
       rankList.innerHTML='<div class="rank-empty"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 4H7v6a5 5 0 0 0 10 0zM7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg>No players yet — be the first!</div>';
       return;
     }
 
     const sorted = state.topPlayers.slice().sort((a,b) => b.score - a.score);
     const topLevel = sorted.reduce((m,p)=>Math.max(m,p.level||1),1);
-    const topBalance = sorted.reduce((m,p)=>Math.max(m,p.score||0),0);
 
-    if(rsTotalEl)   rsTotalEl.textContent   = sorted.length;
-    if(rsLevelEl)   rsLevelEl.textContent   = topLevel;
-    if(rsBalanceEl) rsBalanceEl.textContent = topBalance.toLocaleString();
+    if(rsTotalEl) rsTotalEl.textContent = sorted.length;
+    if(rsLevelEl) rsLevelEl.textContent = topLevel;
 
     const badgeFn = window.__badgeSvgMarkup || function(){ return ''; };
+    const rankNames = window.__levelRankNames || [];
 
+    /* ---- CHAMPION CARD ---- */
+    const champ = sorted[0];
+    if (champ && championCard) {
+      championCard.style.display = 'flex';
+      const cpfp = champ.anonymous ? state.defaultAvatar : (champ.pfp || state.defaultAvatar);
+      championPfp.src = cpfp;
+      championPfp.onerror = function(){ this.src = state.defaultAvatar; };
+      championName.textContent = champ.name || 'Player';
+
+      let statsHtml = '<span>' + champ.wins + ' wins</span>' +
+                      '<span class="dot"></span>' +
+                      '<span>Level ' + (champ.level || 1) + '</span>' +
+                      '<span class="dot"></span>' +
+                      '<span class="cs-amount"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
+                      (champ.score || 0).toLocaleString() + '</span>';
+      championStats.innerHTML = statsHtml;
+      championLvlBadge.innerHTML = badgeFn(champ.level || 1, 22);
+
+      championCard.onclick = function(){
+        haptic('light');
+        openPlayerCard(champ);
+      };
+    } else if (championCard) {
+      championCard.style.display = 'none';
+    }
+
+    /* ---- LIST (skip #1) ---- */
+    const rest = sorted.slice(1);
     let html = '';
-    sorted.forEach((p, i) => {
-      const r = i + 1;
+    rest.forEach((p, i) => {
+      const r = i + 2;
       let rc = 'rank';
-      if(r===1) rc += ' gold';
-      else if(r===2) rc += ' silver';
+      if(r===2) rc += ' silver';
       else if(r===3) rc += ' bronze';
 
       const pfp = p.anonymous ? state.defaultAvatar : (p.pfp || state.defaultAvatar);
@@ -2550,7 +2801,7 @@
       const isYou = String(p.id) === String(state.userId);
 
       html +=
-        '<div class="top-entry'+(isYou?' is-you':'')+'" data-id="'+escapeHtml(String(p.id))+'" style="animation-delay:'+(i*20)+'ms">' +
+        '<div class="top-entry'+(isYou?' is-you':'')+'" data-id="'+escapeHtml(String(p.id))+'" style="animation-delay:'+(i*22)+'ms">' +
           '<div class="'+rc+'">#'+r+'</div>' +
           '<img class="t-pfp" src="'+escapeHtml(pfp)+'" onerror="this.src=\''+state.defaultAvatar+'\'" alt="">' +
           '<div class="t-main">' +
@@ -2561,7 +2812,7 @@
           '<div class="t-bal"><img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">'+p.score.toLocaleString()+'</div>' +
         '</div>';
     });
-    rankList.innerHTML = html;
+    rankList.innerHTML = html || '<div class="rank-empty" style="padding:24px 16px">Only the champion so far</div>';
 
     rankList.querySelectorAll('.top-entry').forEach(el => {
       el.addEventListener('click', () => {
@@ -2606,11 +2857,6 @@
     if(!pcOverlay || !player) return;
     pcActive = true;
 
-    const lvl = window.__levelRankNames ? (window.__levelRankNames[player.level-1] || 'Player') : 'Player';
-    const rankLabel = (window.__badgeSvgMarkup && window.__levelRankNames)
-      ? (window.__levelRankNames[player.level - 1] || 'Player')
-      : 'Player';
-
     pcPfp.src = player.anonymous ? state.defaultAvatar : (player.pfp || state.defaultAvatar);
     pcPfp.onerror = function(){ this.src = state.defaultAvatar; };
     pcName.textContent = player.name || 'Player';
@@ -2630,7 +2876,8 @@
     }
 
     pcLevelPill.textContent = 'Level ' + (player.level || 1);
-    pcRankTag.textContent = (window.__levelRankNames ? window.__levelRankNames[player.level-1] : 'Player') || 'Player';
+    const rankNames = window.__levelRankNames || [];
+    pcRankTag.textContent = rankNames[player.level-1] || 'Player';
 
     const bFn = window.__badgeSvgMarkup || function(){ return ''; };
     pcPfpLvl.innerHTML = bFn(player.level || 1, 26);
@@ -2811,7 +3058,7 @@
       const np=tabPages[tab];np.classList.add('active');
       if(tab==='ice')setTimeout(resizeIceCanvas,60);
       if(tab==='top')refreshLeaderboard();
-      if(tab==='profile')refreshAnonProfile();
+      if(tab==='profile'){refreshAnonProfile();updateWinrate();}
     });
   }
   setTimeout(()=>updateIndicator(false),100);
@@ -3888,7 +4135,7 @@
       }
     });
   }
-  const STORY_RING_SEL='button, .tab, .quick-btn, .setting, .round-tile, .layout-tile, .swatch, .panel-tab, .top-entry, .ice-bet-toggle, .rank-stat';
+  const STORY_RING_SEL='button, .tab, .quick-btn, .setting, .round-tile, .layout-tile, .swatch, .panel-tab, .top-entry, .ice-bet-toggle, .rank-stat, .champion-card';
   document.addEventListener('pointerdown',e=>{
     if(!state.storyRingsEnabled)return;
     const target=e.target.closest(STORY_RING_SEL);
@@ -5397,7 +5644,7 @@
   updateAnonUI(false);
 
   /* ============================================================
-     LEVEL SYSTEM (client)
+     LEVEL SYSTEM — rounded polygon, morph edges, spin-in pointer
      ============================================================ */
   const LEVEL_RANK_NAMES = [
     'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
@@ -5417,21 +5664,29 @@
   let levelTiltTimer = null;
   let levelUpInProgress = false;
 
-  function badgeSvgMarkup(level, size) {
-    level = Math.max(1, Math.min(22, level | 0));
-    const edges = 3 + Math.floor((level - 1) / 2);
-    const cx = 50, cy = 50, r = 46;
+  /* Rounded-corner polygon via stroke-linejoin round with matching fill stroke */
+  function badgePolygonPoints(edges, cx, cy, r){
     const offset = Math.PI / edges;
     const pts = [];
-    for (let i = 0; i < edges; i++) {
+    for (let i = 0; i < edges; i++){
       const a = -Math.PI / 2 + offset + (i / edges) * Math.PI * 2;
       pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
     }
+    return pts;
+  }
+
+  function badgeSvgMarkup(level, size) {
+    level = Math.max(1, Math.min(22, level | 0));
+    const edges = 3 + Math.floor((level - 1) / 2);
+    const strokeW = 7;           // thickness of stroke used to round corners
+    const outerR = 46;
+    const r = outerR - strokeW / 2;
+    const pts = badgePolygonPoints(edges, 50, 50, r);
     const ptsStr = pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ');
-    const fs = edges > 10 ? 30 : edges > 7 ? 34 : edges > 5 ? 38 : 42;
+    const fs = edges > 10 ? 26 : edges > 7 ? 30 : edges > 5 ? 34 : 38;
     return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" aria-hidden="true">' +
-      '<polygon points="' + ptsStr + '" fill="currentColor" stroke="none"/>' +
-      '<text x="50" y="46" text-anchor="middle" dominant-baseline="central" ' +
+      '<polygon points="' + ptsStr + '" fill="currentColor" stroke="currentColor" stroke-width="' + strokeW + '" stroke-linejoin="round"/>' +
+      '<text x="50" y="50" text-anchor="middle" dominant-baseline="central" ' +
       'font-family="-apple-system,BlinkMacSystemFont,\'SF Pro Display\',Inter,sans-serif" ' +
       'font-size="' + fs + '" font-weight="900" letter-spacing="-1">' + level + '</text>' +
       '</svg>';
@@ -5450,6 +5705,7 @@
   const lvlProgressFill  = document.getElementById('lvl-progress-fill');
   const lvlProgressNext  = document.getElementById('lvl-progress-next');
   const lvlPointer       = document.getElementById('lvl-pointer');
+  const lvlPointerSvg    = document.getElementById('lvl-pointer-svg');
   const lvlPointerNum    = document.getElementById('lvl-pointer-num');
   const lvlQuestList     = document.getElementById('lvl-quest-list');
   const lvlProgressTrack = document.querySelector('.lvl-progress-track');
@@ -5512,6 +5768,16 @@
     void lvlPointer.offsetWidth;
     lvlPointer.classList.add('tilt');
     levelTiltTimer = setTimeout(() => lvlPointer.classList.remove('tilt'), Math.max(200, duration - 60));
+  }
+
+  function triggerPointerSpin() {
+    if (!lvlPointerSvg) return;
+    lvlPointerSvg.classList.remove('spin');
+    void lvlPointerSvg.offsetWidth;
+    lvlPointerSvg.classList.add('spin');
+    setTimeout(() => {
+      try { lvlPointerSvg.classList.remove('spin'); } catch(_){}
+    }, 1200);
   }
 
   function flashProgressTrack() {
@@ -5643,6 +5909,8 @@
           lvlProgressFill.style.width = pct + '%';
           lvlPointer.style.transition = '';
           positionPointerAt(pct);
+          // Spin/bounce pointer in
+          triggerPointerSpin();
         }, 460);
       });
     });
