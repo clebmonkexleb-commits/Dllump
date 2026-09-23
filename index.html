@@ -33,6 +33,13 @@
   html[data-theme="midnight"]{--bg-base:#080c1a;--surface:rgba(140,170,255,.06);--surface2:rgba(140,170,255,.10);--surface3:rgba(140,170,255,.14);--border:rgba(140,170,255,.12);--border2:rgba(140,170,255,.20);--text2:#a0aec8;--text3:#5f6a82}
   html[data-theme="silver"]{--bg-base:#d6d6d6;--surface:rgba(0,0,0,.05);--surface2:rgba(0,0,0,.09);--surface3:rgba(0,0,0,.14);--border:rgba(0,0,0,.12);--border2:rgba(0,0,0,.20);--text:#111;--text2:#444;--text3:#777}
   html[data-theme="silver"] body{color:var(--text)}
+  html[data-theme="liquid"]{--bg-base:#181a22;--surface:rgba(190,200,220,.07);--surface2:rgba(190,200,220,.11);--surface3:rgba(190,200,220,.15);--border:rgba(190,200,220,.14);--border2:rgba(190,200,220,.24);--primary:#aeb8cc;--text:#e8ecf4;--text2:#a8b0c0;--text3:#6a7286}
+  html[data-theme="liquid"] #app{background:linear-gradient(160deg,#14161e 0%,#282c38 40%,#1a1c26 70%,#2a2e3a 100%)}
+  html[data-theme="liquid"] #app::before{filter:blur(30px) brightness(.35) saturate(.4) hue-rotate(-20deg);opacity:.5}
+  html[data-theme="gold"]{--bg-base:#14100a;--surface:rgba(220,190,110,.06);--surface2:rgba(220,190,110,.10);--surface3:rgba(220,190,110,.14);--border:rgba(220,190,110,.14);--border2:rgba(220,190,110,.22);--primary:#d4b46a;--text:#f0e2bc;--text2:#c8b078;--text3:#8a7648}
+  html[data-theme="blood"]{--bg-base:#0f0506;--surface:rgba(220,80,90,.06);--surface2:rgba(220,80,90,.10);--surface3:rgba(220,80,90,.14);--border:rgba(220,80,90,.14);--border2:rgba(220,80,90,.22);--primary:#e0556b;--text:#f8dfe2;--text2:#c88890;--text3:#8a5560}
+  html[data-theme="ocean"]{--bg-base:#04101a;--surface:rgba(100,190,220,.06);--surface2:rgba(100,190,220,.10);--surface3:rgba(100,190,220,.14);--border:rgba(100,190,220,.14);--border2:rgba(100,190,220,.22);--primary:#5fc8e8;--text:#dff0f8;--text2:#8fb8c8;--text3:#5a7a8a}
+  html[data-theme="neon"]{--bg-base:#0a0416;--surface:rgba(180,100,255,.08);--surface2:rgba(180,100,255,.12);--surface3:rgba(180,100,255,.16);--border:rgba(180,100,255,.18);--border2:rgba(180,100,255,.28);--primary:#c860ff;--text:#f0e0ff;--text2:#b090d0;--text3:#7a6890}
 
   html,body{
     height:100%;height:100dvh;overflow:hidden;
@@ -359,23 +366,23 @@
   .stat-num.rate{color:#6ab8f0}
   .stat-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 
-  /* WINRATE LINE — green wins over red losses, no wrapper card */
+  /* WINRATE LINE — lighter pink/mint */
   .winrate-line{
     position:relative;
     width:100%;
     height:26px;
     margin:0 0 18px;
     border-radius:3px;
-    background:linear-gradient(180deg,#e0556b,#b83d52);
+    background:linear-gradient(180deg,#f4a3b1,#ec8394);
     overflow:hidden;
-    box-shadow:inset 0 1px 3px rgba(0,0,0,.4);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.35);
   }
   .wr-line-win{
     position:absolute;
     left:0;top:0;bottom:0;
     width:0%;
-    background:linear-gradient(180deg,#4CC38A,#37a472);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+    background:linear-gradient(180deg,#9be7bd,#6fd3a0);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
     transition:width .95s cubic-bezier(.34,1.56,.64,1);
     will-change:width;
     z-index:1;
@@ -912,6 +919,14 @@
   .swatch.midnight{background:linear-gradient(135deg,#0c1428,#080c1a)}
   .swatch.silver{background:linear-gradient(135deg,#e0e0e0,#a8a8a8)}
   .swatch.silver.active::after{color:#111;text-shadow:0 1px 4px rgba(255,255,255,.6)}
+  .swatch.liquid{background:linear-gradient(135deg,#dfe3ec,#8f96a8 45%,#dfe3ec)}
+  .swatch.gold{background:linear-gradient(135deg,#f0d080,#8a6b28)}
+  .swatch.blood{background:linear-gradient(135deg,#6a1a22,#1a0508)}
+  .swatch.ocean{background:linear-gradient(135deg,#2a7a9c,#04101a)}
+  .swatch.neon{background:linear-gradient(135deg,#c860ff,#2a0a4a)}
+  .swatch.liquid.active::after{color:#111;text-shadow:0 1px 4px rgba(255,255,255,.7)}
+  .swatch.gold.active::after{color:#1a1008;text-shadow:0 1px 4px rgba(255,255,255,.55)}
+  .swatch.neon.active::after{color:#fff;text-shadow:0 0 10px rgba(200,96,255,.9)}
   .round-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
   .round-tile{padding:10px;border-radius:12px;cursor:pointer;text-align:center;background:var(--surface);border:.5px solid var(--border);position:relative;overflow:hidden}
   .round-tile.active{border-color:rgba(255,255,255,.35);background:var(--surface2)}
@@ -1256,24 +1271,6 @@
   }
   .lvl-flyer svg{width:100%;height:100%;display:block}
   .lvl-flyer text{fill:var(--bg-base)}
-  .lvl-flyer poly-enter{animation:polyFade .7s cubic-bezier(.34,1.56,.64,1)}
-  @keyframes polyFade{
-    0%{opacity:0;transform:scale(.72) rotate(-14deg)}
-    60%{opacity:1;transform:scale(1.06) rotate(3deg)}
-    100%{opacity:1;transform:scale(1) rotate(0)}
-  }
-  .lvl-flyer .num-enter{animation:numPop .55s cubic-bezier(.34,1.56,.64,1)}
-  @keyframes numPop{
-    0%{opacity:0;transform:translateY(-6px) scale(.6)}
-    60%{opacity:1;transform:translateY(0) scale(1.12)}
-    100%{opacity:1;transform:translateY(0) scale(1)}
-  }
-  .lvl-flyer.pulse{animation:badgePulse .7s cubic-bezier(.34,1.56,.64,1)}
-  @keyframes badgePulse{
-    0%{transform:scale(1)}
-    45%{transform:scale(1.10)}
-    100%{transform:scale(1)}
-  }
 
   .lvl-content{
     position:absolute;
@@ -1425,7 +1422,7 @@
     transform-origin:50% 50%;
     will-change:transform,opacity;
   }
-  /* When the arrow svg spins, the number spins with it in sync */
+  /* number spins in sync with arrow svg */
   .lvl-pointer svg.spin ~ .lvl-pointer-num{
     animation: pointerSpin 1.1s cubic-bezier(.34,1.9,.4,1);
   }
@@ -1506,6 +1503,65 @@
     background:transparent;color:var(--text3);border-color:rgba(255,255,255,.06);
     pointer-events:none;
   }
+
+  /* ============================================================
+     EFFECTS — Ambient glow / Vignette / Neon accents / Compact
+     ============================================================ */
+  #ambient-overlay{
+    position:fixed;inset:0;z-index:5;pointer-events:none;
+    opacity:0;transition:opacity .6s ease;
+    background:
+      radial-gradient(ellipse at 15% 15%,rgba(91,157,255,.16),transparent 42%),
+      radial-gradient(ellipse at 85% 85%,rgba(180,100,255,.14),transparent 45%),
+      radial-gradient(ellipse at 50% 100%,rgba(76,195,138,.10),transparent 55%);
+    mix-blend-mode:screen;
+  }
+  body.ambient-glow #ambient-overlay{opacity:1;animation:ambientFloat 14s ease-in-out infinite}
+  @keyframes ambientFloat{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(18px,-14px,0) scale(1.04)}}
+  body.perf-lite #ambient-overlay{animation:none !important}
+
+  body.no-vignette #app::after{background:transparent}
+
+  body.neon-accents .top-entry{
+    border-color:rgba(140,180,255,.30);
+    box-shadow:0 0 22px rgba(140,180,255,.10);
+  }
+  body.neon-accents .top-entry.is-you{
+    box-shadow:0 0 26px rgba(91,157,255,.24);
+  }
+  body.neon-accents .stat-card{
+    border-color:rgba(140,180,255,.24);
+    box-shadow:0 0 18px rgba(140,180,255,.08);
+  }
+  body.neon-accents .settings-list{
+    border-color:rgba(140,180,255,.24);
+    box-shadow:0 0 24px rgba(140,180,255,.08);
+  }
+  body.neon-accents .card-stats{
+    border-color:rgba(140,180,255,.24);
+    box-shadow:0 0 22px rgba(140,180,255,.08);
+  }
+  body.neon-accents .tab-inner{
+    box-shadow:0 10px 28px rgba(0,0,0,.5),0 0 24px rgba(91,157,255,.14),inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  body.neon-accents .tx-history{
+    border-color:rgba(140,180,255,.22);
+    box-shadow:0 0 18px rgba(140,180,255,.06);
+  }
+  body.neon-accents .rank-stat{
+    border-color:rgba(140,180,255,.22);
+    box-shadow:0 0 18px rgba(140,180,255,.08);
+  }
+
+  body.compact #wallet-page,body.compact #profile-page,body.compact #top-page{padding-left:10px;padding-right:10px;padding-top:calc(72px + var(--safe-top))}
+  body.compact .settings-list .setting{padding:6px 12px}
+  body.compact .stat-card{padding:6px 6px}
+  body.compact .top-entry{padding:8px 12px}
+  body.compact .stat-num{font-size:16px}
+  body.compact .rank-stat{padding:9px 6px 8px}
+  body.compact .card-stats{padding:8px}
+  body.compact .page-title{font-size:24px}
+  body.compact .tx-history{max-height:120px}
 
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
@@ -1819,6 +1875,7 @@
   </div>
 </div>
 
+<div id="ambient-overlay"></div>
 <div id="panel-backdrop"></div>
 <aside id="panel">
   <div class="panel-head"><h2>Menu</h2><button class="panel-close" id="panel-close" type="button">✕</button></div>
@@ -1859,6 +1916,11 @@
           <div class="swatch graphite" data-theme="graphite"></div>
           <div class="swatch midnight" data-theme="midnight"></div>
           <div class="swatch silver" data-theme="silver"></div>
+          <div class="swatch liquid" data-theme="liquid"></div>
+          <div class="swatch gold" data-theme="gold"></div>
+          <div class="swatch blood" data-theme="blood"></div>
+          <div class="swatch ocean" data-theme="ocean"></div>
+          <div class="swatch neon" data-theme="neon"></div>
         </div>
       </div>
       <div class="panel-section">
@@ -1879,6 +1941,27 @@
           <div class="setting">
             <div class="left"><div class="icon">🖼</div><div><div class="label">Show image</div><div class="sub">Hide for black</div></div></div>
             <label class="switch"><input type="checkbox" id="bg-image-toggle-2" checked><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h4>Effects</h4>
+        <div class="settings-list">
+          <div class="setting">
+            <div class="left"><div class="icon">✧</div><div><div class="label">Ambient glow</div><div class="sub">Soft color halo</div></div></div>
+            <label class="switch"><input type="checkbox" id="ambient-glow-toggle"><span class="slider"></span></label>
+          </div>
+          <div class="setting">
+            <div class="left"><div class="icon">◐</div><div><div class="label">Vignette</div><div class="sub">Edge darkening</div></div></div>
+            <label class="switch"><input type="checkbox" id="vignette-toggle" checked><span class="slider"></span></label>
+          </div>
+          <div class="setting">
+            <div class="left"><div class="icon">✦</div><div><div class="label">Neon accents</div><div class="sub">Colored borders</div></div></div>
+            <label class="switch"><input type="checkbox" id="neon-accents-toggle"><span class="slider"></span></label>
+          </div>
+          <div class="setting">
+            <div class="left"><div class="icon">◫</div><div><div class="label">Compact</div><div class="sub">Tighter spacing</div></div></div>
+            <label class="switch"><input type="checkbox" id="compact-toggle"><span class="slider"></span></label>
           </div>
         </div>
       </div>
@@ -2177,7 +2260,7 @@
   if(IS_LOW_END) document.body.classList.add('perf-lite');
 
   const SERVER_URL='https://dllump-production-0a3d.up.railway.app';
-  const WIN_GIFS=['https://i.postimg.cc/9Frvpxhz/ezgif-3f0e907be807d1cc.gif','https://i.postimg.cc/rmQPRSzF/ezgif-20d222277768f496.gif','https://i.postimg.cc/NfyzL2tt/ezgif-2378686847977dc7.gif','https://i.postimg.cc/Gt6zvzCK/ezgif-258589f1cd2da73d.gif','https://i.postimg.cc/Dwr5bqMn/ezgif-26d5d53255cd286f.gif','https://i.postimg.cc/qvTSYBPx/ezgif-2529049603c6d1a9.gif','https://i.postimg.cc/4dqF1Xbk/ezgif-286c5293f9b85b07.gif'];
+  const WIN_GIFS=['https://i.postimg.cc/JzmQ6w3m/ezgif-67d79dd792fbd612.gif','https://i.postimg.cc/t45N8rkf/ezgif-66594092a04c05e4.gif','https://i.postimg.cc/Qdsq4Lgj/ezgif-63afd51ce390fe0a.gif','https://i.postimg.cc/YCkxncNB/ezgif-64eb91e49672e43a.gif','https://i.postimg.cc/X798kNCC/ezgif-660ff3be5bccd489.gif','https://i.postimg.cc/XJFG6q3Z/ezgif-5492df507ab574af.gif'];
 
   const tg=window.Telegram?.WebApp;
   if(tg){
@@ -4161,6 +4244,46 @@
   $$('.layout-tile').forEach(t=>t.addEventListener('click',()=>{haptic('light');applyLayout(t.dataset.layoutTile)}));
   const ls=$('#layout-switch');if(ls)ls.addEventListener('change',()=>{haptic('light');applyLayout(ls.checked?'panel':'simple')});
 
+  /* ============================================================
+     EFFECTS — Ambient glow / Vignette / Neon accents / Compact
+     ============================================================ */
+  function applyEffect(key, on){
+    document.body.classList.toggle(key, !!on);
+    try{ localStorage.setItem('dllump_fx_'+key, on ? '1' : '0'); }catch(_){}
+  }
+  (function initEffects(){
+    const defs = [
+      ['ambient-glow', 'ambient-glow-toggle', false],
+      ['no-vignette',  'vignette-toggle',     false],
+      ['neon-accents', 'neon-accents-toggle', false],
+      ['compact',      'compact-toggle',      false],
+    ];
+    defs.forEach(([cls, id, defOn]) => {
+      const toggle = document.getElementById(id);
+      let stored;
+      try{ stored = localStorage.getItem('dllump_fx_'+cls); }catch(_){}
+      if (cls === 'no-vignette'){
+        const vignetteOn = (stored === null) ? !defOn : (stored !== '1');
+        if (toggle) toggle.checked = vignetteOn;
+        document.body.classList.toggle('no-vignette', !vignetteOn);
+        if (toggle) toggle.addEventListener('change', () => {
+          haptic('light');
+          const vOn = toggle.checked;
+          document.body.classList.toggle('no-vignette', !vOn);
+          try{ localStorage.setItem('dllump_fx_no-vignette', vOn ? '0' : '1'); }catch(_){}
+        });
+      } else {
+        const on = (stored === null) ? defOn : (stored === '1');
+        if (toggle) toggle.checked = on;
+        document.body.classList.toggle(cls, on);
+        if (toggle) toggle.addEventListener('change', () => {
+          haptic('light');
+          applyEffect(cls, toggle.checked);
+        });
+      }
+    });
+  })();
+
   (function(){
     const bp=document.getElementById('bp');
     const chip=document.getElementById('bet-drag-chip');
@@ -5204,7 +5327,6 @@
   let levelTiltTimer = null;
   let levelUpInProgress = false;
 
-  /* Rounded-corner polygon via stroke-linejoin round with matching fill stroke */
   function badgePolygonPoints(edges, cx, cy, r){
     const offset = Math.PI / edges;
     const pts = [];
@@ -5258,7 +5380,6 @@
     lvlBadgeBtn.innerHTML = badgeSvgMarkup(levelState.level, 22);
   }
 
-  /* read/align helpers for polygon morph animation */
   function readCurrentPoints(svg){
     const poly = svg.querySelector('polygon');
     if (!poly) return null;
@@ -5280,7 +5401,6 @@
     return out;
   }
 
-  /* swap the flyer's SVG in-place; animate polygon vertices on level change */
   function setFlyerBadge(animate){
     if (!lvlFlyer) return;
 
@@ -5295,7 +5415,6 @@
 
     let svg = lvlFlyer.querySelector('svg');
     if (!svg){
-      // first render — fresh SVG string
       lvlFlyer.innerHTML = badgeSvgMarkup(level, FLYER_BASE);
       return;
     }
@@ -5317,7 +5436,6 @@
       text.setAttribute('font-size', fs);
       if (text.textContent !== String(level)){
         text.textContent = String(level);
-        // pop the number
         try {
           text.animate([
             { transform: 'scale(.55)', opacity: 0 },
@@ -5329,7 +5447,6 @@
       }
     }
 
-    // morph polygon vertices
     const start = performance.now();
     const dur = 900;
     function frame(t){
@@ -5345,7 +5462,6 @@
     }
     requestAnimationFrame(frame);
 
-    // subtle pulse of the whole flyer
     try {
       lvlFlyer.animate([
         { transform: 'scale(' + FLYER_END_SCALE + ')' },
@@ -5475,7 +5591,6 @@
     if (lvlXpLabel) lvlXpLabel.textContent = levelState.xpForLevel + ' XP';
     animateNumber(lvlPointerNum, 0, levelState.xpForLevel, 520);
 
-    // live badge morph with the polygon animation
     setTimeout(() => setFlyerBadge(true), 520);
 
     setTimeout(() => {
@@ -5568,7 +5683,6 @@
           lvlProgressFill.style.width = pct + '%';
           lvlPointer.style.transition = '';
           positionPointerAt(pct);
-          // spin arrow + number together
           triggerPointerSpin();
         }, 460);
       });
