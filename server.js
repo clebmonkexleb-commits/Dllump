@@ -101,54 +101,23 @@ function speedForRadius(radius) {
 const COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#e84393'];
 const MAX_PLAYERS = 8;
 
-/* ============================================================
-   LEVEL / XP SYSTEM
-   ============================================================ */
-
 const LEVEL_RANKS = [
-  'Starter',        // 1
-  'Rookie',         // 2
-  'Pepe Lover',     // 3
-  'Meme Fan',       // 4
-  'NFT Lover',      // 5
-  'Degen',          // 6
-  'Crypto Bro',     // 7
-  'Airdrop Hunter', // 8
-  'Diamond Hands',  // 9
-  'Whale',          // 10
-  'Ice Skater',     // 11
-  'Puck Master',    // 12
-  'Arena Regular',  // 13
-  'High Roller',    // 14
-  'Ice Veteran',    // 15
-  'Rink Legend',    // 16
-  'Arena Champion', // 17
-  'Ice King',       // 18
-  'Arena Master',   // 19
-  'Ice Lord',       // 20
-  'Rink Royalty',   // 21
-  'Arena Friend'    // 22
+  'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
+  'Airdrop Hunter','Diamond Hands','Whale','Ice Skater','Puck Master','Arena Regular',
+  'High Roller','Ice Veteran','Rink Legend','Arena Champion','Ice King','Arena Master',
+  'Ice Lord','Rink Royalty','Arena Friend'
 ];
 const MAX_LEVEL = LEVEL_RANKS.length;
-
-// Cumulative XP needed to reach each level (level 1 = 0 XP)
-const LEVEL_XP = (() => {
-  const arr = [0];
-  for (let l = 1; l < MAX_LEVEL; l++) {
-    arr.push(arr[l - 1] + 100 + (l - 1) * 50);
-  }
-  return arr;
-})();
+const LEVEL_XP = (() => { const arr = [0];
+  for (let l = 1; l < MAX_LEVEL; l++) arr.push(arr[l - 1] + 100 + (l - 1) * 50);
+  return arr; })();
 
 function levelFromXp(xp) {
   xp = Math.max(0, xp | 0);
   let lvl = 1;
-  for (let i = 1; i < MAX_LEVEL; i++) {
-    if (xp >= LEVEL_XP[i]) lvl = i + 1; else break;
-  }
+  for (let i = 1; i < MAX_LEVEL; i++) { if (xp >= LEVEL_XP[i]) lvl = i + 1; else break; }
   return lvl;
 }
-
 function getLevelInfo(user) {
   const xp = Math.max(0, (user && user.xp) | 0);
   const level = levelFromXp(xp);
@@ -171,36 +140,15 @@ function getLevelInfo(user) {
 }
 
 const QUESTS = [
-  {
-    id: 'ice_bets_5',
-    title: 'Arena Regular',
-    description: 'Place 5 bets in the Ice Arena',
-    target: 5,
-    reward: 250,
-  },
-  {
-    id: 'ice_win_1',
-    title: 'First Victory',
-    description: 'Win 1 Ice Arena game',
-    target: 1,
-    reward: 500,
-  },
+  { id: 'ice_bets_5', title: 'Arena Regular', description: 'Place 5 bets in the Ice Arena', target: 5, reward: 250 },
+  { id: 'ice_win_1', title: 'First Victory', description: 'Win 1 Ice Arena game', target: 1, reward: 500 },
 ];
-
 function buildQuestList(user) {
   return QUESTS.map(q => {
     const progress = Math.max(0, (user['q_' + q.id + '_p'] | 0));
     const claimed  = !!user['q_' + q.id + '_c'];
-    return {
-      id: q.id,
-      title: q.title,
-      description: q.description,
-      target: q.target,
-      reward: q.reward,
-      progress: Math.min(progress, q.target),
-      claimed,
-      complete: progress >= q.target,
-    };
+    return { id: q.id, title: q.title, description: q.description, target: q.target, reward: q.reward,
+      progress: Math.min(progress, q.target), claimed, complete: progress >= q.target };
   });
 }
 
@@ -219,13 +167,11 @@ const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 400);
 const ICE_FIELD_SCALE = 0.92;
 
 function createIceRoom(id) {
-  return {
-    id, gameState: 'idle', players: [], pot: 0, countdownStartTime: 0,
+  return { id, gameState: 'idle', players: [], pot: 0, countdownStartTime: 0,
     spinStartTime: 0, spinDuration: 0, spinFinalAngle: 0,
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
-    recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
-  };
+    recentWinners: [], slideStartTime: 0, lastBounceTime: 0 };
 }
 const iceRoom = createIceRoom('ice');
 
@@ -273,15 +219,105 @@ function startAutoBot() {
   }, 4000);
 }
 startAutoBot();
+function stopAutoBot() { if (autoBotInterval) { clearInterval(autoBotInterval); autoBotInterval = null; } }
 
-function stopAutoBot() {
-  if (autoBotInterval) { clearInterval(autoBotInterval); autoBotInterval = null; }
+/* ============================================================
+   UPGRADE GAME (NEW)
+   ============================================================ */
+const UPGRADE_MAX_BET = 1500;
+const UPGRADE_MIN_BET = 10;
+const UPGRADE_DAILY_LIMIT = 3;
+const UPGRADE_HOUSE = 0.03;
+
+let upgradeStats = {
+  lastWinner: null, // { name, pfp, amount, timestamp }
+  bestWin:    null,
+};
+
+function dayKey() {
+  const d = new Date();
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
 }
+
+app.get('/api/upgrade-stats', (req, res) => {
+  res.json({ ok: true, stats: upgradeStats, maxBet: UPGRADE_MAX_BET, minBet: UPGRADE_MIN_BET, dailyLimit: UPGRADE_DAILY_LIMIT });
+});
+
+app.post('/api/upgrade', async (req, res) => {
+  try {
+    const { userId, bet, chance } = req.body || {};
+    if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+
+    const betAmt = Math.floor(Number(bet));
+    if (!Number.isFinite(betAmt) || betAmt < UPGRADE_MIN_BET)
+      return res.status(400).json({ ok: false, error: 'Minimum bet is ' + UPGRADE_MIN_BET });
+    if (betAmt > UPGRADE_MAX_BET)
+      return res.status(400).json({ ok: false, error: 'Maximum bet is ' + UPGRADE_MAX_BET });
+
+    const ch = Number(chance);
+    if (!Number.isFinite(ch) || ch < 0.0005 || ch > 0.95)
+      return res.status(400).json({ ok: false, error: 'Invalid chance' });
+
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+    if (user.balance < betAmt) return res.status(400).json({ ok: false, error: 'Insufficient balance' });
+
+    const tk = dayKey();
+    if (user.upgradeDay !== tk) { user.upgradeDay = tk; user.upgradeCount = 0; }
+    const used = user.upgradeCount | 0;
+    if (used >= UPGRADE_DAILY_LIMIT)
+      return res.status(400).json({ ok: false, error: 'Daily limit reached (' + UPGRADE_DAILY_LIMIT + ' plays/day)' });
+
+    user.balance -= betAmt;
+    user.upgradeCount = used + 1;
+    user.xp = (user.xp | 0) + betAmt;
+
+    const win = Math.random() < ch;
+    const mult = (1 - UPGRADE_HOUSE) / ch;
+    let payout = 0;
+    if (win) {
+      payout = Math.max(betAmt, Math.floor(betAmt * mult));
+      user.balance += payout;
+      user.wins = (user.wins | 0) + 1;
+    } else {
+      user.losses = (user.losses | 0) + 1;
+    }
+    await saveUser(user);
+
+    if (win) {
+      const isAnon = !!user.anonymousEnabled;
+      const entry = {
+        name: isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player'),
+        pfp:  (isAnon || user.hidePfp) ? '' : (user.pfp || ''),
+        amount: payout,
+        timestamp: Date.now(),
+      };
+      upgradeStats.lastWinner = entry;
+      if (!upgradeStats.bestWin || payout > upgradeStats.bestWin.amount) {
+        upgradeStats.bestWin = entry;
+      }
+      io.emit('upgradeStats', upgradeStats);
+    }
+
+    res.json({
+      ok: true,
+      win,
+      multiplier: mult,
+      payout,
+      newBalance: user.balance,
+      remaining: UPGRADE_DAILY_LIMIT - user.upgradeCount,
+      stats: upgradeStats,
+    });
+  } catch (err) {
+    console.error('upgrade error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
 
 /* ============================================================
    POLYGON PARTITION
    ============================================================ */
-
 function bboxOf(poly) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const v of poly) {
@@ -292,29 +328,22 @@ function bboxOf(poly) {
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
-
 function polyArea(poly) {
   let a = 0;
   for (let i = 0; i < poly.length; i++) {
-    const p1 = poly[i];
-    const p2 = poly[(i + 1) % poly.length];
+    const p1 = poly[i]; const p2 = poly[(i + 1) % poly.length];
     a += p1.x * p2.y - p2.x * p1.y;
   }
   return Math.abs(a) * 0.5;
 }
-
 function splitPolygon(poly, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay;
   const side = p => dx * (p.y - ay) - dy * (p.x - ax);
-  const eps = 1e-7;
-  const A = [];
-  const B = [];
+  const eps = 1e-7; const A = []; const B = [];
   const n = poly.length;
   for (let i = 0; i < n; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % n];
-    const sa = side(a);
-    const sb = side(b);
+    const a = poly[i]; const b = poly[(i + 1) % n];
+    const sa = side(a); const sb = side(b);
     if (sa >= -eps) A.push(a);
     if (sa <= eps) B.push(a);
     if ((sa > eps && sb < -eps) || (sa < -eps && sb > eps)) {
@@ -322,90 +351,45 @@ function splitPolygon(poly, ax, ay, bx, by) {
       const ix = a.x + (b.x - a.x) * t;
       const iy = a.y + (b.y - a.y) * t;
       const ip = { x: ix, y: iy };
-      A.push(ip);
-      B.push(ip);
+      A.push(ip); B.push(ip);
     }
   }
   return [A, B];
 }
-
 function pickCut(poly, box, targetRatio) {
   const totalArea = polyArea(poly);
   if (totalArea <= 0) return null;
   const minArea = totalArea * 0.004;
-
-  let best = null;
-  let bestErr = Infinity;
-
+  let best = null; let bestErr = Infinity;
   function tryAngle(baseAngle) {
     const angle = baseAngle + (Math.random() - 0.5) * 0.20;
-    const dirX = Math.cos(angle);
-    const dirY = Math.sin(angle);
-    const perpX = -dirY;
-    const perpY = dirX;
-
-    const cx = box.x + box.w / 2;
-    const cy = box.y + box.h / 2;
+    const dirX = Math.cos(angle), dirY = Math.sin(angle);
+    const perpX = -dirY, perpY = dirX;
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
     const range = Math.hypot(box.w, box.h) * 1.5;
-
-    let lo = -range;
-    let hi = range;
-    let localBest = null;
-    let localErr = Infinity;
-
+    let lo = -range, hi = range;
+    let localBest = null; let localErr = Infinity;
     for (let iter = 0; iter < 16; iter++) {
       const mid = (lo + hi) / 2;
-      const px = cx + perpX * mid;
-      const py = cy + perpY * mid;
-      const ax = px - dirX * 1000;
-      const ay = py - dirY * 1000;
-      const bx = px + dirX * 1000;
-      const by = py + dirY * 1000;
-
+      const px = cx + perpX * mid, py = cy + perpY * mid;
+      const ax = px - dirX * 1000, ay = py - dirY * 1000;
+      const bx = px + dirX * 1000, by = py + dirY * 1000;
       const pieces = splitPolygon(poly, ax, ay, bx, by);
       const A = pieces[0], B = pieces[1];
-
-      if (A.length < 3 || B.length < 3) {
-        if (mid > 0) hi = mid; else lo = mid;
-        continue;
-      }
-
-      const aA = polyArea(A);
-      const aB = polyArea(B);
+      if (A.length < 3 || B.length < 3) { if (mid > 0) hi = mid; else lo = mid; continue; }
+      const aA = polyArea(A), aB = polyArea(B);
       const tot = aA + aB;
-      if (tot < 0.0001) {
-        if (mid > 0) hi = mid; else lo = mid;
-        continue;
-      }
+      if (tot < 0.0001) { if (mid > 0) hi = mid; else lo = mid; continue; }
       const ratio = aA / tot;
       const err = Math.abs(ratio - targetRatio);
-
-      if (err < localErr && aA >= minArea && aB >= minArea) {
-        localErr = err;
-        localBest = pieces;
-      }
-
-      if (ratio > targetRatio) lo = mid;
-      else hi = mid;
-
+      if (err < localErr && aA >= minArea && aB >= minArea) { localErr = err; localBest = pieces; }
+      if (ratio > targetRatio) lo = mid; else hi = mid;
       if (localErr < 0.008) break;
     }
-
-    if (localErr < bestErr) {
-      bestErr = localErr;
-      best = localBest;
-    }
+    if (localErr < bestErr) { bestErr = localErr; best = localBest; }
   }
-
-  tryAngle(0);
-  tryAngle(Math.PI / 2);
-  tryAngle(Math.PI / 4);
-  tryAngle(-Math.PI / 4);
-  tryAngle(Math.PI / 6);
-  tryAngle(-Math.PI / 6);
-  tryAngle(Math.PI / 3);
-  tryAngle(-Math.PI / 3);
-
+  tryAngle(0); tryAngle(Math.PI / 2); tryAngle(Math.PI / 4); tryAngle(-Math.PI / 4);
+  tryAngle(Math.PI / 6); tryAngle(-Math.PI / 6); tryAngle(Math.PI / 3); tryAngle(-Math.PI / 3);
   if (!best) {
     const y = box.y + box.h * (1 - targetRatio);
     const pieces = splitPolygon(poly, box.x - 10, y, box.x + box.w + 10, y);
@@ -414,71 +398,41 @@ function pickCut(poly, box, targetRatio) {
   }
   return best;
 }
-
 function partitionPoly(players, startIdx, endIdx, poly) {
   const count = endIdx - startIdx;
   if (count <= 0) return;
-  if (count === 1) {
-    players[startIdx].poly = poly;
-    return;
-  }
-
+  if (count === 1) { players[startIdx].poly = poly; return; }
   const topBet = Math.max(players[startIdx].bet, 1);
   let restBet = 0;
-  for (let i = startIdx + 1; i < endIdx; i++) {
-    restBet += Math.max(players[i].bet, 1);
-  }
+  for (let i = startIdx + 1; i < endIdx; i++) restBet += Math.max(players[i].bet, 1);
   const ratio = topBet / (topBet + restBet);
   const clampedRatio = Math.max(0.015, Math.min(0.985, ratio));
-
   const box = bboxOf(poly);
-  if (box.w < 2 || box.h < 2) {
-    for (let i = startIdx; i < endIdx; i++) players[i].poly = poly;
-    return;
-  }
-
+  if (box.w < 2 || box.h < 2) { for (let i = startIdx; i < endIdx; i++) players[i].poly = poly; return; }
   const pieces = pickCut(poly, box, clampedRatio);
-  if (!pieces) {
-    for (let i = startIdx; i < endIdx; i++) players[i].poly = poly;
-    return;
-  }
-
+  if (!pieces) { for (let i = startIdx; i < endIdx; i++) players[i].poly = poly; return; }
   partitionPoly(players, startIdx, startIdx + 1, pieces[0]);
   partitionPoly(players, startIdx + 1, endIdx, pieces[1]);
 }
-
 function repartitionIceArena() {
   const players = iceRoom.players;
   if (players.length === 0) return;
   const sorted = [...players].sort((a, b) => b.bet - a.bet);
-  const root = [
-    { x: 0, y: 0 },
-    { x: ICE_SIZE, y: 0 },
-    { x: ICE_SIZE, y: ICE_SIZE },
-    { x: 0, y: ICE_SIZE }
-  ];
+  const root = [ { x: 0, y: 0 }, { x: ICE_SIZE, y: 0 }, { x: ICE_SIZE, y: ICE_SIZE }, { x: 0, y: ICE_SIZE } ];
   partitionPoly(sorted, 0, sorted.length, root);
-
-  const half = ICE_SIZE / 2;
-  const scale = ICE_FIELD_SCALE;
+  const half = ICE_SIZE / 2; const scale = ICE_FIELD_SCALE;
   players.forEach(p => {
     if (!p.poly) { p.poly = root; return; }
-    p.poly = p.poly.map(v => ({
-      x: half + (v.x - half) * scale,
-      y: half + (v.y - half) * scale
-    }));
+    p.poly = p.poly.map(v => ({ x: half + (v.x - half) * scale, y: half + (v.y - half) * scale }));
   });
 }
-
 function makeIcePlayer(id, bet, name, pfp) {
   const colorIdx = iceRoom.players.length % COLORS.length;
-  const p = { id, bet, name: name || 'player', pfp: pfp || '',
-    color: COLORS[colorIdx], poly: null };
+  const p = { id, bet, name: name || 'player', pfp: pfp || '', color: COLORS[colorIdx], poly: null };
   iceRoom.players.push(p);
   repartitionIceArena();
   return p;
 }
-
 function removeIcePlayer(id) {
   const idx = iceRoom.players.findIndex(p => p.id === id);
   if (idx === -1) return;
@@ -486,15 +440,12 @@ function removeIcePlayer(id) {
   if (iceRoom.players.length > 0) repartitionIceArena();
 }
 
-/* ============================================================ */
-
 function startIceCountdown() {
   if (iceRoom.gameState !== 'idle') return;
   if (iceRoom.players.length < 2) return;
   iceRoom.gameState = 'countdown';
   iceRoom.countdownStartTime = Date.now();
 }
-
 function startIceSpin() {
   iceRoom.gameState = 'spinning';
   iceRoom.spinStartTime = Date.now();
@@ -504,7 +455,6 @@ function startIceSpin() {
   iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
   iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
 }
-
 function launchIcePuck() {
   iceRoom.gameState = 'sliding';
   const baseSpeed = 32;
@@ -517,32 +467,24 @@ function launchIcePuck() {
   iceRoom.slideStartTime = Date.now();
   iceRoom.lastBounceTime = 0;
 }
-
 function pointInPoly(px, py, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const xi = poly[i].x, yi = poly[i].y;
     const xj = poly[j].x, yj = poly[j].y;
-    if (((yi > py) !== (yj > py)) &&
-        (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
-      inside = !inside;
-    }
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside;
   }
   return inside;
 }
-
 function polyCentroid(poly) {
   let cx = 0, cy = 0;
   for (const v of poly) { cx += v.x; cy += v.y; }
   return { x: cx / poly.length, y: cy / poly.length };
 }
-
 function getIceWinner() {
   const px = Math.min(Math.max(iceRoom.puck.x, 0), ICE_SIZE);
   const py = Math.min(Math.max(iceRoom.puck.y, 0), ICE_SIZE);
-  for (const p of iceRoom.players) {
-    if (p.poly && pointInPoly(px, py, p.poly)) return p;
-  }
+  for (const p of iceRoom.players) { if (p.poly && pointInPoly(px, py, p.poly)) return p; }
   let closest = null, minDist = Infinity;
   for (const p of iceRoom.players) {
     if (!p.poly) continue;
@@ -552,13 +494,10 @@ function getIceWinner() {
   }
   return closest;
 }
-
 async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
-
   const winner = getIceWinner();
-
   let payload = null;
   if (winner) {
     const totalPot = iceRoom.pot;
@@ -566,15 +505,8 @@ async function endIceGame() {
     const losersBets = totalPot - winnerBet;
     const commission = Math.floor(losersBets * 0.02);
     const winnings = totalPot - commission;
-    payload = {
-      winnerId: winner.id,
-      winnerName: winner.name,
-      winnerPfp: winner.pfp,
-      winnings,
-      multiplier: +(winnings / winnerBet).toFixed(2),
-      puckX: iceRoom.puck.x,
-      puckY: iceRoom.puck.y
-    };
+    payload = { winnerId: winner.id, winnerName: winner.name, winnerPfp: winner.pfp, winnings,
+      multiplier: +(winnings / winnerBet).toFixed(2), puckX: iceRoom.puck.x, puckY: iceRoom.puck.y };
     iceRoom.recentWinners.unshift({ name: winner.name, pfp: winner.pfp, amount: winnings });
     if (iceRoom.recentWinners.length > 8) iceRoom.recentWinners.length = 8;
     if (!isBot(winner.id)) {
@@ -598,7 +530,6 @@ async function endIceGame() {
     try { await addWinToHistory(winner.id, winner.name, winner.pfp, winnings); }
     catch (err) { console.error('endIceGame: history:', err); }
   }
-
   io.emit('iceRoundEnd', payload);
   setTimeout(() => {
     iceRoom.players = [];
@@ -610,7 +541,6 @@ async function endIceGame() {
     botCounter = 0;
   }, 3000);
 }
-
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
   const totalPts = ICE_PERIMETER.length;
@@ -618,24 +548,17 @@ function updateIcePhysics(dt) {
   const subDt = dt / subSteps;
   const puck = iceRoom.puck;
   const puckRadius = 14;
-
   const FRICTION_BASE    = 0.990;
   const ROLLING_FRICTION = 0.985;
   const RESTITUTION      = 0.78;
   const HOLD_MS          = 3200;
   const PR = puckRadius * puckRadius;
-
   for (let step = 0; step < subSteps; step++) {
     puck.x += puck.vx * subDt * 60;
     puck.y += puck.vy * subDt * 60;
-
-    let iter = 0;
-    const maxIter = 8;
+    let iter = 0; const maxIter = 8;
     while (iter < maxIter) {
-      let deepestOverlap = 0;
-      let bestNx = 0, bestNy = 0;
-      let bestNearX = 0, bestNearY = 0;
-
+      let deepestOverlap = 0; let bestNx = 0, bestNy = 0; let bestNearX = 0, bestNearY = 0;
       for (let i = 0; i < totalPts; i++) {
         const j = (i + 1) % totalPts;
         const ax = ICE_PERIMETER[i].x, ay = ICE_PERIMETER[i].y;
@@ -643,74 +566,57 @@ function updateIcePhysics(dt) {
         const dx = bx - ax, dy = by - ay;
         const lenSq = dx * dx + dy * dy;
         if (lenSq === 0) continue;
-
         let t = ((puck.x - ax) * dx + (puck.y - ay) * dy) / lenSq;
         t = Math.max(0, Math.min(1, t));
         const nearX = ax + t * dx, nearY = ay + t * dy;
         const distX = puck.x - nearX, distY = puck.y - nearY;
         const distSq = distX * distX + distY * distY;
-
         if (distSq < PR && distSq > 0.000001) {
           const dist = Math.sqrt(distSq);
           const overlap = puckRadius - dist;
           if (overlap > deepestOverlap) {
             deepestOverlap = overlap;
-            bestNx = distX / dist;
-            bestNy = distY / dist;
-            bestNearX = nearX;
-            bestNearY = nearY;
+            bestNx = distX / dist; bestNy = distY / dist;
+            bestNearX = nearX; bestNearY = nearY;
           }
         }
       }
-
       if (deepestOverlap <= 0.0001) break;
-
       puck.x += bestNx * deepestOverlap;
       puck.y += bestNy * deepestOverlap;
-
       const vn = puck.vx * bestNx + puck.vy * bestNy;
       if (vn < 0) {
         puck.vx -= (1 + RESTITUTION) * vn * bestNx;
         puck.vy -= (1 + RESTITUTION) * vn * bestNy;
-
         const nowMs = Date.now();
         if (nowMs - iceRoom.lastBounceTime > 80) {
           iceRoom.lastBounceTime = nowMs;
           const speedAtHit = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
           if (speedAtHit > 1.5) {
-            io.emit('icePuckBounce', {
-              x: bestNearX, y: bestNearY,
-              intensity: Math.min(1, speedAtHit / 20),
-            });
+            io.emit('icePuckBounce', { x: bestNearX, y: bestNearY, intensity: Math.min(1, speedAtHit / 20) });
           }
         }
       }
       iter++;
     }
-
     const elapsed = Date.now() - iceRoom.slideStartTime;
     if (elapsed < HOLD_MS) {
       const decay = Math.pow(0.9999, subDt * 60);
-      puck.vx *= decay;
-      puck.vy *= decay;
+      puck.vx *= decay; puck.vy *= decay;
     } else {
       const friction = FRICTION_BASE + (Math.random() - 0.5) * 0.0006;
       const decay = Math.pow(friction, subDt * 60);
-      puck.vx *= decay;
-      puck.vy *= decay;
+      puck.vx *= decay; puck.vy *= decay;
       const speed2 = puck.vx * puck.vx + puck.vy * puck.vy;
       if (speed2 < 0.8) {
         const rollDecay = Math.pow(ROLLING_FRICTION, subDt * 60);
-        puck.vx *= rollDecay;
-        puck.vy *= rollDecay;
+        puck.vx *= rollDecay; puck.vy *= rollDecay;
       }
     }
   }
-
   const finalSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
   if (finalSpeed < 0.05) { puck.vx = 0; puck.vy = 0; endIceGame(); }
 }
-
 function broadcastIceState() {
   io.emit('iceState', {
     gameState: iceRoom.gameState,
@@ -719,21 +625,14 @@ function broadcastIceState() {
     spinStartTime: iceRoom.spinStartTime,
     spinDuration: iceRoom.spinDuration,
     spinFinalAngle: iceRoom.spinFinalAngle,
-    spinStartX: iceRoom.spinStartX,
-    spinStartY: iceRoom.spinStartY,
-    puck: {
-      x: iceRoom.puck.x,
-      y: iceRoom.puck.y,
-      vx: iceRoom.puck.vx,
-      vy: iceRoom.puck.vy,
-    },
+    spinStartX: iceRoom.spinStartX, spinStartY: iceRoom.spinStartY,
+    puck: { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
       poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
     })),
   });
 }
-
 function computeRadii() {
   const totalBet = room.players.reduce((s, p) => s + p.bet, 0);
   if (totalBet === 0) return;
@@ -747,7 +646,6 @@ function computeRadii() {
     p.displayRadius = p.targetRadius;
   });
 }
-
 function makePlayer(id, bet, name, pfp) {
   const half = ARENA_SIZE / 2;
   const radius = 18;
@@ -766,16 +664,13 @@ function makePlayer(id, bet, name, pfp) {
   computeRadii();
   return p;
 }
-
 function startCountdown() {
   if (room.gameState !== 'idle') return;
   if (getAlive().length < 2) return;
   room.gameState = 'countdown';
   room.countdownStartTime = Date.now();
 }
-
 function startPrestart() { room.gameState = 'prestart'; room.prestartTimer = 2.0; }
-
 function startGame() {
   room.gameState = 'playing';
   room.gameTime = 0;
@@ -795,7 +690,6 @@ function startGame() {
   });
   room.openingTimer = 3.0 + Math.random() * 3.5;
 }
-
 async function endGame(winnerId) {
   if (room.gameState === 'finished') return;
   room.gameState = 'finished';
@@ -824,21 +718,14 @@ async function endGame(winnerId) {
     catch (err) { console.error('endGame: history:', err); }
   }
   io.to(room.id).emit('roundEnd', payload);
-  setTimeout(() => {
-    room.players = [];
-    room.pot = 0;
-    room.opening = null;
-    room.gameState = 'idle';
-  }, 3000);
+  setTimeout(() => { room.players = []; room.pot = 0; room.opening = null; room.gameState = 'idle'; }, 3000);
 }
-
 function isInGap(idx) {
   const opening = room.opening;
   if (!opening || opening.state !== 'open') return false;
   const { startIdx, endIdx } = opening;
   return startIdx < endIdx ? (idx >= startIdx && idx <= endIdx) : (idx >= startIdx || idx <= endIdx);
 }
-
 function updatePhysics(dt) {
   if (room.gameState !== 'playing') return;
   room.gameTime += dt;
@@ -850,7 +737,6 @@ function updatePhysics(dt) {
   }
   const half = ARENA_SIZE / 2;
   const totalPts = PERIMETER.length;
-
   room.openingTimer -= dt;
   if (room.openingTimer <= 0) {
     if (!room.opening) {
@@ -865,10 +751,7 @@ function updatePhysics(dt) {
       const flashInterval = 0.18 + Math.random() * 0.14;
       room.opening = { startIdx, endIdx, flashCount: 0, flashTimer: 0, flashInterval, state: 'flashing' };
       room.openingTimer = 3.0 + Math.random() * 3.5;
-    } else {
-      room.opening = null;
-      room.openingTimer = 1.2 + Math.random() * 2.6;
-    }
+    } else { room.opening = null; room.openingTimer = 1.2 + Math.random() * 2.6; }
   }
   const opening = room.opening;
   if (opening && opening.state === 'flashing') {
@@ -879,23 +762,15 @@ function updatePhysics(dt) {
       if (opening.flashCount >= 4) opening.state = 'open';
     }
   }
-
   const SUBSTEPS = 10;
   const DRAG_PER_SEC = 0.6;
   const RESTITUTION_WALL = 1.0;
   const RESTITUTION_PLAYER = 0.9;
   const FRICTION_PLAYER = 0.05;
-
   const subDt = dt / SUBSTEPS;
   for (let step = 0; step < SUBSTEPS; step++) {
     const decay = 1 - DRAG_PER_SEC * subDt;
-    alive.forEach(p => {
-      p.x += p.vx * subDt * 60;
-      p.y += p.vy * subDt * 60;
-      p.vx *= decay;
-      p.vy *= decay;
-    });
-
+    alive.forEach(p => { p.x += p.vx * subDt * 60; p.y += p.vy * subDt * 60; p.vx *= decay; p.vy *= decay; });
     alive.forEach(p => {
       const radius = p.displayRadius || p.radius;
       for (let i = 0; i < totalPts; i++) {
@@ -914,13 +789,9 @@ function updatePhysics(dt) {
         if (dist < radius) {
           const nx = distX / dist, ny = distY / dist;
           const overlap = radius - dist;
-          p.x += nx * overlap;
-          p.y += ny * overlap;
+          p.x += nx * overlap; p.y += ny * overlap;
           const vn = p.vx * nx + p.vy * ny;
-          if (vn < 0) {
-            p.vx -= (1 + RESTITUTION_WALL) * vn * nx;
-            p.vy -= (1 + RESTITUTION_WALL) * vn * ny;
-          }
+          if (vn < 0) { p.vx -= (1 + RESTITUTION_WALL) * vn * nx; p.vy -= (1 + RESTITUTION_WALL) * vn * ny; }
           break;
         }
       }
@@ -948,7 +819,6 @@ function updatePhysics(dt) {
         }
       }
     });
-
     const stillAlive = alive.filter(p => p.alive);
     for (let i = 0; i < stillAlive.length; i++) {
       for (let j = i + 1; j < stillAlive.length; j++) {
@@ -965,7 +835,6 @@ function updatePhysics(dt) {
           const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
           const dvn = dvx * nx + dvy * ny;
           if (dvn > 0) {
-            const totalMass = a.mass + b.mass;
             const impulse = (1 + RESTITUTION_PLAYER) * dvn / (1 / a.mass + 1 / b.mass);
             a.vx -= (impulse / a.mass) * nx; a.vy -= (impulse / a.mass) * ny;
             b.vx += (impulse / b.mass) * nx; b.vy += (impulse / b.mass) * ny;
@@ -977,14 +846,12 @@ function updatePhysics(dt) {
         }
       }
     }
-
     stillAlive.forEach(p => {
       const maxSp = speedForRadius(p.displayRadius || p.radius);
       const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
       if (sp > maxSp) { p.vx = (p.vx / sp) * maxSp; p.vy = (p.vy / sp) * maxSp; }
     });
   }
-
   room.players.forEach(p => {
     const diff = p.targetRadius - p.displayRadius;
     if (Math.abs(diff) > 0.01) p.displayRadius += diff * Math.min(1, 8.0 * dt);
@@ -1010,9 +877,7 @@ setInterval(() => {
     } else if (room.gameState === 'idle') {
       if (getAlive().length >= 2) startCountdown();
     }
-
     const icePrev = iceRoom.gameState;
-
     if (iceRoom.gameState === 'sliding') updateIcePhysics(dt);
     else if (iceRoom.gameState === 'countdown') {
       if ((now - iceRoom.countdownStartTime) / 1000 >= 10.0) startIceSpin();
@@ -1021,16 +886,10 @@ setInterval(() => {
     } else if (iceRoom.gameState === 'idle') {
       if (iceRoom.players.length >= 2) startIceCountdown();
     }
-
     tickCount++;
-
     if (iceRoom.gameState === 'sliding') {
-      io.emit('icePuck', {
-        x: iceRoom.puck.x, y: iceRoom.puck.y,
-        vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding'
-      });
+      io.emit('icePuck', { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding' });
     }
-
     if (iceRoom.gameState !== icePrev || tickCount % STATE_EVERY === 0) {
       broadcastState();
       broadcastIceState();
@@ -1051,19 +910,12 @@ function broadcastState() {
   });
 }
 
-/* ============================================================
-   SOCKET
-   ============================================================ */
-
 io.on('connection', (socket) => {
   let userId = null;
-
   socket.on('join', async ({ initData }, ack) => {
     try {
       let tgUser = verifyInitData(initData);
-      if (!tgUser && ALLOW_DEV_LOGIN) {
-        tgUser = { id: 'dev_' + socket.id.slice(0, 6), username: 'dev_player', photo_url: '' };
-      }
+      if (!tgUser && ALLOW_DEV_LOGIN) tgUser = { id: 'dev_' + socket.id.slice(0, 6), username: 'dev_player', photo_url: '' };
       if (!tgUser) { ack?.({ ok: false, error: 'Could not verify Telegram login.' }); return; }
       userId = String(tgUser.id);
       socket.data.userId = userId;
@@ -1073,12 +925,10 @@ io.on('connection', (socket) => {
         pfp: tgUser.photo_url || '',
       });
       if (user.banned) { ack?.({ ok: false, error: 'You have been banned.' }); return; }
-
       const icePlayers = iceRoom.players.map(p => ({
         id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
         poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
       }));
-
       ack?.({
         ok: true,
         user: { ...user, winHistory: user.winHistory || [],
@@ -1087,7 +937,9 @@ io.on('connection', (socket) => {
           anonymousUsername: user.anonymousUsername || '',
           anonymousPhone: user.anonymousPhone || '',
           hidePfp: user.hidePfp || false,
-          xp: user.xp || 0 },
+          xp: user.xp || 0,
+          upgradeDay: user.upgradeDay || '',
+          upgradeCount: user.upgradeCount || 0 },
         level: getLevelInfo(user),
         quests: buildQuestList(user),
         arena: { size: ARENA_SIZE, cornerRadius: CORNER_RADIUS, perimeter: PERIMETER },
@@ -1095,6 +947,8 @@ io.on('connection', (socket) => {
         recentWinners: room.recentWinners,
         iceRecentWinners: iceRoom.recentWinners,
         icePlayers, icePot: iceRoom.pot,
+        upgradeStats,
+        upgradeLimits: { maxBet: UPGRADE_MAX_BET, minBet: UPGRADE_MIN_BET, dailyLimit: UPGRADE_DAILY_LIMIT },
       });
       broadcastState();
     } catch (err) { console.error('Join error:', err); ack?.({ ok: false, error: 'Internal error' }); }
@@ -1103,16 +957,12 @@ io.on('connection', (socket) => {
   socket.on('placeBet', async ({ amount }, ack) => {
     try {
       if (!userId) return ack?.({ ok: false, error: 'Not joined.' });
-      if (!['idle', 'countdown', 'prestart'].includes(room.gameState)) {
-        return ack?.({ ok: false, error: 'Round already in progress.' });
-      }
+      if (!['idle', 'countdown', 'prestart'].includes(room.gameState)) return ack?.({ ok: false, error: 'Round already in progress.' });
       const amt = Math.max(10, Math.floor(Number(amount) || 0));
       const user = await getUser(userId);
       if (!user || amt > user.balance) return ack?.({ ok: false, error: 'Insufficient balance.' });
       if (user.banned) return ack?.({ ok: false, error: 'You are banned.' });
-      if (room.players.length >= MAX_PLAYERS && !getPlayer(userId)) {
-        return ack?.({ ok: false, error: 'Arena is full.' });
-      }
+      if (room.players.length >= MAX_PLAYERS && !getPlayer(userId)) return ack?.({ ok: false, error: 'Arena is full.' });
       user.balance -= amt;
       user.xp = (user.xp | 0) + amt;
       await saveUser(user);
@@ -1135,34 +985,26 @@ io.on('connection', (socket) => {
         const base = full || t;
         const lvl = getLevelInfo(base);
         if (!full) return { ...t, level: lvl.level, rank: lvl.rank };
-        return {
-          ...t,
+        return { ...t,
           anonymousName: full.anonymousName || '',
           anonymousUsername: full.anonymousUsername || '',
           anonymousPhone: full.anonymousPhone || '',
           anonymousEnabled: !!full.anonymousEnabled,
-          level: lvl.level,
-          rank: lvl.rank,
-        };
+          level: lvl.level, rank: lvl.rank };
       });
       ack?.({ ok: true, top: enriched });
-    }
-    catch (err) { console.error('Leaderboard error:', err); ack?.({ ok: false, error: 'Internal error' }); }
+    } catch (err) { console.error('Leaderboard error:', err); ack?.({ ok: false, error: 'Internal error' }); }
   });
 
   socket.on('icePlaceBet', async ({ amount }, ack) => {
     try {
       if (!userId) return ack?.({ ok: false, error: 'Not joined.' });
-      if (!['idle', 'countdown'].includes(iceRoom.gameState)) {
-        return ack?.({ ok: false, error: 'Round already in progress.' });
-      }
+      if (!['idle', 'countdown'].includes(iceRoom.gameState)) return ack?.({ ok: false, error: 'Round already in progress.' });
       const amt = Math.max(10, Math.floor(Number(amount) || 0));
       const user = await getUser(userId);
       if (!user || amt > user.balance) return ack?.({ ok: false, error: 'Insufficient balance.' });
       if (user.banned) return ack?.({ ok: false, error: 'You are banned.' });
-      if (iceRoom.players.length >= MAX_PLAYERS && !getIcePlayer(userId)) {
-        return ack?.({ ok: false, error: 'Rink is full.' });
-      }
+      if (iceRoom.players.length >= MAX_PLAYERS && !getIcePlayer(userId)) return ack?.({ ok: false, error: 'Rink is full.' });
       user.balance -= amt;
       user.xp = (user.xp | 0) + amt;
       user['q_ice_bets_5_p'] = (user['q_ice_bets_5_p'] | 0) + 1;
@@ -1176,15 +1018,12 @@ io.on('connection', (socket) => {
     } catch (err) { console.error('Ice bet error:', err); ack?.({ ok: false, error: 'Internal error' }); }
   });
 
-  socket.on('disconnect', () => {
-    if (userId) console.log(`User ${userId} disconnected.`);
-  });
+  socket.on('disconnect', () => { if (userId) console.log(`User ${userId} disconnected.`); });
 });
 
 /* ============================================================
    ADMIN
    ============================================================ */
-
 const ADMIN_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin Panel</title>
 <style>body{background:#0a0a12;color:#eee;font-family:sans-serif;padding:20px;max-width:1000px;margin:auto}
 table{width:100%;border-collapse:collapse;margin:10px 0}th,td{padding:8px;border:1px solid #333;text-align:left}
@@ -1290,7 +1129,6 @@ app.post('/admin/api/toggle-auto-bot', adminAuth, (req, res) => {
   res.json({ ok: true, enabled: autoBotEnabled });
 });
 app.get('/admin/api/auto-bot-status', adminAuth, (req, res) => res.json({ enabled: autoBotEnabled }));
-
 app.post('/admin/api/toggle-rare-roll', adminAuth, (req, res) => {
   const { enabled } = req.body;
   if (typeof enabled !== 'boolean') return res.status(400).json({ ok: false, error: 'Invalid' });
@@ -1298,7 +1136,6 @@ app.post('/admin/api/toggle-rare-roll', adminAuth, (req, res) => {
   res.json({ ok: true, enabled: rareRollEnabled });
 });
 app.get('/admin/api/rare-roll-status', adminAuth, (req, res) => res.json({ enabled: rareRollEnabled }));
-
 app.post('/admin/api/send-notification', adminAuth, (req, res) => {
   const { message } = req.body;
   if (!message || typeof message !== 'string' || message.trim().length === 0)
@@ -1306,7 +1143,6 @@ app.post('/admin/api/send-notification', adminAuth, (req, res) => {
   io.emit('notification', { message: message.trim(), timestamp: Date.now() });
   res.json({ ok: true });
 });
-
 app.get('/admin/api/players', adminAuth, async (req, res) => {
   try { res.json({ players: await getAllUsers() }); }
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
@@ -1320,7 +1156,7 @@ app.post('/admin/api/reset-top', adminAuth, async (req, res) => {
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 app.post('/admin/api/wipe', adminAuth, async (req, res) => {
-  try { const all = await getAllUsers(); for (const u of all) { u.balance = 50; u.wins = 0; u.losses = 0; u.banned = false; u.winHistory = []; await saveUser(u); } res.json({ ok: true }); }
+  try { const all = await getAllUsers(); for (const u of all) { u.balance = 50; u.wins = 0; u.losses = 0; u.banned = false; u.winHistory = []; u.upgradeCount = 0; u.upgradeDay = ''; await saveUser(u); } res.json({ ok: true }); }
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 app.post('/admin/api/add-money', adminAuth, async (req, res) => {
@@ -1384,10 +1220,6 @@ app.post('/admin/api/remove-bots', adminAuth, async (req, res) => {
   catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 
-/* ============================================================
-   PROMO
-   ============================================================ */
-
 app.post('/redeem', async (req, res) => {
   try { const { code, userId } = req.body;
     if (!code || !userId) return res.status(400).json({ ok: false, error: 'Missing' });
@@ -1401,115 +1233,45 @@ app.get('/redeem', async (req, res) => {
   } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 
-/* ============================================================
-   ANONYMOUS IDENTITY ENDPOINTS
-   ============================================================ */
-
 const ANON_FEES = { name: 50, username: 150, phone: 1500 };
 const RARE_TIERS = ['rare', 'epic', 'legendary', 'mythic'];
-
-const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
-                  'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
-                  'Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
-const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther',
-                   'Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter',
-                   'Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
-
+const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale','Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night','Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
+const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther','Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter','Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
 function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 function generateAnonName(){ return pick(ANON_ADJ) + ' ' + pick(ANON_NOUN); }
-function generateAnonUsername(){
-  const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase();
-  return base + Math.floor(Math.random() * 9000 + 1000);
-}
-function formatPhone(digits){
-  return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
-}
-
+function generateAnonUsername(){ const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase(); return base + Math.floor(Math.random() * 9000 + 1000); }
+function formatPhone(digits){ return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3'); }
 function generatePhone(){
   const r = Math.random() * 100000;
-
-  if(r < 2){
-    const pool = [
-      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
-      '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
-      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
-    ];
-    return { phone: pick(pool), tier: 'mythic' };
-  }
-
-  if(r < 22){
-    const d = 1 + Math.floor(Math.random() * 9);
-    return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
-  }
-
-  if(r < 122){
-    const a = Math.floor(Math.random() * 10);
-    const b = Math.floor(Math.random() * 10);
-    const c = Math.floor(Math.random() * 10);
-    const d = Math.floor(Math.random() * 10);
-    const digits = `${a}${b}${c}${d}${c}${b}${a}`;
-    const full = digits + `${a}${b}`;
-    return { phone: formatPhone(full), tier: 'epic' };
-  }
-
-  if(r < 522){
-    const d = Math.floor(Math.random() * 10);
-    const triple = String(d).repeat(3);
-    let rest = '';
-    for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10);
-    const digits = Math.random() < 0.5 ? triple + rest : rest + triple;
-    return { phone: formatPhone(digits), tier: 'rare' };
-  }
-
-  if(r < 2022){
-    const digits = [];
-    for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
-    const pos = Math.floor(Math.random() * 7);
-    const d = Math.floor(Math.random() * 10);
-    digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
-    return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
-  }
-
-  let s = '';
-  for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
+  if(r < 2){ const pool = ['+888 000 000','+777 777 777','+000 000 000','+999 999 999','+888 888 888','+111 111 111','+123 456 789','+987 654 321','+222 222 222','+555 555 555','+666 000 666','+123 000 000'];
+    return { phone: pick(pool), tier: 'mythic' }; }
+  if(r < 22){ const d = 1 + Math.floor(Math.random() * 9); return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' }; }
+  if(r < 122){ const a = Math.floor(Math.random() * 10); const b = Math.floor(Math.random() * 10); const c = Math.floor(Math.random() * 10); const d = Math.floor(Math.random() * 10); const digits = `${a}${b}${c}${d}${c}${b}${a}`; const full = digits + `${a}${b}`; return { phone: formatPhone(full), tier: 'epic' }; }
+  if(r < 522){ const d = Math.floor(Math.random() * 10); const triple = String(d).repeat(3); let rest = ''; for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10); const digits = Math.random() < 0.5 ? triple + rest : rest + triple; return { phone: formatPhone(digits), tier: 'rare' }; }
+  if(r < 2022){ const digits = []; for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10)); const pos = Math.floor(Math.random() * 7); const d = Math.floor(Math.random() * 10); digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d; return { phone: formatPhone(digits.join('')), tier: 'uncommon' }; }
+  let s = ''; for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
   return { phone: formatPhone(s), tier: 'common' };
 }
-
 async function isAnonValueTaken(field, value, excludeUserId){
   const all = await getAllUsers();
   const lc = String(value).toLowerCase();
   for(const u of all){
     if(String(u.id) === String(excludeUserId)) continue;
-    if(field === 'name'){
-      if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true;
-    } else if(field === 'username'){
-      if((u.username || '').toLowerCase() === lc) return true;
-      if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true;
-    } else if(field === 'phone'){
-      if((u.anonymousPhone || '') === value) return true;
-    }
+    if(field === 'name'){ if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true; }
+    else if(field === 'username'){ if((u.username || '').toLowerCase() === lc) return true; if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true; }
+    else if(field === 'phone'){ if((u.anonymousPhone || '') === value) return true; }
   }
   return false;
 }
-
 async function refreshLiveIdentity(userId){
   const user = await getUser(userId);
   if(!user) return;
   const isAnon = !!user.anonymousEnabled;
   const pvpPlayer = getPlayer(userId);
-  if(pvpPlayer){
-    pvpPlayer.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
-    pvpPlayer.pfp  = isAnon ? null : (user.pfp || '');
-    broadcastState();
-  }
+  if(pvpPlayer){ pvpPlayer.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player'); pvpPlayer.pfp = isAnon ? null : (user.pfp || ''); broadcastState(); }
   const iceP = getIcePlayer(userId);
-  if(iceP){
-    iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
-    iceP.pfp  = isAnon ? null : (user.pfp || '');
-    broadcastIceState();
-  }
+  if(iceP){ iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player'); iceP.pfp = isAnon ? null : (user.pfp || ''); broadcastIceState(); }
 }
-
 app.post('/api/toggle-anonymous', async (req, res) => {
   try {
     const { userId, enabled } = req.body;
@@ -1517,133 +1279,61 @@ app.post('/api/toggle-anonymous', async (req, res) => {
     const user = await getUser(userId);
     if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
     if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
-
     user.anonymousEnabled = !!enabled;
-
     if(user.anonymousEnabled && !user.anonymousName){
       let name, username, phone;
-      for(let i = 0; i < 20; i++){
-        const n = generateAnonName();
-        if(!(await isAnonValueTaken('name', n, userId))){ name = n; break; }
-      }
-      for(let i = 0; i < 20; i++){
-        const u = generateAnonUsername();
-        if(!(await isAnonValueTaken('username', u, userId))){ username = u; break; }
-      }
-      for(let i = 0; i < 40; i++){
-        const p = generatePhone().phone;
-        if(!(await isAnonValueTaken('phone', p, userId))){ phone = p; break; }
-      }
+      for(let i = 0; i < 20; i++){ const n = generateAnonName(); if(!(await isAnonValueTaken('name', n, userId))){ name = n; break; } }
+      for(let i = 0; i < 20; i++){ const u = generateAnonUsername(); if(!(await isAnonValueTaken('username', u, userId))){ username = u; break; } }
+      for(let i = 0; i < 40; i++){ const p = generatePhone().phone; if(!(await isAnonValueTaken('phone', p, userId))){ phone = p; break; } }
       user.anonymousName = name || generateAnonName();
       user.anonymousUsername = username || generateAnonUsername();
       user.anonymousPhone = phone || generatePhone().phone;
     }
-
     await saveUser(user);
     await refreshLiveIdentity(userId);
-
-    res.json({
-      ok: true,
-      enabled: user.anonymousEnabled,
-      name: user.anonymousName || '',
-      username: user.anonymousUsername || '',
-      phone: user.anonymousPhone || ''
-    });
-  } catch(err){
-    console.error('toggle-anonymous error:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+    res.json({ ok: true, enabled: user.anonymousEnabled, name: user.anonymousName || '', username: user.anonymousUsername || '', phone: user.anonymousPhone || '' });
+  } catch(err){ console.error('toggle-anonymous error:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
-
 app.post('/api/roll-phone', async (req, res) => {
   try {
     const { userId } = req.body;
     if(!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
     const user = await getUser(userId);
     if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
-    if(user.balance < ANON_FEES.phone){
-      return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
-    }
-
+    if(user.balance < ANON_FEES.phone) return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
     const wantRare = rareRollEnabled && Math.random() < 0.90;
-
     let result = null;
-    for(let i = 0; i < 80; i++){
-      const c = generatePhone();
-      if(wantRare && !RARE_TIERS.includes(c.tier)) continue;
-      if(!(await isAnonValueTaken('phone', c.phone, userId))){ result = c; break; }
-    }
-    if(!result){
-      for(let i = 0; i < 100; i++){
-        let s = '';
-        for(let j = 0; j < 9; j++) s += Math.floor(Math.random() * 10);
-        const p = formatPhone(s);
-        if(!(await isAnonValueTaken('phone', p, userId))){ result = { phone: p, tier: 'common' }; break; }
-      }
-    }
+    for(let i = 0; i < 80; i++){ const c = generatePhone(); if(wantRare && !RARE_TIERS.includes(c.tier)) continue; if(!(await isAnonValueTaken('phone', c.phone, userId))){ result = c; break; } }
+    if(!result){ for(let i = 0; i < 100; i++){ let s = ''; for(let j = 0; j < 9; j++) s += Math.floor(Math.random() * 10); const p = formatPhone(s); if(!(await isAnonValueTaken('phone', p, userId))){ result = { phone: p, tier: 'common' }; break; } } }
     if(!result) return res.status(500).json({ ok: false, error: 'Roll failed, try again' });
-
     const isRare = RARE_TIERS.includes(result.tier);
-    res.json({
-      ok: true,
-      phone: result.phone,
-      tier: result.tier,
-      fee: ANON_FEES.phone,
-      rareAnimation: isRare,
-    });
-  } catch(err){
-    console.error('roll-phone error:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+    res.json({ ok: true, phone: result.phone, tier: result.tier, fee: ANON_FEES.phone, rareAnimation: isRare });
+  } catch(err){ console.error('roll-phone error:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
-
 app.post('/api/change-anonymous', async (req, res) => {
   try {
     const { userId, field, value } = req.body;
-    if(!userId || !field || value === undefined)
-      return res.status(400).json({ ok: false, error: 'Missing parameters' });
-    if(!ANON_FEES.hasOwnProperty(field))
-      return res.status(400).json({ ok: false, error: 'Invalid field' });
-
+    if(!userId || !field || value === undefined) return res.status(400).json({ ok: false, error: 'Missing parameters' });
+    if(!ANON_FEES.hasOwnProperty(field)) return res.status(400).json({ ok: false, error: 'Invalid field' });
     const clean = String(value).trim();
-
-    if(field === 'name'){
-      if(!/^[A-Za-z][A-Za-z\s]{1,29}$/.test(clean) || clean.length < 2)
-        return res.status(400).json({ ok: false, error: 'Invalid name' });
-    } else if(field === 'username'){
-      if(!/^[A-Za-z0-9_]{3,16}$/.test(clean))
-        return res.status(400).json({ ok: false, error: 'Invalid username' });
-    } else if(field === 'phone'){
-      if(!/^\+\d{3} \d{3} \d{3}$/.test(clean))
-        return res.status(400).json({ ok: false, error: 'Invalid phone' });
-    }
-
+    if(field === 'name'){ if(!/^[A-Za-z][A-Za-z\s]{1,29}$/.test(clean) || clean.length < 2) return res.status(400).json({ ok: false, error: 'Invalid name' }); }
+    else if(field === 'username'){ if(!/^[A-Za-z0-9_]{3,16}$/.test(clean)) return res.status(400).json({ ok: false, error: 'Invalid username' }); }
+    else if(field === 'phone'){ if(!/^\+\d{3} \d{3} \d{3}$/.test(clean)) return res.status(400).json({ ok: false, error: 'Invalid phone' }); }
     const user = await getUser(userId);
     if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
     if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
-
-    if(await isAnonValueTaken(field, clean, userId)){
-      return res.status(409).json({ ok: false, error: 'That value is already taken' });
-    }
-
+    if(await isAnonValueTaken(field, clean, userId)) return res.status(409).json({ ok: false, error: 'That value is already taken' });
     const fee = ANON_FEES[field];
     if(user.balance < fee) return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
-
     if(field === 'name') user.anonymousName = clean;
     else if(field === 'username') user.anonymousUsername = clean;
     else if(field === 'phone') user.anonymousPhone = clean;
-
     user.balance -= fee;
     await saveUser(user);
     await refreshLiveIdentity(userId);
-
     res.json({ ok: true, newBalance: user.balance, fee, field, value: clean });
-  } catch(err){
-    console.error('change-anonymous error:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+  } catch(err){ console.error('change-anonymous error:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
-
 app.post('/api/toggle-hide-pfp', async (req, res) => {
   try {
     const { userId, hide } = req.body;
@@ -1657,10 +1347,6 @@ app.post('/api/toggle-hide-pfp', async (req, res) => {
   } catch (err) { res.status(500).json({ ok: false, error: err.message || 'Internal error' }); }
 });
 
-/* ============================================================
-   LEVEL / QUESTS ENDPOINTS
-   ============================================================ */
-
 app.get('/api/level', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -1668,12 +1354,8 @@ app.get('/api/level', async (req, res) => {
     const user = await getUser(userId);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
     res.json({ ok: true, level: getLevelInfo(user), quests: buildQuestList(user) });
-  } catch (err) {
-    console.error('level endpoint:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+  } catch (err) { console.error('level endpoint:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
-
 app.post('/api/claim-quest', async (req, res) => {
   try {
     const { userId, questId } = req.body || {};
@@ -1683,76 +1365,42 @@ app.post('/api/claim-quest', async (req, res) => {
     const user = await getUser(userId);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
     if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
-
     const pField = 'q_' + questId + '_p';
     const cField = 'q_' + questId + '_c';
     const progress = Math.max(0, user[pField] | 0);
     if (progress < quest.target) return res.status(400).json({ ok: false, error: 'Quest not complete' });
     if (user[cField]) return res.status(400).json({ ok: false, error: 'Already claimed' });
-
     user[cField] = true;
     user.xp = (user.xp | 0) + quest.reward;
     await saveUser(user);
-
-    res.json({
-      ok: true,
-      reward: quest.reward,
-      xp: user.xp,
-      level: getLevelInfo(user),
-      quests: buildQuestList(user),
-    });
-  } catch (err) {
-    console.error('claim-quest:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+    res.json({ ok: true, reward: quest.reward, xp: user.xp, level: getLevelInfo(user), quests: buildQuestList(user) });
+  } catch (err) { console.error('claim-quest:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 
-/* ============================================================
-   TRANSFER
-   ============================================================ */
 app.post('/api/transfer', async (req, res) => {
   try {
     const { fromUserId, toUsername, amount } = req.body;
-    if (!fromUserId || !toUsername || amount === undefined)
-      return res.status(400).json({ ok: false, error: 'Missing fields' });
-
+    if (!fromUserId || !toUsername || amount === undefined) return res.status(400).json({ ok: false, error: 'Missing fields' });
     const amt = Math.floor(Number(amount));
-    if (!Number.isFinite(amt) || amt <= 0)
-      return res.status(400).json({ ok: false, error: 'Invalid amount' });
-
+    if (!Number.isFinite(amt) || amt <= 0) return res.status(400).json({ ok: false, error: 'Invalid amount' });
     const sender = await getUser(fromUserId);
     if (!sender) return res.status(404).json({ ok: false, error: 'Sender not found' });
     if (sender.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
     if (sender.balance < amt) return res.status(400).json({ ok: false, error: 'Insufficient balance' });
-
     const clean = String(toUsername).replace(/^@/, '').trim().toLowerCase();
     if (!clean || clean.length < 3) return res.status(400).json({ ok: false, error: 'Invalid username' });
-
     const all = await getAllUsers();
     const receiver = all.find(u => (u.username || '').toLowerCase() === clean);
     if (!receiver) return res.status(404).json({ ok: false, error: 'User not found' });
-    if (String(receiver.id) === String(sender.id))
-      return res.status(400).json({ ok: false, error: 'Cannot transfer to yourself' });
+    if (String(receiver.id) === String(sender.id)) return res.status(400).json({ ok: false, error: 'Cannot transfer to yourself' });
     if (receiver.banned) return res.status(400).json({ ok: false, error: 'Receiver is banned' });
-
     sender.balance -= amt;
     receiver.balance += amt;
     await saveUser(sender);
     await saveUser(receiver);
-
-    res.json({
-      ok: true,
-      newBalance: sender.balance,
-      amount: amt,
-      receiver: { username: receiver.username },
-    });
-  } catch (err) {
-    console.error('Transfer error:', err);
-    res.status(500).json({ ok: false, error: 'Internal error' });
-  }
+    res.json({ ok: true, newBalance: sender.balance, amount: amt, receiver: { username: receiver.username } });
+  } catch (err) { console.error('Transfer error:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
-
-/* ============================================================ */
 
 app.get('/leaderboard', async (req, res) => {
   try { res.json({ top: await topPlayers(20) }); }
