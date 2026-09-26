@@ -810,6 +810,10 @@ io.on('connection', (socket) => {
         user: {
           ...user,
           winHistory: user.winHistory || [],
+          anonymousEnabled: user.anonymousEnabled || false,
+          anonymousName: user.anonymousName || '',
+          anonymousUsername: user.anonymousUsername || '',
+          anonymousPhone: user.anonymousPhone || '',
           hidePfp: user.hidePfp || false,
           xp: user.xp || 0,
         },
@@ -839,8 +843,13 @@ io.on('connection', (socket) => {
         const full = map.get(String(t.id));
         const base = full || t;
         const lvl = getLevelInfo(base);
+        if (!full) return { ...t, level: lvl.level, rank: lvl.rank };
         return {
           ...t,
+          anonymousName: full.anonymousName || '',
+          anonymousUsername: full.anonymousUsername || '',
+          anonymousPhone: full.anonymousPhone || '',
+          anonymousEnabled: !!full.anonymousEnabled,
           level: lvl.level,
           rank: lvl.rank,
         };
@@ -873,7 +882,7 @@ io.on('connection', (socket) => {
       if (existing) { existing.bet += amt; repartitionIceArena(); }
       else { makeIcePlayer(userId, amt, user.username, user.pfp); }
       iceRoom.pot += amt;
-      ack?.({ ok: true, balance: user.balance });
+      ack?.({ ok: true, balance: user.balance, level: getLevelInfo(user) });
       broadcastIceState();
     } catch (err) {
       console.error('Ice bet error:', err);
@@ -890,14 +899,13 @@ io.on('connection', (socket) => {
    ADMIN
    ============================================================ */
 
-const ADMIN_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin</title>
+const ADMIN_HTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admin Panel</title>
 <style>body{background:#0a0a12;color:#eee;font-family:sans-serif;padding:20px;max-width:1000px;margin:auto}
 table{width:100%;border-collapse:collapse;margin:10px 0}th,td{padding:8px;border:1px solid #333;text-align:left}
 button{padding:6px 12px;margin:2px;border:none;border-radius:6px;cursor:pointer;background:#4CAF50;color:#fff}
 button.danger{background:#e06060}button.warning{background:#f0a030}
 input{padding:6px;border-radius:4px;border:1px solid #444;background:#222;color:#fff}
 .section{border:1px solid #333;padding:15px;margin-top:15px;border-radius:8px}
-.switch-wrap{display:flex;align-items:center;gap:12px;margin:6px 0}
 .notification-row{display:flex;gap:10px;margin:8px 0;align-items:center}
 .notification-row input{flex:1;padding:8px 12px;border-radius:6px;border:1px solid #444;background:#222;color:#fff}</style></head><body>
 <h2>dllump Admin</h2>
@@ -1078,14 +1086,259 @@ app.post('/redeem', async (req, res) => {
   } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 
+app.get('/redeem', async (req, res) => {
+  try {
+    const { code, userId } = req.query;
+    if (!code || !userId) return res.status(400).json({ ok: false, error: 'Missing' });
+    res.json(await redeemPromoCode(code, userId));
+  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+
+/* ANONYMOUS IDENTITY */
+const ANON_FEES = { name: 50, username: 150, phone: 1500 };
+const RARE_TIERS = ['rare', 'epic', 'legendary', 'mythic'];
+
+const ANON_ADJ = ['Silent','Frozen','Shadow','Hidden','Mysterious','Swift','Cold','Pale',
+                  'Iron','Golden','Silver','Crimson','Wandering','Ancient','Frost','Night',
+                  'Wild','Lost','Broken','Ghost','Rogue','Quiet','Lone','Veiled','Distant'];
+const ANON_NOUN = ['Wolf','Fox','Raven','Falcon','Bison','Hawk','Bear','Lynx','Panther',
+                   'Owl','Phoenix','Cobra','Viper','Titan','Phantom','Wraith','Specter',
+                   'Drifter','Stranger','Nomad','Cipher','Ember','Shade','Monarch','Seeker'];
+
+function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function generateAnonName(){ return pick(ANON_ADJ) + ' ' + pick(ANON_NOUN); }
+function generateAnonUsername(){
+  const base = (pick(ANON_ADJ) + pick(ANON_NOUN)).toLowerCase();
+  return base + Math.floor(Math.random() * 9000 + 1000);
+}
+function formatPhone(digits){
+  return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+}
+
+function generatePhone(){
+  const r = Math.random() * 100000;
+
+  if(r < 2){
+    const pool = [
+      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
+      '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
+      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
+    ];
+    return { phone: pick(pool), tier: 'mythic' };
+  }
+
+  if(r < 22){
+    const d = 1 + Math.floor(Math.random() * 9);
+    return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
+  }
+
+  if(r < 122){
+    const a = Math.floor(Math.random() * 10);
+    const b = Math.floor(Math.random() * 10);
+    const c = Math.floor(Math.random() * 10);
+    const d = Math.floor(Math.random() * 10);
+    const digits = `${a}${b}${c}${d}${c}${b}${a}`;
+    const full = digits + `${a}${b}`;
+    return { phone: formatPhone(full), tier: 'epic' };
+  }
+
+  if(r < 522){
+    const d = Math.floor(Math.random() * 10);
+    const triple = String(d).repeat(3);
+    let rest = '';
+    for(let i = 0; i < 6; i++) rest += Math.floor(Math.random() * 10);
+    const digits = Math.random() < 0.5 ? triple + rest : rest + triple;
+    return { phone: formatPhone(digits), tier: 'rare' };
+  }
+
+  if(r < 2022){
+    const digits = [];
+    for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
+    const pos = Math.floor(Math.random() * 7);
+    const d = Math.floor(Math.random() * 10);
+    digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
+    return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
+  }
+
+  let s = '';
+  for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
+  return { phone: formatPhone(s), tier: 'common' };
+}
+
+async function isAnonValueTaken(field, value, excludeUserId){
+  const all = await getAllUsers();
+  const lc = String(value).toLowerCase();
+  for(const u of all){
+    if(String(u.id) === String(excludeUserId)) continue;
+    if(field === 'name'){
+      if(u.anonymousEnabled && (u.anonymousName || '').toLowerCase() === lc) return true;
+    } else if(field === 'username'){
+      if((u.username || '').toLowerCase() === lc) return true;
+      if(u.anonymousEnabled && (u.anonymousUsername || '').toLowerCase() === lc) return true;
+    } else if(field === 'phone'){
+      if((u.anonymousPhone || '') === value) return true;
+    }
+  }
+  return false;
+}
+
+async function refreshLiveIdentity(userId){
+  const user = await getUser(userId);
+  if(!user) return;
+  const isAnon = !!user.anonymousEnabled;
+  const iceP = getIcePlayer(userId);
+  if(iceP){
+    iceP.name = isAnon ? (user.anonymousName || 'Anonymous') : (user.username || 'player');
+    iceP.pfp  = isAnon ? null : (user.pfp || '');
+    broadcastIceState();
+  }
+}
+
+app.post('/api/toggle-anonymous', async (req, res) => {
+  try {
+    const { userId, enabled } = req.body;
+    if(!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
+    user.anonymousEnabled = !!enabled;
+
+    if(user.anonymousEnabled && !user.anonymousName){
+      let name, username, phone;
+      for(let i = 0; i < 20; i++){
+        const n = generateAnonName();
+        if(!(await isAnonValueTaken('name', n, userId))){ name = n; break; }
+      }
+      for(let i = 0; i < 20; i++){
+        const u = generateAnonUsername();
+        if(!(await isAnonValueTaken('username', u, userId))){ username = u; break; }
+      }
+      for(let i = 0; i < 40; i++){
+        const p = generatePhone().phone;
+        if(!(await isAnonValueTaken('phone', p, userId))){ phone = p; break; }
+      }
+      user.anonymousName = name || generateAnonName();
+      user.anonymousUsername = username || generateAnonUsername();
+      user.anonymousPhone = phone || generatePhone().phone;
+    }
+
+    await saveUser(user);
+    await refreshLiveIdentity(userId);
+
+    res.json({
+      ok: true,
+      enabled: user.anonymousEnabled,
+      name: user.anonymousName || '',
+      username: user.anonymousUsername || '',
+      phone: user.anonymousPhone || '',
+    });
+  } catch(err){
+    console.error('toggle-anonymous error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+app.post('/api/roll-phone', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if(!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.balance < ANON_FEES.phone){
+      return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
+    }
+
+    let result = null;
+    for(let i = 0; i < 80; i++){
+      const c = generatePhone();
+      if(!(await isAnonValueTaken('phone', c.phone, userId))){ result = c; break; }
+    }
+    if(!result){
+      for(let i = 0; i < 100; i++){
+        let s = '';
+        for(let j = 0; j < 9; j++) s += Math.floor(Math.random() * 10);
+        const p = formatPhone(s);
+        if(!(await isAnonValueTaken('phone', p, userId))){ result = { phone: p, tier: 'common' }; break; }
+      }
+    }
+    if(!result) return res.status(500).json({ ok: false, error: 'Roll failed, try again' });
+
+    const isRare = RARE_TIERS.includes(result.tier);
+    res.json({
+      ok: true,
+      phone: result.phone,
+      tier: result.tier,
+      fee: ANON_FEES.phone,
+      rareAnimation: isRare,
+    });
+  } catch(err){
+    console.error('roll-phone error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
+app.post('/api/change-anonymous', async (req, res) => {
+  try {
+    const { userId, field, value } = req.body;
+    if(!userId || !field || value === undefined)
+      return res.status(400).json({ ok: false, error: 'Missing parameters' });
+    if(!ANON_FEES.hasOwnProperty(field))
+      return res.status(400).json({ ok: false, error: 'Invalid field' });
+
+    const clean = String(value).trim();
+
+    if(field === 'name'){
+      if(!/^[A-Za-z][A-Za-z\s]{1,29}$/.test(clean) || clean.length < 2)
+        return res.status(400).json({ ok: false, error: 'Invalid name' });
+    } else if(field === 'username'){
+      if(!/^[A-Za-z0-9_]{3,16}$/.test(clean))
+        return res.status(400).json({ ok: false, error: 'Invalid username' });
+    } else if(field === 'phone'){
+      if(!/^\+\d{3} \d{3} \d{3}$/.test(clean))
+        return res.status(400).json({ ok: false, error: 'Invalid phone' });
+    }
+
+    const user = await getUser(userId);
+    if(!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if(user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
+    if(await isAnonValueTaken(field, clean, userId)){
+      return res.status(409).json({ ok: false, error: 'That value is already taken' });
+    }
+
+    const fee = ANON_FEES[field];
+    if(user.balance < fee) return res.status(400).json({ ok: false, error: 'Not enough diamonds' });
+
+    if(field === 'name') user.anonymousName = clean;
+    else if(field === 'username') user.anonymousUsername = clean;
+    else if(field === 'phone') user.anonymousPhone = clean;
+
+    user.balance -= fee;
+    await saveUser(user);
+    await refreshLiveIdentity(userId);
+
+    res.json({ ok: true, newBalance: user.balance, fee, field, value: clean });
+  } catch(err){
+    console.error('change-anonymous error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
+});
+
 app.post('/api/toggle-hide-pfp', async (req, res) => {
   try {
     const { userId, hide } = req.body;
     if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
     const newHide = await toggleHidePfp(userId, hide);
+    const iceP = getIcePlayer(userId);
+    if (iceP) { iceP.pfp = newHide ? null : (await getUser(userId)).pfp; broadcastIceState(); }
     res.json({ ok: true, hidePfp: newHide });
   } catch (err) { res.status(500).json({ ok: false, error: err.message || 'Internal error' }); }
 });
+
+/* ============================================================
+   LEVEL / QUESTS ENDPOINTS
+   ============================================================ */
 
 app.get('/api/level', async (req, res) => {
   try {
@@ -1094,7 +1347,10 @@ app.get('/api/level', async (req, res) => {
     const user = await getUser(userId);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
     res.json({ ok: true, level: getLevelInfo(user), quests: buildQuestList(user) });
-  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+  } catch (err) {
+    console.error('level endpoint:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 app.post('/api/claim-quest', async (req, res) => {
@@ -1106,14 +1362,17 @@ app.post('/api/claim-quest', async (req, res) => {
     const user = await getUser(userId);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
     if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+
     const pField = 'q_' + questId + '_p';
     const cField = 'q_' + questId + '_c';
     const progress = Math.max(0, user[pField] | 0);
     if (progress < quest.target) return res.status(400).json({ ok: false, error: 'Quest not complete' });
     if (user[cField]) return res.status(400).json({ ok: false, error: 'Already claimed' });
+
     user[cField] = true;
     user.xp = (user.xp | 0) + quest.reward;
     await saveUser(user);
+
     res.json({
       ok: true,
       reward: quest.reward,
@@ -1121,9 +1380,15 @@ app.post('/api/claim-quest', async (req, res) => {
       level: getLevelInfo(user),
       quests: buildQuestList(user),
     });
-  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+  } catch (err) {
+    console.error('claim-quest:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
+/* ============================================================
+   TRANSFER
+   ============================================================ */
 app.post('/api/transfer', async (req, res) => {
   try {
     const { fromUserId, toUsername, amount } = req.body;
@@ -1137,20 +1402,17 @@ app.post('/api/transfer', async (req, res) => {
     const sender = await getUser(fromUserId);
     if (!sender) return res.status(404).json({ ok: false, error: 'Sender not found' });
     if (sender.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
-    if (sender.balance < amt)
-      return res.status(400).json({ ok: false, error: 'Insufficient balance' });
+    if (sender.balance < amt) return res.status(400).json({ ok: false, error: 'Insufficient balance' });
 
     const clean = String(toUsername).replace(/^@/, '').trim().toLowerCase();
-    if (!clean || clean.length < 3)
-      return res.status(400).json({ ok: false, error: 'Invalid username' });
+    if (!clean || clean.length < 3) return res.status(400).json({ ok: false, error: 'Invalid username' });
 
     const all = await getAllUsers();
     const receiver = all.find(u => (u.username || '').toLowerCase() === clean);
     if (!receiver) return res.status(404).json({ ok: false, error: 'User not found' });
     if (String(receiver.id) === String(sender.id))
       return res.status(400).json({ ok: false, error: 'Cannot transfer to yourself' });
-    if (receiver.banned)
-      return res.status(400).json({ ok: false, error: 'Receiver is banned' });
+    if (receiver.banned) return res.status(400).json({ ok: false, error: 'Receiver is banned' });
 
     sender.balance -= amt;
     receiver.balance += amt;
@@ -1163,7 +1425,10 @@ app.post('/api/transfer', async (req, res) => {
       amount: amt,
       receiver: { username: receiver.username },
     });
-  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
+  } catch (err) {
+    console.error('Transfer error:', err);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 /* ============================================================ */
