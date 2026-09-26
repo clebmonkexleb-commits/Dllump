@@ -165,63 +165,6 @@
   }
   #ice-canvas{width:100%;aspect-ratio:1/1;max-width:100%;max-height:100%;border-radius:24px;background:transparent;touch-action:none;display:block;flex-shrink:0;border:none;contain:paint}
 
-  /* ============ ICE STATS GLASS RECTS (small, low, compact) ============ */
-  #ice-stats-overlay{
-    position:absolute;
-    left:50%;
-    bottom:calc(64px + var(--safe-bottom));
-    transform:translateX(-50%);
-    display:flex;
-    gap:6px;
-    z-index:11;
-    pointer-events:none;
-    transition:opacity .3s ease;
-  }
-  #ice-stats-overlay.hidden{opacity:0;pointer-events:none}
-  .ice-glass-rect{
-    min-width:104px;max-width:118px;
-    padding:5px 7px 6px;
-    border-radius:11px;
-    background:linear-gradient(135deg,rgba(56,68,100,.55),rgba(22,28,46,.62));
-    -webkit-backdrop-filter:blur(16px) saturate(150%);
-    backdrop-filter:blur(16px) saturate(150%);
-    border:1px solid rgba(180,210,255,.20);
-    box-shadow:0 5px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);
-    position:relative;overflow:hidden;
-  }
-  .ice-glass-rect::before{
-    content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
-    pointer-events:none;
-  }
-  .igr-head{
-    font-size:6.5px;font-weight:900;letter-spacing:1.3px;text-transform:uppercase;
-    color:rgba(200,220,250,.6);margin-bottom:3px;
-    display:flex;align-items:center;gap:4px;
-  }
-  .igr-head::after{
-    content:'';flex:1;height:1px;
-    background:linear-gradient(90deg,rgba(180,210,255,.3),transparent);
-  }
-  .igr-body{display:flex;align-items:center;gap:5px;min-width:0}
-  .igr-pfp{
-    width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;
-    background:var(--surface3);border:1px solid rgba(180,210,255,.35);
-    box-shadow:0 2px 5px rgba(0,0,0,.4);
-  }
-  .igr-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:0}
-  .igr-name{
-    font-size:9.5px;font-weight:800;color:#fff;letter-spacing:-.1px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .igr-amount{
-    font-size:9.5px;font-weight:800;color:#f0d080;font-variant-numeric:tabular-nums;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    display:flex;align-items:center;gap:2px;
-  }
-  .igr-amount img{width:7px;height:7px;object-fit:contain}
-  .igr-amount.empty,.igr-name.empty{color:rgba(200,220,250,.4);font-weight:700}
-
   #ice-top-panel{position:absolute;top:calc(76px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100%);width:92%;max-width:420px;background:linear-gradient(135deg,rgba(40,50,80,.72),rgba(18,24,40,.82));backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid rgba(180,210,255,.22);border-radius:18px;padding:7px 12px 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:10;box-shadow:0 12px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.20);transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;opacity:0;pointer-events:none}
   #ice-top-panel.show{transform:translateX(-50%) translateY(0);opacity:1}
   #ice-top-panel .panel-section{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
@@ -1497,153 +1440,6 @@
     pointer-events:none;
   }
 
-  /* ==================== UPGRADE OVERLAY ==================== */
-  #upgrade-overlay{
-    position:fixed;inset:0;z-index:10030;max-width:440px;margin:0 auto;
-    display:none;flex-direction:column;overflow:hidden;
-    background:radial-gradient(ellipse at 50% -10%, #16203a 0%, #0a0e18 45%, #06070c 100%);
-    color:#f2f5fa;font-family:inherit;-webkit-font-smoothing:antialiased;
-    opacity:0;transform:translateY(24px);
-    transition:opacity .28s ease,transform .4s cubic-bezier(.34,1.56,.64,1);
-    --up-safe-b:env(safe-area-inset-bottom,0px);
-    --up-safe-t:env(safe-area-inset-top,0px);
-  }
-  #upgrade-overlay.show{display:flex;opacity:1;transform:translateY(0)}
-  #upgrade-overlay::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:radial-gradient(circle at 30% 20%, rgba(0,0,0,.22), rgba(0,0,0,.72) 74%)}
-  #upgrade-overlay > *{position:relative;z-index:1}
-  #up-top{display:flex;align-items:center;justify-content:space-between;
-    padding:calc(14px + var(--up-safe-t)) 14px 8px;flex-shrink:0;gap:8px}
-  #up-brand{font-size:13px;font-weight:900;letter-spacing:2.8px;text-transform:uppercase;color:#f2f5fa}
-  #up-brand .up-accent{color:#5b9dff}
-  #up-topRight{display:flex;align-items:center;gap:8px;flex-shrink:0}
-  .up-circle-btn{width:34px;height:34px;border-radius:50%;
-    border:.5px solid rgba(255,255,255,.09);background:rgba(255,255,255,.08);
-    color:#8a94a8;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    position:relative;overflow:hidden;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
-  .up-circle-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;
-    stroke-linecap:round;stroke-linejoin:round}
-  .up-circle-btn:active{transform:scale(.9)}
-  #up-settingsBtn.open{color:#fff;background:rgba(91,157,255,.20);border-color:rgba(140,180,255,.5)}
-  #up-balChip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);
-    border:.5px solid rgba(255,255,255,.09);padding:6px 13px 6px 7px;border-radius:99px}
-  #up-balChip img{width:20px;height:20px;object-fit:contain}
-  #up-balOut{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums}
-  #up-dailyBadge{font-size:10px;font-weight:800;letter-spacing:.4px;color:#f0d080;
-    background:rgba(240,208,128,.10);border:.5px solid rgba(240,208,128,.28);
-    padding:5px 9px;border-radius:99px;white-space:nowrap}
-  #up-settingsPanel{position:absolute;top:calc(54px + var(--up-safe-t));right:14px;width:236px;
-    max-height:70vh;overflow-y:auto;
-    background:linear-gradient(180deg,rgba(28,32,44,.97),rgba(14,16,22,.98));
-    border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:8px;z-index:60;
-    box-shadow:0 24px 60px rgba(0,0,0,.75);
-    backdrop-filter:blur(20px) saturate(150%);
-    opacity:0;visibility:hidden;transform:translateY(-8px) scale(.94);transform-origin:top right;
-    transition:opacity .18s ease,visibility 0s .22s,transform .28s cubic-bezier(.34,1.56,.64,1)}
-  #up-settingsPanel.open{opacity:1;visibility:visible;transform:translateY(0) scale(1);
-    transition:opacity .18s ease,visibility 0s,transform .3s cubic-bezier(.34,1.56,.64,1)}
-  .up-settings-title{font-size:9.5px;font-weight:800;letter-spacing:1.8px;
-    text-transform:uppercase;color:#4e5668;padding:5px 10px 8px;display:flex;align-items:center;gap:8px}
-  .up-settings-title::after{content:'';flex:1;height:1px;
-    background:linear-gradient(90deg,rgba(255,255,255,.10),transparent)}
-  .up-setting-row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;
-    border:none;background:transparent;color:#f2f5fa;font-family:inherit;font-size:12.5px;
-    font-weight:600;cursor:pointer;border-radius:10px;text-align:left;transition:background .18s ease}
-  .up-setting-row:hover{background:rgba(255,255,255,.04)}
-  .up-setting-row.active{color:#fff}
-  .up-setting-label{flex:1}
-  .up-switch-sm{width:34px;height:20px;border-radius:999px;background:rgba(255,255,255,.09);
-    border:1px solid rgba(255,255,255,.12);position:relative;flex-shrink:0}
-  .up-switch-sm .up-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;
-    border-radius:50%;background:linear-gradient(180deg,#fff,#c8d2e2);
-    transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
-  .up-setting-row.active .up-switch-sm{background:linear-gradient(135deg,#6da9ff,#4a86e8);
-    border-color:rgba(140,180,255,.55)}
-  .up-setting-row.active .up-switch-sm .up-knob{transform:translateX(14px)}
-  #up-stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
-    padding:8px;min-height:0}
-  #up-cv{display:block;border-radius:26px;touch-action:none}
-  #up-banner{position:absolute;left:50%;top:50%;z-index:6;pointer-events:none;
-    transform:translate(-50%,-50%) scale(.6);opacity:0;
-    font-size:36px;font-weight:900;letter-spacing:-1.2px;
-    text-shadow:0 4px 24px rgba(0,0,0,.85);
-    transition:transform .45s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;white-space:nowrap}
-  #up-banner.show{transform:translate(-50%,-50%) scale(1);opacity:1}
-  #up-banner.win{color:#bfe0ff;text-shadow:0 0 36px rgba(91,157,255,.95),0 4px 24px rgba(0,0,0,.9)}
-  #up-banner.lose{color:#ff9aa8;text-shadow:0 0 32px rgba(224,85,107,.8),0 4px 24px rgba(0,0,0,.9)}
-  #up-panel{flex-shrink:0;padding:24px 16px calc(16px + var(--up-safe-b));
-    display:flex;flex-direction:column;position:relative}
-  #up-panelToggle{position:absolute;top:0;left:50%;transform:translateX(-50%);width:64px;
-    height:20px;border:none;border-radius:0 0 12px 12px;
-    background:linear-gradient(180deg,rgba(28,32,44,.9),rgba(14,16,22,.96));
-    color:#4e5668;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center}
-  #up-panelToggle svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
-  #up-panel.hidden #up-panelToggle svg{transform:rotate(180deg)}
-  #up-panelContent{display:flex;flex-direction:column;gap:10px;max-height:900px;opacity:1;
-    overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .25s ease .05s}
-  #up-panel.hidden #up-panelContent{max-height:0;opacity:0;pointer-events:none}
-  .up-row-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
-  .up-stat{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
-    border:.5px solid rgba(255,255,255,.09);border-radius:15px;padding:9px 8px 8px;
-    text-align:center;position:relative;overflow:hidden}
-  .up-stat .up-lbl{display:block;font-size:8.5px;font-weight:800;letter-spacing:1.5px;
-    text-transform:uppercase;color:#4e5668;margin-bottom:4px}
-  .up-stat .up-val{display:block;font-size:17px;font-weight:800;letter-spacing:-.5px;
-    font-variant-numeric:tabular-nums;color:#f2f5fa}
-  .up-stat .up-val.gold{color:#f0d080}
-  .up-slider-box{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
-    border:.5px solid rgba(255,255,255,.09);border-radius:17px;padding:11px 16px 7px}
-  #upgrade-overlay input[type=range]{-webkit-appearance:none;appearance:none;width:100%;
-    height:34px;background:transparent;cursor:pointer;display:block}
-  #upgrade-overlay input[type=range]::-webkit-slider-runnable-track{height:10px;
-    border-radius:99px;border:none;background:var(--up-track,rgba(255,255,255,.08))}
-  #upgrade-overlay input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
-    width:48px;height:24px;border-radius:14px;margin-top:-7px;border:none;
-    background:linear-gradient(180deg,#fff 0%,#dbe4f0 45%,#b8c4d4 100%);
-    box-shadow:0 4px 14px rgba(0,0,0,.65),0 0 0 3px var(--up-thumb-glow,rgba(91,157,255,.18))}
-  #upgrade-overlay input[type=range]::-moz-range-track{height:10px;border-radius:99px;
-    background:var(--up-track,rgba(255,255,255,.08))}
-  #upgrade-overlay input[type=range]::-moz-range-thumb{width:46px;height:22px;
-    border-radius:12px;border:none;background:linear-gradient(180deg,#fff,#b8c4d4)}
-  .up-slider-labels{display:flex;justify-content:space-between;font-size:8.5px;
-    font-weight:800;letter-spacing:1.4px;color:#4e5668;margin-top:-2px;padding:0 2px}
-  .up-speed-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-  .up-speed-pill{padding:9px 0;border-radius:14px;border:.5px solid rgba(255,255,255,.09);
-    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
-    color:#4e5668;font-family:inherit;font-size:10px;font-weight:800;letter-spacing:1.6px;
-    text-transform:uppercase;cursor:pointer;
-    transition:transform .16s cubic-bezier(.34,1.56,.64,1),color .22s ease,background .25s ease}
-  .up-speed-pill:active{transform:scale(.95)}
-  .up-speed-pill.active{color:#fff;border-color:rgba(140,180,255,.5);
-    background:linear-gradient(180deg,rgba(91,157,255,.20),rgba(91,157,255,.06));
-    box-shadow:0 0 16px rgba(91,157,255,.22),inset 0 1px 0 rgba(255,255,255,.15)}
-  .up-bet-box{display:flex;gap:7px;align-items:stretch}
-  .up-bet-field{flex:1;display:flex;align-items:center;gap:9px;padding:0 14px;
-    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
-    border:.5px solid rgba(255,255,255,.09);border-radius:15px}
-  .up-bet-field img{width:19px;height:19px;object-fit:contain;flex-shrink:0}
-  .up-bet-field input{flex:1;min-width:0;height:46px;border:none;background:transparent;
-    outline:none;color:#f2f5fa;font-family:inherit;font-size:17px;font-weight:800;
-    font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}
-  .up-mini{width:48px;border-radius:15px;border:.5px solid rgba(255,255,255,.09);
-    background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
-    color:#8a94a8;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
-  .up-mini:active{transform:scale(.93);background:rgba(255,255,255,.11);color:#f2f5fa}
-  #up-playBtn{width:100%;height:58px;border-radius:19px;border:none;cursor:pointer;
-    font-family:inherit;font-size:15.5px;font-weight:900;letter-spacing:2.2px;
-    text-transform:uppercase;color:#fff;position:relative;overflow:hidden;
-    background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);
-    box-shadow:0 12px 32px rgba(91,157,255,.42),inset 0 1px 0 rgba(255,255,255,.30)}
-  #up-playBtn:active{transform:scale(.975)}
-  #up-playBtn:disabled{opacity:.42;pointer-events:none;filter:grayscale(.4)}
-  .up-close-x{position:absolute;top:calc(14px + var(--up-safe-t));left:14px;width:34px;
-    height:34px;border-radius:50%;border:.5px solid rgba(255,255,255,.09);
-    background:rgba(255,255,255,.08);color:#8a94a8;display:flex;align-items:center;
-    justify-content:center;cursor:pointer;z-index:20}
-  .up-close-x svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;
-    stroke-linecap:round;stroke-linejoin:round}
-
   @media (max-width:400px){
     #topbar{padding-left:8px;padding-right:8px}
     #un-name{max-width:100px;font-size:11.5px}
@@ -1674,12 +1470,6 @@
     #ice-win-panel{padding-top:16px;gap:9px}
     #ice-win-gif-container{max-width:170px}
     .lvl-content{top:calc(28vh + 84px)}
-    .up-stat .up-val{font-size:15px}
-    #up-playBtn{height:52px;font-size:14px}
-    .up-bet-field input{height:42px;font-size:16px}
-    #up-panelContent{gap:8px}
-    #up-panel{padding-top:22px}
-    .up-speed-pill{padding:7px 0;font-size:9.5px}
   }
   @media (max-height:600px){
     #ice-win-gif-container{display:none}
@@ -1731,31 +1521,6 @@
     <div class="tab-page active" id="ice-page">
       <div id="ice-arena-wrap">
         <canvas id="ice-canvas"></canvas>
-
-        <!-- Liquid glass winner strip (compact) -->
-        <div id="ice-stats-overlay">
-          <div class="ice-glass-rect">
-            <div class="igr-head">Last winner</div>
-            <div class="igr-body">
-              <img class="igr-pfp" id="igr-last-pfp" src="https://i.pravatar.cc/150?img=0" alt="">
-              <div class="igr-meta">
-                <div class="igr-name empty" id="igr-last-name">—</div>
-                <div class="igr-amount empty" id="igr-last-amount">—</div>
-              </div>
-            </div>
-          </div>
-          <div class="ice-glass-rect">
-            <div class="igr-head">Best win</div>
-            <div class="igr-body">
-              <img class="igr-pfp" id="igr-best-pfp" src="https://i.pravatar.cc/150?img=0" alt="">
-              <div class="igr-meta">
-                <div class="igr-name empty" id="igr-best-name">—</div>
-                <div class="igr-amount empty" id="igr-best-amount">—</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div id="ice-top-panel">
           <div class="panel-section"><span class="panel-label">Players</span><span class="panel-value" id="ice-stats-players">0</span></div>
           <div id="ice-timer-section"><span id="ice-countdown-timer">10.00</span><div id="ice-timer-progress-wrap"><div id="ice-timer-progress"></div></div></div>
@@ -1836,10 +1601,6 @@
           <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
           <span>Transfer</span>
           <img class="q-diamond" src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
-        </button>
-        <button class="wallet-action-btn" id="wallet-upgrade-btn" type="button">
-          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Upgrade</span>
         </button>
       </div>
 
@@ -2310,72 +2071,6 @@
   </div>
 </div>
 
-<!-- ========== ICE UPGRADE OVERLAY ========== -->
-<div id="upgrade-overlay" aria-hidden="true">
-  <button class="up-close-x" id="up-close" type="button" aria-label="Close">
-    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-  </button>
-
-  <div id="up-top">
-    <div id="up-brand">UPGRADE<span class="up-accent">.</span></div>
-    <div id="up-topRight">
-      <div id="up-dailyBadge">3 LEFT TODAY</div>
-      <button id="up-settingsBtn" class="up-circle-btn" type="button" aria-label="Settings">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-      <div id="up-balChip">
-        <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
-        <span id="up-balOut">0</span>
-      </div>
-    </div>
-  </div>
-
-  <div id="up-settingsPanel" aria-hidden="true">
-    <div class="up-settings-title">Settings</div>
-    <button class="up-setting-row" data-key="bounce" type="button"><span class="up-setting-label">Bounce physics</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-    <button class="up-setting-row" data-key="zoom" type="button"><span class="up-setting-label">Zoom on stop</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-    <button class="up-setting-row" data-key="pop" type="button"><span class="up-setting-label">Stop pop</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-    <button class="up-setting-row" data-key="outline" type="button"><span class="up-setting-label">Field outlines</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-    <button class="up-setting-row" data-key="arrow" type="button"><span class="up-setting-label">Spin arrow</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-    <button class="up-setting-row" data-key="glow" type="button"><span class="up-setting-label">Glow &amp; shadows</span><span class="up-switch-sm"><span class="up-knob"></span></span></button>
-  </div>
-
-  <div id="up-stage">
-    <canvas id="up-cv"></canvas>
-    <div id="up-banner"></div>
-  </div>
-
-  <div id="up-panel">
-    <button id="up-panelToggle" type="button" aria-label="Toggle"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-    <div id="up-panelContent">
-      <div class="up-row-stats">
-        <div class="up-stat"><span class="up-lbl">Chance</span><span class="up-val" id="up-chanceOut">45%</span></div>
-        <div class="up-stat"><span class="up-lbl">Multiplier</span><span class="up-val gold" id="up-multOut">2.16×</span></div>
-        <div class="up-stat"><span class="up-lbl">Payout</span><span class="up-val" id="up-payoutOut">21</span></div>
-      </div>
-      <div class="up-slider-box">
-        <input id="up-slider" type="range" min="0.05" max="95" step="0.05" value="45">
-        <div class="up-slider-labels"><span>0.05%</span><span>RISK</span><span>95%</span></div>
-      </div>
-      <div class="up-speed-row" id="up-speedRow">
-        <button class="up-speed-pill" data-speed="slow" type="button">Slow</button>
-        <button class="up-speed-pill active" data-speed="normal" type="button">Normal</button>
-        <button class="up-speed-pill" data-speed="fast" type="button">Fast</button>
-      </div>
-      <div class="up-bet-box">
-        <div class="up-bet-field">
-          <img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">
-          <input id="up-betInput" type="text" inputmode="numeric" autocomplete="off" value="10">
-        </div>
-        <button class="up-mini" data-act="half" type="button">½</button>
-        <button class="up-mini" data-act="double" type="button">2×</button>
-        <button class="up-mini" data-act="max" type="button">MAX</button>
-      </div>
-      <button id="up-playBtn" type="button">Upgrade</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast-container"></div>
 
 <script>
@@ -2446,7 +2141,6 @@
   }
 
   function haptic(style){try{if(tg?.HapticFeedback)tg.HapticFeedback.impactOccurred(style||'light');else if(navigator.vibrate)navigator.vibrate(style==='heavy'?30:12)}catch(_){}}
-  window.__haptic=haptic;
   const $=s=>document.querySelector(s);
   const $$=s=>Array.prototype.slice.call(document.querySelectorAll(s));
 
@@ -2541,7 +2235,6 @@
     closeBtn.addEventListener('pointerdown', e => { e.stopPropagation(); dismissToast(t); });
     attachSwipe(t);
   }
-  window.showNotif=showNotif;
 
   function typeIn(el, text, speed){
     if(!el) return;
@@ -2594,8 +2287,6 @@
     storyRingsEnabled:false,
     fieldHighlightEnabled:false
   };
-  window.__state=state;
-  window.__SERVER_URL=SERVER_URL;
   let SERVER_ARENA_SIZE=400;
 
   const iceCanvas=document.getElementById('ice-canvas');
@@ -2648,15 +2339,6 @@
   const cardBalanceValue=document.getElementById('card-balance-value');
   const cardHolder=document.getElementById('card-holder');
 
-  // Glass rect elements
-  const iceStatsOverlay = document.getElementById('ice-stats-overlay');
-  const igrLastPfp       = document.getElementById('igr-last-pfp');
-  const igrLastName      = document.getElementById('igr-last-name');
-  const igrLastAmount    = document.getElementById('igr-last-amount');
-  const igrBestPfp       = document.getElementById('igr-best-pfp');
-  const igrBestName      = document.getElementById('igr-best-name');
-  const igrBestAmount    = document.getElementById('igr-best-amount');
-
   const socket=(typeof io!=='undefined')?io(SERVER_URL,{transports:['websocket','polling']}):null;
   function setOnline(on){
     if(statusDot)statusDot.classList.toggle('offline',!on);
@@ -2681,9 +2363,6 @@
         iceState.cornerRadius=res.iceArena?.cornerRadius||res.arena.cornerRadius;
         if(Array.isArray(res.iceRecentWinners)&&res.iceRecentWinners.length){
           iceState.winHistory=res.iceRecentWinners.slice(0,8);
-        }
-        if(res.iceBestWin) iceState.bestWin = res.iceBestWin;
-        else {
           const best=iceState.winHistory.reduce((m,e)=>(e.amount||0)>(m.amount||0)?e:m,{amount:0});
           if(best.amount>0) iceState.bestWin=best;
         }
@@ -2707,7 +2386,6 @@
           iceState.players.forEach(p=>loadIcePlayerPFP(p));
         }
         applyIdentity();updateBalance();updateProfile();updateWinrate();refreshLeaderboard();refreshCardUI();
-        updateGlassRects();
         if(window._topRefresh)clearInterval(window._topRefresh);
         window._topRefresh=setInterval(refreshLeaderboard,30000);
         animateWaitingText();setTimeout(resizeIceCanvas,60);
@@ -2796,7 +2474,6 @@
     animateBalanceTo(target);
     const cv=cardBalanceValue.querySelector('span');if(cv)cv.textContent=target.toLocaleString();
     panelSub.textContent=getDisplayHandle()+' · '+target.toLocaleString()+' ◆';
-    if(window.__onUpgradeBalance)window.__onUpgradeBalance(target);
   }
   function updateProfile(){
     pWins.textContent=state.wins;pLosses.textContent=state.losses;
@@ -2820,7 +2497,6 @@
     if(state.transactions.length>state.maxTx)state.transactions.pop();
     refreshTransactions();refreshCardStats();
   }
-  window.__addTx = addTransaction;
   function refreshTransactions(){
     const list=$('#tx-list');if(!list)return;
     if(state.transactions.length===0){list.innerHTML='<div class="tx-empty">No transactions yet</div>';return}
@@ -3442,45 +3118,6 @@
     nearStopFrames:0
   };
 
-  function updateGlassRects(){
-    if(!iceStatsOverlay) return;
-    const idle = (iceState.gameState === 'idle');
-    iceStatsOverlay.classList.toggle('hidden', !idle);
-
-    const last = (iceState.winHistory && iceState.winHistory[0]) || null;
-    if(last && last.name){
-      igrLastPfp.src = last.pfp || state.defaultAvatar;
-      igrLastPfp.onerror = function(){ this.src = state.defaultAvatar; };
-      igrLastName.textContent = last.name;
-      igrLastName.classList.remove('empty');
-      igrLastAmount.classList.remove('empty');
-      igrLastAmount.innerHTML = '<img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
-        Math.floor(last.amount||0).toLocaleString();
-    } else {
-      igrLastPfp.src = state.defaultAvatar;
-      igrLastName.textContent = '—'; igrLastName.classList.add('empty');
-      igrLastAmount.textContent = '—'; igrLastAmount.classList.add('empty');
-    }
-
-    let best = iceState.bestWin;
-    if((!best || !best.name) && iceState.winHistory && iceState.winHistory.length){
-      best = iceState.winHistory.reduce((m,e)=>(e.amount||0)>(m.amount||0)?e:m,{amount:0});
-    }
-    if(best && best.name){
-      igrBestPfp.src = best.pfp || state.defaultAvatar;
-      igrBestPfp.onerror = function(){ this.src = state.defaultAvatar; };
-      igrBestName.textContent = best.name;
-      igrBestName.classList.remove('empty');
-      igrBestAmount.classList.remove('empty');
-      igrBestAmount.innerHTML = '<img src="https://i.postimg.cc/vHKQ9y9q/diamond-elegant.gif" alt="">' +
-        Math.floor(best.amount||0).toLocaleString();
-    } else {
-      igrBestPfp.src = state.defaultAvatar;
-      igrBestName.textContent = '—'; igrBestName.classList.add('empty');
-      igrBestAmount.textContent = '—'; igrBestAmount.classList.add('empty');
-    }
-  }
-
   const puckBuffer = [];
   const PUCK_BUFFER_MAX = 30;
   const PUCK_INTERP_DELAY = 35;
@@ -3543,7 +3180,6 @@
     iceState.spinFinalAngle=snapshot.spinFinalAngle;
     iceState.spinStartX=snapshot.spinStartX||iceState.arenaSize/2;
     iceState.spinStartY=snapshot.spinStartY||iceState.arenaSize/2;
-    if(snapshot.bestWin !== undefined) iceState.bestWin = snapshot.bestWin;
     if(snapshot.gameState!=='sliding'||prev==='sliding'){
       iceState.puckPrevX=iceState.puck.x;iceState.puckPrevY=iceState.puck.y;
       iceState.puck.x=snapshot.puck.x;iceState.puck.y=snapshot.puck.y;
@@ -3601,7 +3237,6 @@
     iceState.players=iceState.players.filter(p=>seen.has(p.id));
     if(prev!=='idle'&&iceState.gameState==='idle'){iceState.winnerId=null;iceWaitingText.style.display='block'}
     updateIceStatsBar();updateIceBetUI();updateIceWaitingText();updateIceBetOverlayVisibility();updateIceTopPanelVisibility();
-    updateGlassRects();
   }
 
   let _topPanelShown=null, _timerMode=null;
@@ -3691,25 +3326,6 @@
     refreshLeaderboard();
     if(payload.winnerId===state.userId){state.balance+=payload.winnings;state.wins++;state.winStreak++}
     else{state.losses++;state.winStreak=0;addTransaction('loss',-payload.winnings,'Ice Loss vs '+payload.winnerName)}
-
-    // update local winner history
-    if(payload.winnerId){
-      iceState.winHistory.unshift({
-        name: payload.winnerName || 'Player',
-        pfp:  payload.winnerPfp || '',
-        amount: payload.winnings || 0,
-      });
-      if(iceState.winHistory.length > 8) iceState.winHistory.length = 8;
-      if(!iceState.bestWin || (payload.winnings||0) > (iceState.bestWin.amount||0)){
-        iceState.bestWin = {
-          name: payload.winnerName || 'Player',
-          pfp:  payload.winnerPfp || '',
-          amount: payload.winnings || 0,
-        };
-      }
-      updateGlassRects();
-    }
-
     updateBalance();updateProfile();
     if(window.__refreshLevel) window.__refreshLevel(true);
     iceWinGif.src=WIN_GIFS[Math.floor(Math.random()*WIN_GIFS.length)];
@@ -4923,13 +4539,6 @@
   const walletTransferBtn = document.getElementById('wallet-transfer-btn');
   if(walletTransferBtn) walletTransferBtn.addEventListener('click', openTransfer);
 
-  const walletUpgradeBtn = document.getElementById('wallet-upgrade-btn');
-  if(walletUpgradeBtn) walletUpgradeBtn.addEventListener('click', () => {
-    if(!state.userId){ showNotif('Please sign in first'); return; }
-    haptic('medium');
-    window.dispatchEvent(new CustomEvent('open-upgrade'));
-  });
-
   window.addEventListener('resize', () => {
     if(trOverlay.classList.contains('show') && trSignPage.classList.contains('active')){
       resizeSigCanvas();
@@ -5829,739 +5438,12 @@
     applyIdentity();applyLayout(layoutMode);resizeIceCanvas();initWalletCard();
     setOnline(false);updateIndicator(false);requestAnimationFrame(renderLoop);refreshCardUI();
     renderBadgeButton();
-    updateGlassRects();
     setTimeout(() => { if(window.__refreshLevel) window.__refreshLevel(true); }, 1500);
   }
   init();
   setTimeout(()=>{resizeIceCanvas();updateIndicator(false)},4200);
   window.addEventListener('orientationchange',()=>setTimeout(resizeIceCanvas,250));
-})();
-</script>
-
-<!-- ========== ICE UPGRADE GAME ========== -->
-<script>
-(function(){
-  'use strict';
-  const SERVER_URL='https://dllump-production-0a3d.up.railway.app';
-  const MAX_BET=1500;
-  const over=document.getElementById('upgrade-overlay');
-  const cv=document.getElementById('up-cv');
-  const ctx=cv.getContext('2d');
-  const playBtn=document.getElementById('up-playBtn');
-  const balOut=document.getElementById('up-balOut');
-  const banner=document.getElementById('up-banner');
-  const dailyBadge=document.getElementById('up-dailyBadge');
-  const closeBtn=document.getElementById('up-close');
-  const betInput=document.getElementById('up-betInput');
-  const slider=document.getElementById('up-slider');
-  const chanceOut=document.getElementById('up-chanceOut');
-  const multOut=document.getElementById('up-multOut');
-  const payoutOut=document.getElementById('up-payoutOut');
-  const speedPills=Array.prototype.slice.call(document.querySelectorAll('.up-speed-pill'));
-  const miniBtns=Array.prototype.slice.call(document.querySelectorAll('.up-mini'));
-  const settingsBtn=document.getElementById('up-settingsBtn');
-  const settingsPanel=document.getElementById('up-settingsPanel');
-  const settingRows=Array.prototype.slice.call(settingsPanel.querySelectorAll('.up-setting-row'));
-  const upPanel=document.getElementById('up-panel');
-  const upPanelToggle=document.getElementById('up-panelToggle');
-
-  const DEFAULT_SETTINGS={bounce:false,zoom:true,pop:true,outline:true,arrow:true,glow:true};
-  const settings=Object.assign({},DEFAULT_SETTINGS);
-  try{const raw=localStorage.getItem('dllump_up_settings');if(raw)Object.assign(settings,JSON.parse(raw))}catch(_){}
-  function saveSettings(){try{localStorage.setItem('dllump_up_settings',JSON.stringify(settings))}catch(_){}}
-  function setGlow(c,blur,color){if(settings.glow){c.shadowBlur=blur;c.shadowColor=color}else{c.shadowBlur=0;c.shadowColor='transparent'}}
-
-  const S=400,R=24,PUCK_R=24,HOUSE=0.03;
-  const MIN_CHANCE=0.05,MAX_CHANCE=95;
-
-  function buildPerimeter(size,r,N){
-    const segs=[];
-    segs.push({t:'l',a:{x:r,y:0},b:{x:size-r,y:0}});
-    segs.push({t:'a',c:{x:size-r,y:r},a0:-Math.PI/2,a1:0});
-    segs.push({t:'l',a:{x:size,y:r},b:{x:size,y:size-r}});
-    segs.push({t:'a',c:{x:size-r,y:size-r},a0:0,a1:Math.PI/2});
-    segs.push({t:'l',a:{x:size-r,y:size},b:{x:r,y:size}});
-    segs.push({t:'a',c:{x:r,y:size-r},a0:Math.PI/2,a1:Math.PI});
-    segs.push({t:'l',a:{x:0,y:size-r},b:{x:0,y:r}});
-    segs.push({t:'a',c:{x:r,y:r},a0:Math.PI,a1:3*Math.PI/2});
-    const lens=segs.map(s=>s.t==='l'?Math.hypot(s.b.x-s.a.x,s.b.y-s.a.y):Math.abs(s.a1-s.a0)*r);
-    const total=lens.reduce((a,b)=>a+b,0);
-    const pts=[];const step=total/N;let si=0,acc=0;
-    for(let i=0;i<N;i++){
-      const target=i*step;
-      while(si<segs.length-1&&acc+lens[si]<target){acc+=lens[si];si++}
-      const lt=Math.min(1,Math.max(0,(target-acc)/lens[si]));
-      const s=segs[si];let px,py;
-      if(s.t==='l'){px=s.a.x+(s.b.x-s.a.x)*lt;py=s.a.y+(s.b.y-s.a.y)*lt}
-      else{const ang=s.a0+(s.a1-s.a0)*lt;px=s.c.x+r*Math.cos(ang);py=s.c.y+r*Math.sin(ang)}
-      pts.push({x:px,y:py});
-    }
-    return pts;
-  }
-  const PERIM=buildPerimeter(S,R,240);
-  const RINK_PATH=(function(){const p=new Path2D();p.moveTo(PERIM[0].x,PERIM[0].y);
-    for(let i=1;i<PERIM.length;i++)p.lineTo(PERIM[i].x,PERIM[i].y);p.closePath();return p})();
-  const INNER_PATH=(function(){const p=new Path2D();const c=S/2,k=.965;
-    PERIM.forEach((v,i)=>{const x=c+(v.x-c)*k,y=c+(v.y-c)*k;
-      if(i===0)p.moveTo(x,y);else p.lineTo(x,y)});p.closePath();return p})();
-
-  function polyArea(p){if(!p||p.length<3)return 0;let a=0;
-    for(let i=0;i<p.length;i++){const q=p[i],r=p[(i+1)%p.length];a+=q.x*r.y-r.x*q.y}return Math.abs(a)*.5}
-  function bboxOf(poly){let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-    for(const v of poly){if(v.x<x0)x0=v.x;if(v.y<y0)y0=v.y;if(v.x>x1)x1=v.x;if(v.y>y1)y1=v.y}
-    return{x0,y0,x1,y1}}
-  function centroidOf(poly){let cx=0,cy=0;for(const v of poly){cx+=v.x;cy+=v.y}
-    return{x:cx/poly.length,y:cy/poly.length}}
-  function pointInPoly(px,py,poly){let inside=false;
-    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-      const xi=poly[i].x,yi=poly[i].y,xj=poly[j].x,yj=poly[j].y;
-      if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi))inside=!inside}
-    return inside}
-  function distToEdges(px,py,poly){let min=Infinity;
-    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-      const ax=poly[j].x,ay=poly[j].y,bx=poly[i].x,by=poly[i].y;
-      const dx=bx-ax,dy=by-ay;const l2=dx*dx+dy*dy;
-      let t=l2>0?((px-ax)*dx+(py-ay)*dy)/l2:0;t=Math.max(0,Math.min(1,t));
-      const d=Math.hypot(px-(ax+t*dx),py-(ay+t*dy));if(d<min)min=d}
-    return min}
-  function computeLabelCenter(poly){
-    if(!poly||poly.length<3)return{x:S/2,y:S/2};
-    const bb=bboxOf(poly);const w=bb.x1-bb.x0,h=bb.y1-bb.y0;
-    if(w<1||h<1)return{x:(bb.x0+bb.x1)/2,y:(bb.y0+bb.y1)/2};
-    const N=14;let bx=(bb.x0+bb.x1)/2,by=(bb.y0+bb.y1)/2,bd=-1;
-    for(let iy=0;iy<=N;iy++)for(let ix=0;ix<=N;ix++){
-      const x=bb.x0+(ix/N)*w,y=bb.y0+(iy/N)*h;
-      if(!pointInPoly(x,y,poly))continue;
-      const d=distToEdges(x,y,poly);if(d>bd){bd=d;bx=x;by=y}}
-    return{x:bx,y:by};
-  }
-  function polyToPath(poly){const p=new Path2D();if(!poly||poly.length<3)return p;
-    p.moveTo(poly[0].x,poly[0].y);
-    for(let i=1;i<poly.length;i++)p.lineTo(poly[i].x,poly[i].y);p.closePath();return p}
-  function hslToRgb(h,s,l){h=((h%360)+360)%360;s/=100;l/=100;
-    const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
-    let r,g,b;
-    if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}
-    else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}
-    else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
-    return[(r+m)*255,(g+m)*255,(b+m)*255]}
-  function rgbToHex(r,g,b){return'#'+[r,g,b].map(v=>{const s=Math.max(0,Math.min(255,Math.round(v))).toString(16);return s.length===1?'0'+s:s}).join('')}
-  function lighten(hex,amt){let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
-    r=Math.min(255,r+amt);g=Math.min(255,g+amt);b=Math.min(255,b+amt);return rgbToHex(r,g,b)}
-  function chanceToHue(chance){const c=Math.max(0,Math.min(1,chance));if(c<=.5)return(c/.5)*35;return 35+((c-.5)/.5)*95}
-  function chanceToHex(chance){const hue=chanceToHue(chance);const[r,g,b]=hslToRgb(hue,62,52);return rgbToHex(r,g,b)}
-  function findBboxCorners(poly){let tl=null,tr=null,bl=null,br=null;
-    let tlS=Infinity,trS=-Infinity,blS=Infinity,brS=-Infinity;
-    for(const v of poly){const a=v.x+v.y,b=v.x-v.y;
-      if(a<tlS){tlS=a;tl=v}if(a>brS){brS=a;br=v}
-      if(b>trS){trS=b;tr=v}if(b<blS){blS=b;bl=v}}
-    return[tl,tr,bl,br]}
-  function easeOutCubic(t){return 1-Math.pow(1-t,3)}
-  function easeInOutCubic(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
-
-  function splitPolygon(poly,ax,ay,bx,by){
-    const dx=bx-ax,dy=by-ay;
-    const side=p=>dx*(p.y-ay)-dy*(p.x-ax);
-    const eps=1e-7;const A=[],B=[];const n=poly.length;
-    for(let i=0;i<n;i++){
-      const a=poly[i],b=poly[(i+1)%n];const sa=side(a),sb=side(b);
-      if(sa>=-eps)A.push(a);if(sa<=eps)B.push(a);
-      if((sa>eps&&sb<-eps)||(sa<-eps&&sb>eps)){
-        const t=sa/(sa-sb);const ip={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
-        A.push(ip);B.push(ip);
-      }
-    }
-    return[A,B];
-  }
-  function pickCut(poly,angle,targetRatio){
-    const bb=bboxOf(poly);const cx=(bb.x0+bb.x1)/2,cy=(bb.y0+bb.y1)/2;
-    const range=Math.hypot(bb.x1-bb.x0,bb.y1-bb.y0);
-    const dirX=Math.cos(angle),dirY=Math.sin(angle);
-    const perpX=-dirY,perpY=dirX;
-    const totalArea=polyArea(poly);const minArea=totalArea*Math.min(.003,targetRatio*.4);
-    let lo=-range*1.2,hi=range*1.2;let best=null,bestErr=Infinity;
-    for(let i=0;i<26;i++){
-      const mid=(lo+hi)/2;const px=cx+perpX*mid,py=cy+perpY*mid;
-      const ax=px-dirX*range*2,ay=py-dirY*range*2;
-      const bx=px+dirX*range*2,by=py+dirY*range*2;
-      const pieces=splitPolygon(poly,ax,ay,bx,by);
-      const A=pieces[0],B=pieces[1];
-      if(A.length<3||B.length<3){if(mid>0)hi=mid;else lo=mid;continue}
-      const aA=polyArea(A),aB=polyArea(B);const tot=aA+aB;
-      if(tot<1e-6){if(mid>0)hi=mid;else lo=mid;continue}
-      const ratio=aA/tot;const err=Math.abs(ratio-targetRatio);
-      if(err<bestErr&&aA>=minArea&&aB>=minArea){bestErr=err;best={win:A,lose:B}}
-      if(ratio>targetRatio)lo=mid;else hi=mid;
-      if(bestErr<.0005)break;
-    }
-    return best;
-  }
-
-  const G={
-    balance:0,bet:10,
-    chance:.45,shown:.45,shownVel:0,lastShown:-1,cutAngle:0,
-    winPoly:null,losePoly:null,winCenter:null,loseCenter:null,winBB:null,loseBB:null,
-    state:'idle',puck:{x:S/2,y:S/2},puckScale:1,puckAlpha:1,path:null,
-    spinStart:0,spinDuration:1.9,spinFinalAngle:0,spinArrowAngle:0,spinExtraTurns:4,
-    rollStart:0,duration:10,zoom:1,zoomCenterX:S/2,zoomCenterY:S/2,zoomAtStop:1,
-    stopPopStart:0,stopPopDuration:.7,outcome:false,rollMult:2,rollBet:10,
-    speedMode:'normal',flashT:0,bannerTimer:null,doneTimer:null,
-  };
-
-  let cssSize=340,scale=.85,dpr=1;
-  function resize(){
-    const stage=document.getElementById('up-stage');
-    if(!stage)return;
-    const rect=stage.getBoundingClientRect();
-    const size=Math.max(160,Math.floor(Math.min(rect.width,rect.height)-16));
-    cssSize=size;dpr=Math.min(window.devicePixelRatio||1,3);
-    cv.width=Math.round(size*dpr);cv.height=Math.round(size*dpr);
-    cv.style.width=size+'px';cv.style.height=size+'px';
-    scale=size/S;ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  }
-
-  const FAST_DURATION=2.4,SLOW_DURATION=6.5;
-  const TOTAL_DURATION=FAST_DURATION+SLOW_DURATION;
-  const FAST_FRAC=.55;const U1=FAST_DURATION/TOTAL_DURATION;
-  const SLOW_EXP=(FAST_FRAC/U1)*(1-U1)/(1-FAST_FRAC);
-  const SPEED_MULT={slow:1.5,normal:1,fast:.5};
-  const ZOOM_MAX=1.85,ZOOM_LEAD=1.5,ZOOM_IN_DURATION=.9;
-  const ZOOM_OUT_DELAY=.35,ZOOM_OUT_DURATION=1;
-  function distFrac(u){if(u<=U1)return(u/U1)*FAST_FRAC;
-    const t=(u-U1)/(1-U1);return FAST_FRAC+(1-FAST_FRAC)*(1-Math.pow(1-t,SLOW_EXP))}
-
-  const FIELD_OMEGA=6,FIELD_ZETA=.62;
-  function stepFieldSpring(dt){
-    const diff=G.chance-G.shown;
-    const accel=FIELD_OMEGA*FIELD_OMEGA*diff-2*FIELD_ZETA*FIELD_OMEGA*G.shownVel;
-    G.shownVel+=accel*dt;G.shown+=G.shownVel*dt;
-    if(G.shown<.0002){G.shown=.0002;if(G.shownVel<0)G.shownVel=0}
-    if(G.shown>.999){G.shown=.999;if(G.shownVel>0)G.shownVel=0}
-    if(Math.abs(diff)<.0003&&Math.abs(G.shownVel)<.0003){G.shown=G.chance;G.shownVel=0}
-  }
-
-  function randomizeAngle(){G.cutAngle=Math.random()*Math.PI*2}
-  function recomputeField(){
-    const target=Math.max(.0003,Math.min(.9997,G.shown));
-    const cut=pickCut(PERIM,G.cutAngle,target);
-    if(cut){
-      G.winPoly=cut.win;G.losePoly=cut.lose;
-      G.winBB=bboxOf(G.winPoly);G.loseBB=bboxOf(G.losePoly);
-      G.winCenter=computeLabelCenter(G.winPoly);
-      G.loseCenter=computeLabelCenter(G.losePoly);
-    }
-    G.lastShown=G.shown;
-  }
-
-  function pickTargetPoint(poly){
-    if(!poly||poly.length<3)return{x:S/2,y:S/2};
-    const bb=bboxOf(poly);const w=bb.x1-bb.x0,h=bb.y1-bb.y0;
-    const margins=[Math.min(22,h*.34,w*.34),Math.min(15,h*.27,w*.27),
-      Math.min(10,h*.21,w*.21),Math.min(6,h*.15,w*.15),Math.min(3,h*.10,w*.10),.4];
-    for(const m of margins){
-      if(m<=0)continue;
-      for(let i=0;i<260;i++){
-        const x=bb.x0+Math.random()*w,y=bb.y0+Math.random()*h;
-        if(pointInPoly(x,y,poly)&&distToEdges(x,y,poly)>=m)return{x,y};
-      }
-    }
-    const c=centroidOf(poly);
-    if(pointInPoly(c.x,c.y,poly))return c;
-    for(let i=0;i<4000;i++){
-      const x=bb.x0+Math.random()*w,y=bb.y0+Math.random()*h;
-      if(pointInPoly(x,y,poly))return{x,y};
-    }
-    return centroidOf(poly);
-  }
-  function foldAxis(v){const m=((v%(2*S))+2*S)%(2*S);return m<=S?m:2*S-m}
-  const TARGET_LEN=5200,LEN_MIN=4800,LEN_MAX=5600;
-  function buildBilliardPath(start,target){
-    let bestValid=null,bestValidDelta=Infinity;
-    for(let attempt=0;attempt<20000;attempt++){
-      const ix=Math.floor(Math.random()*60)-30,iy=Math.floor(Math.random()*60)-30;
-      if(ix===0&&iy===0)continue;
-      const sx=Math.random()<.5?-1:1,sy=Math.random()<.5?-1:1;
-      const U={x:sx*target.x+2*S*ix,y:sy*target.y+2*S*iy};
-      const dx=U.x-start.x,dy=U.y-start.y;
-      const straight=Math.hypot(dx,dy);
-      if(straight<LEN_MIN||straight>LEN_MAX)continue;
-      const cuts=[];
-      if(Math.abs(dx)>1e-6){
-        const k0=Math.ceil(Math.min(start.x,U.x)/S),k1=Math.floor(Math.max(start.x,U.x)/S);
-        for(let k=k0;k<=k1;k++){const t=(k*S-start.x)/dx;if(t>1e-4&&t<1-1e-4)cuts.push({t})}
-      }
-      if(Math.abs(dy)>1e-6){
-        const k0=Math.ceil(Math.min(start.y,U.y)/S),k1=Math.floor(Math.max(start.y,U.y)/S);
-        for(let k=k0;k<=k1;k++){const t=(k*S-start.y)/dy;if(t>1e-4&&t<1-1e-4)cuts.push({t})}
-      }
-      cuts.sort((a,b)=>a.t-b.t);
-      let cornerHit=false;
-      for(let i=1;i<cuts.length;i++){if(Math.abs(cuts[i].t-cuts[i-1].t)<1e-5){cornerHit=true;break}}
-      if(cornerHit)continue;
-      const pts=[{x:start.x,y:start.y}];
-      for(const c of cuts){
-        const ux=start.x+dx*c.t,uy=start.y+dy*c.t;
-        pts.push({x:foldAxis(ux),y:foldAxis(uy)});
-      }
-      pts.push({x:target.x,y:target.y});
-      let bad=false;
-      for(let i=1;i<pts.length-1;i++){
-        const p=pts[i];const nX=(p.x<R+8||p.x>S-R-8),nY=(p.y<R+8||p.y>S-R-8);
-        if(nX&&nY){bad=true;break}
-      }
-      if(bad)continue;
-      let minSeg=Infinity;
-      for(let i=1;i<pts.length;i++){
-        const d=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
-        if(d<minSeg)minSeg=d;
-      }
-      if(minSeg<26)continue;
-      const cum=[0];
-      for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y));
-      const total=cum[cum.length-1];
-      if(total<LEN_MIN)continue;
-      const delta=Math.abs(total-TARGET_LEN);
-      if(delta<bestValidDelta){bestValidDelta=delta;bestValid={pts,cum,total}}
-      if(bestValidDelta<50)break;
-    }
-    if(bestValid)return bestValid;
-    const angle=Math.random()*Math.PI*2;
-    const d=LEN_MIN+Math.random()*(LEN_MAX-LEN_MIN)*.5;
-    const uxIdeal=start.x+d*Math.cos(angle),uyIdeal=start.y+d*Math.sin(angle);
-    const sx=Math.random()<.5?-1:1,sy=Math.random()<.5?-1:1;
-    const ix=Math.round((uxIdeal-sx*target.x)/(2*S));
-    const iy=Math.round((uyIdeal-sy*target.y)/(2*S));
-    const U={x:sx*target.x+2*S*ix,y:sy*target.y+2*S*iy};
-    const dx=U.x-start.x,dy=U.y-start.y;
-    const cuts=[];
-    if(Math.abs(dx)>1e-6){
-      const k0=Math.ceil(Math.min(start.x,U.x)/S),k1=Math.floor(Math.max(start.x,U.x)/S);
-      for(let k=k0;k<=k1;k++){const t=(k*S-start.x)/dx;if(t>1e-4&&t<1-1e-4)cuts.push({t})}
-    }
-    if(Math.abs(dy)>1e-6){
-      const k0=Math.ceil(Math.min(start.y,U.y)/S),k1=Math.floor(Math.max(start.y,U.y)/S);
-      for(let k=k0;k<=k1;k++){const t=(k*S-start.y)/dy;if(t>1e-4&&t<1-1e-4)cuts.push({t})}
-    }
-    cuts.sort((a,b)=>a.t-b.t);
-    const pts=[{x:start.x,y:start.y}];
-    for(const c of cuts){
-      const ux=start.x+dx*c.t,uy=start.y+dy*c.t;
-      pts.push({x:foldAxis(ux),y:foldAxis(uy)});
-    }
-    pts.push({x:target.x,y:target.y});
-    const cum=[0];
-    for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y));
-    return{pts,cum,total:cum[cum.length-1]};
-  }
-  function pointAtPath(p,d){
-    if(d<=0)return{x:p.pts[0].x,y:p.pts[0].y};
-    if(d>=p.total){const l=p.pts[p.pts.length-1];return{x:l.x,y:l.y}}
-    let i=0;
-    while(i<p.cum.length-2&&p.cum[i+1]<d)i++;
-    const seg=p.cum[i+1]-p.cum[i];
-    const t=seg>0?(d-p.cum[i])/seg:0;
-    const a=p.pts[i],b=p.pts[i+1];
-    return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
-  }
-
-  function multiplierFor(c){return(1-HOUSE)/c}
-  function formatChance(p){if(p<1)return p.toFixed(2)+'%';if(p<10)return p.toFixed(1)+'%';return Math.round(p)+'%'}
-  function syncSliderFill(){
-    const min=+slider.min,max=+slider.max,v=+slider.value;
-    const pct=((v-min)/(max-min))*100;
-    const hue=chanceToHue(G.shown);const[r,g,b]=hslToRgb(hue,70,55);
-    const fill='rgb('+r+','+g+','+b+')';
-    const fillLight='rgb('+Math.min(255,r+30)+','+Math.min(255,g+30)+','+Math.min(255,b+30)+')';
-    slider.style.setProperty('--up-track','linear-gradient(90deg,'+fill+' 0%,'+fillLight+' '+pct.toFixed(1)+'%,rgba(255,255,255,.075) '+pct.toFixed(1)+'%,rgba(255,255,255,.075) 100%)');
-    slider.style.setProperty('--up-thumb-glow','rgba('+r+','+g+','+b+',.35)');
-  }
-  function syncUI(){
-    const m=multiplierFor(G.chance);
-    balOut.textContent=Math.floor(G.balance).toLocaleString();
-    chanceOut.textContent=formatChance(G.chance*100);
-    multOut.textContent=m.toFixed(2)+'×';
-    payoutOut.textContent=Math.floor(G.bet*m).toLocaleString();
-    syncSliderFill();
-    slider.disabled=(G.state!=='idle');
-  }
-
-  slider.addEventListener('input',()=>{
-    const v=Math.max(MIN_CHANCE,Math.min(MAX_CHANCE,+slider.value));
-    G.chance=v/100;const m=multiplierFor(G.chance);
-    chanceOut.textContent=formatChance(G.chance*100);
-    multOut.textContent=m.toFixed(2)+'×';
-    payoutOut.textContent=Math.floor(G.bet*m).toLocaleString();
-  });
-  betInput.addEventListener('input',()=>{
-    const v=betInput.value.replace(/[^0-9]/g,'').slice(0,9);
-    betInput.value=v;G.bet=v===''?0:parseInt(v,10);syncUI();
-  });
-  betInput.addEventListener('blur',()=>{
-    if(!G.bet||G.bet<1)G.bet=10;
-    if(G.bet>MAX_BET)G.bet=MAX_BET;
-    if(G.bet>G.balance)G.bet=Math.max(1,Math.floor(G.balance));
-    betInput.value=G.bet;syncUI();
-  });
-  miniBtns.forEach(btn=>btn.addEventListener('click',()=>{
-    const act=btn.dataset.act;
-    if(act==='half')G.bet=Math.max(1,Math.floor(G.bet/2));
-    if(act==='double')G.bet=Math.max(1,Math.min(MAX_BET,Math.floor(G.balance),G.bet*2));
-    if(act==='max')G.bet=Math.min(MAX_BET,Math.max(1,Math.floor(G.balance)));
-    betInput.value=G.bet;syncUI();
-  }));
-  speedPills.forEach(pill=>pill.addEventListener('click',()=>{
-    if(G.state!=='idle')return;
-    G.speedMode=pill.dataset.speed;
-    speedPills.forEach(p=>p.classList.toggle('active',p===pill));
-    try{localStorage.setItem('dllump_up_speed',G.speedMode)}catch(_){}
-  }));
-  try{const s=localStorage.getItem('dllump_up_speed');
-    if(s&&SPEED_MULT[s]){G.speedMode=s;
-      speedPills.forEach(p=>p.classList.toggle('active',p.dataset.speed===s))}}catch(_){}
-
-  function refreshSettingRows(){settingRows.forEach(row=>row.classList.toggle('active',!!settings[row.dataset.key]))}
-  refreshSettingRows();
-  settingRows.forEach(row=>row.addEventListener('click',e=>{
-    e.stopPropagation();const key=row.dataset.key;settings[key]=!settings[key];
-    saveSettings();refreshSettingRows();
-  }));
-  function openSettings(){settingsPanel.classList.add('open');settingsBtn.classList.add('open')}
-  function closeSettings(){settingsPanel.classList.remove('open');settingsBtn.classList.remove('open')}
-  settingsBtn.addEventListener('click',e=>{e.stopPropagation();
-    settingsPanel.classList.contains('open')?closeSettings():openSettings()});
-  document.addEventListener('click',e=>{
-    if(!settingsPanel.classList.contains('open'))return;
-    if(settingsPanel.contains(e.target))return;
-    if(settingsBtn.contains(e.target))return;
-    closeSettings();
-  });
-  upPanelToggle.addEventListener('click',e=>{e.stopPropagation();upPanel.classList.toggle('hidden');closeSettings()});
-
-  function showBanner(text,win){
-    banner.textContent=text;banner.className='show '+(win?'win':'lose');
-    clearTimeout(G.bannerTimer);G.bannerTimer=setTimeout(()=>banner.classList.remove('show'),1600);
-  }
-
-  function startRoll(){
-    if(G.state!=='idle')return;
-    closeSettings();
-    if(!window.__state||!window.__state.userId){window.showNotif?.('Not logged in');return}
-    if(G.bet<1){G.bet=10;betInput.value=10;syncUI();return}
-    if(G.bet>MAX_BET){G.bet=MAX_BET;betInput.value=MAX_BET;syncUI();return}
-    if(G.bet>G.balance){window.showNotif?.('Insufficient balance');return}
-    playBtn.disabled=true;
-    fetch(SERVER_URL+'/api/ice/upgrade',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({userId:window.__state.userId,bet:G.bet,chance:G.chance*100}),
-    }).then(r=>r.json()).then(res=>{
-      if(!res.ok){window.showNotif?.(res.error||'Failed');playBtn.disabled=false;return}
-      if(window.__state)window.__state.balance=res.newBalance;
-      G.balance=res.newBalance;
-      balOut.textContent=Math.floor(res.newBalance).toLocaleString();
-      if(typeof res.upgradesLeft==='number'){
-        dailyBadge.textContent=res.upgradesLeft+' LEFT TODAY';
-        dailyBadge.style.color=res.upgradesLeft===0?'#ff6b7f':'#f0d080';
-      }
-      G.outcome=!!res.win;G.rollMult=res.multiplier;G.rollBet=G.bet;
-      runVisualRoll();
-    }).catch(()=>{window.showNotif?.('Network error');playBtn.disabled=false});
-  }
-
-  function runVisualRoll(){
-    G.shown=G.chance;G.shownVel=0;recomputeField();
-    if(!G.winPoly||!G.losePoly){playBtn.disabled=false;return}
-    const region=G.outcome?G.winPoly:G.losePoly;
-    const target=pickTargetPoint(region);
-    const path=buildBilliardPath({x:S/2,y:S/2},target);
-    G.path=path;G.duration=TOTAL_DURATION*(SPEED_MULT[G.speedMode]||1);
-    const dx=path.pts[1].x-path.pts[0].x;
-    const dy=path.pts[1].y-path.pts[0].y;
-    G.spinFinalAngle=Math.atan2(dy,dx);
-    G.spinExtraTurns=3+Math.floor(Math.random()*4);
-    G.spinArrowAngle=G.spinFinalAngle-G.spinExtraTurns*2*Math.PI;
-    G.spinStart=performance.now();
-    G.spinDuration=1.7+Math.random()*.5;
-    G.rollStart=0;G.state='spinning';
-    G.puck.x=S/2;G.puck.y=S/2;G.puckScale=.55;G.puckAlpha=1;
-    G.stopPopStart=0;G.zoom=1;G.zoomCenterX=S/2;G.zoomCenterY=S/2;G.zoomAtStop=1;
-    banner.classList.remove('show');syncUI();
-  }
-
-  function finishRoll(){
-    G.state='done';
-    G.flashT=performance.now();G.stopPopStart=performance.now();G.zoomAtStop=G.zoom;
-    if(G.outcome){
-      const payout=Math.floor(G.rollBet*G.rollMult);
-      showBanner('+'+payout.toLocaleString(),true);
-      window.__state && (window.__state.wins=(window.__state.wins||0)+1);
-      window.__addTx && window.__addTx('win',payout,'Upgrade Win');
-    } else {
-      showBanner('−'+G.rollBet.toLocaleString(),false);
-      window.__state && (window.__state.losses=(window.__state.losses||0)+1);
-      window.__addTx && window.__addTx('loss',-G.rollBet,'Upgrade Loss');
-    }
-    setTimeout(()=>{
-      if(window.__state){
-        const el=document.getElementById('p-wins');
-        if(el)el.textContent=window.__state.wins||0;
-        const el2=document.getElementById('p-losses');
-        if(el2)el2.textContent=window.__state.losses||0;
-        if(window.__state && window.__state.balance!==undefined){
-          const balEl=document.getElementById('bal');
-          if(balEl)balEl.textContent=Math.floor(window.__state.balance).toLocaleString();
-        }
-      }
-    },200);
-    syncUI();
-    clearTimeout(G.doneTimer);
-    G.doneTimer=setTimeout(()=>{
-      if(G.state!=='done')return;
-      G.state='idle';
-      G.puck.x=S/2;G.puck.y=S/2;G.puckAlpha=0;G.puckScale=.55;
-      G.stopPopStart=0;G.zoom=1;G.zoomCenterX=S/2;G.zoomCenterY=S/2;
-      playBtn.disabled=false;
-      randomizeAngle();recomputeField();
-      if(G.bet>G.balance)G.bet=Math.max(1,Math.floor(G.balance));
-      if(G.bet>MAX_BET)G.bet=MAX_BET;
-      betInput.value=G.bet;syncUI();
-    },2400);
-  }
-  playBtn.addEventListener('click',startRoll);
-
-  function puckPopScale(t){
-    if(t<=0||t>=1)return 1;
-    if(t<.28){const k=t/.28;return 1+.58*(1-Math.pow(1-k,2))}
-    const k=(t-.28)/.72;const decay=Math.pow(1-k,2.1);
-    return 1+.58*decay*Math.cos(k*Math.PI*2.3);
-  }
-  const PUCK_OPTS={rimRatio:.44,outerRatio:.32,rimAlpha:.95,outerAlpha:.20,innerGlow:.10,cross:true,crossAlpha:.28,crossWidth:1.6};
-  function drawPuck(c,x,y,r){
-    if(r<=.5)return;const scale=r/36;
-    const rim=PUCK_OPTS.rimRatio*r,outer=PUCK_OPTS.outerRatio*r;
-    c.save();c.beginPath();c.lineWidth=outer;
-    c.strokeStyle='rgba(255,255,255,'+PUCK_OPTS.outerAlpha+')';
-    c.lineCap='round';c.arc(x,y,r+outer*.12,0,Math.PI*2);c.stroke();c.restore();
-    c.save();c.beginPath();c.lineWidth=rim;
-    c.strokeStyle='rgba(255,255,255,'+PUCK_OPTS.rimAlpha+')';
-    c.lineCap='round';c.arc(x,y,r-rim/2,0,Math.PI*2);c.stroke();c.restore();
-    c.save();c.beginPath();c.lineWidth=Math.max(1,rim*.36);
-    c.strokeStyle='rgba(0,0,0,.18)';c.lineCap='round';
-    c.arc(x,y,r-rim*.9,0,Math.PI*2);c.stroke();c.restore();
-    if(PUCK_OPTS.cross){
-      const L=r*1.9;c.save();c.lineWidth=PUCK_OPTS.crossWidth*(r/20);
-      c.strokeStyle='rgba(255,255,255,'+PUCK_OPTS.crossAlpha+')';
-      c.beginPath();
-      c.moveTo(x-L/2,y);c.lineTo(x+L/2,y);
-      c.moveTo(x,y-L/2);c.lineTo(x,y+L/2);
-      c.stroke();c.restore();
-    }
-  }
-
-  function drawEmptyCross(c,x,y,size){
-    if(size<4)return;c.save();
-    c.strokeStyle='rgba(255,255,255,.52)';
-    c.lineWidth=Math.max(1.4,size*.13);c.lineCap='round';
-    setGlow(c,size*.45,'rgba(200,220,255,.5)');
-    c.beginPath();
-    c.moveTo(x-size*.3,y-size*.3);c.lineTo(x+size*.3,y+size*.3);
-    c.moveTo(x+size*.3,y-size*.3);c.lineTo(x-size*.3,y+size*.3);
-    c.stroke();c.restore();
-  }
-
-  function draw(now){
-    const c=ctx;
-    c.setTransform(dpr,0,0,dpr,0,0);
-    c.clearRect(0,0,cssSize,cssSize);
-    c.save();c.scale(scale,scale);
-    c.fillStyle='#06070c';c.fillRect(0,0,S,S);
-    const m=multiplierFor(G.chance);
-    const fieldHex=chanceToHex(G.shown);
-    const zoomActive=settings.zoom&&G.zoom>1.002;
-    if(zoomActive){c.save();c.translate(S/2,S/2);c.scale(G.zoom,G.zoom);
-      c.translate(-G.zoomCenterX,-G.zoomCenterY)}
-    c.save();c.fillStyle='#070b14';c.fill(RINK_PATH);c.restore();
-    c.save();c.clip(RINK_PATH);
-    const bg=c.createRadialGradient(S/2,S*.34,20,S/2,S/2,S*.80);
-    bg.addColorStop(0,'rgba(52,70,108,.55)');
-    bg.addColorStop(.5,'rgba(22,32,52,.62)');
-    bg.addColorStop(1,'rgba(6,10,18,.80)');
-    c.fillStyle=bg;c.fillRect(0,0,S,S);
-
-    if(G.losePoly&&G.losePoly.length>=3&&G.loseBB&&G.loseCenter){
-      const lp=polyToPath(G.losePoly);
-      const lbb=G.loseBB;const lw=lbb.x1-lbb.x0,lh=lbb.y1-lbb.y0;
-      const lc=G.loseCenter;
-      const lg=c.createLinearGradient(lbb.x0,lbb.y0,lbb.x1,lbb.y1);
-      lg.addColorStop(0,'#10131c');lg.addColorStop(.5,'#181c28');lg.addColorStop(1,'#0d1018');
-      c.fillStyle=lg;c.fill(lp);
-      c.strokeStyle='rgba(255,255,255,.10)';c.lineWidth=1.2;c.lineJoin='round';c.stroke(lp);
-      c.textAlign='center';c.textBaseline='middle';
-      if(lw>50&&lh>50){
-        const crossSize=Math.min(14,Math.min(lw,lh)*.18);
-        drawEmptyCross(c,lc.x,lc.y+crossSize*.2,crossSize);
-        c.fillStyle='rgba(230,240,255,.65)';
-        c.font='800 9.5px -apple-system,system-ui,sans-serif';
-        c.fillText('EMPTY',lc.x,lc.y+crossSize*1.3);
-      } else if(lw>26&&lh>26){
-        const crossSize=Math.min(10,Math.min(lw,lh)*.28);
-        drawEmptyCross(c,lc.x,lc.y,crossSize);
-      }
-    }
-
-    if(G.winPoly&&G.winPoly.length>=3&&G.winBB&&G.winCenter){
-      const wp=polyToPath(G.winPoly);
-      const wbb=G.winBB;const wc=G.winCenter;
-      const ww=wbb.x1-wbb.x0,wh=wbb.y1-wbb.y0;
-      const wg=c.createLinearGradient(wbb.x0,wbb.y0,wbb.x1,wbb.y1);
-      wg.addColorStop(0,lighten(fieldHex,42));
-      wg.addColorStop(.5,fieldHex);
-      wg.addColorStop(1,lighten(fieldHex,18));
-      c.fillStyle=wg;c.fill(wp);
-      if(settings.outline){
-        c.save();c.strokeStyle='rgba(255,255,255,.88)';
-        c.lineWidth=2;c.lineJoin='round';c.stroke(wp);c.restore();
-      }
-      c.textAlign='center';c.textBaseline='middle';
-      if(ww>80&&wh>60){
-        c.fillStyle='rgba(255,255,255,.92)';
-        c.font='800 10.5px -apple-system,system-ui,sans-serif';
-        c.fillText('W I N',wc.x,wc.y-18);
-        c.fillStyle='rgba(255,255,255,1)';
-        c.font='900 24px -apple-system,system-ui,sans-serif';
-        c.fillText('×'+m.toFixed(2),wc.x,wc.y+8);
-      } else if(ww>46&&wh>30){
-        c.fillStyle='rgba(255,255,255,1)';
-        c.font='900 15px -apple-system,system-ui,sans-serif';
-        c.fillText('×'+m.toFixed(2),wc.x,wc.y);
-      }
-    }
-
-    if(G.state==='done'){
-      const age=(now-G.flashT)/1000;
-      if(age<1){
-        const a=(1-age)*.32;
-        c.fillStyle=G.outcome?'rgba(120,190,255,'+a+')':'rgba(224,85,107,'+(a*.85)+')';
-        c.fillRect(0,0,S,S);
-      }
-    }
-    c.restore();
-
-    c.save();setGlow(c,38,'rgba(140,180,255,.55)');
-    c.strokeStyle='rgba(180,210,255,.15)';
-    c.lineWidth=22;c.lineJoin='round';c.stroke(RINK_PATH);c.restore();
-    c.save();setGlow(c,20,'rgba(120,170,255,.55)');
-    c.strokeStyle='rgba(150,190,255,.42)';
-    c.lineWidth=10;c.lineJoin='round';c.stroke(RINK_PATH);c.restore();
-    c.save();setGlow(c,14,'rgba(255,255,255,.95)');
-    c.strokeStyle='rgba(255,255,255,.95)';
-    c.lineWidth=3.2;c.lineJoin='round';c.stroke(RINK_PATH);c.restore();
-    if(settings.outline){
-      c.save();c.strokeStyle='rgba(255,255,255,.28)';
-      c.lineWidth=1.2;c.lineJoin='round';c.stroke(INNER_PATH);c.restore();
-    }
-    if(G.puckAlpha>.01){
-      let popScale=1;
-      if(settings.pop&&G.state==='done'&&G.stopPopStart>0){
-        const age=(now-G.stopPopStart)/1000;
-        const t=Math.min(1,age/G.stopPopDuration);
-        popScale=puckPopScale(t);
-      }
-      c.save();c.globalAlpha=G.puckAlpha;
-      drawPuck(c,G.puck.x,G.puck.y,PUCK_R*G.puckScale*popScale);
-      c.restore();
-    }
-    if(zoomActive)c.restore();
-    c.restore();
-  }
-
-  let lastT=0;
-  function frame(now){
-    requestAnimationFrame(frame);
-    if(!over.classList.contains('show'))return;
-    const dt=Math.min(.05,(now-lastT)/1000||.016);lastT=now;
-    if(G.state==='idle'){stepFieldSpring(dt);if(Math.abs(G.shown-G.lastShown)>.0025)recomputeField()}
-    if(G.state==='spinning'){
-      const t=(now-G.spinStart)/1000/G.spinDuration;
-      if(t>=1){G.spinArrowAngle=G.spinFinalAngle;G.state='rolling';G.rollStart=now}
-      else{const e=1-Math.pow(1-t,3);G.spinArrowAngle=G.spinFinalAngle-(1-e)*G.spinExtraTurns*2*Math.PI}
-    }
-    if(G.state==='rolling'){
-      const elapsed=(now-G.rollStart)/1000;
-      const u=Math.min(1,elapsed/G.duration);
-      const dist=G.path.total*distFrac(u);
-      if(u>=1){const last=G.path.pts[G.path.pts.length-1];G.puck.x=last.x;G.puck.y=last.y;finishRoll()}
-      else{const p=pointAtPath(G.path,dist);G.puck.x=p.x;G.puck.y=p.y}
-      if(G.puckScale<1)G.puckScale=Math.min(1,G.puckScale+dt*3.4);
-      if(settings.zoom){
-        const zoomStartAt=Math.max(0,G.duration-ZOOM_LEAD);
-        if(elapsed>=zoomStartAt){
-          const zp=Math.min(1,(elapsed-zoomStartAt)/ZOOM_IN_DURATION);
-          G.zoom=1+(ZOOM_MAX-1)*easeOutCubic(zp);
-        } else G.zoom=1;
-        if(G.zoom>1.002){
-          const fr=Math.min(1,dt*9);
-          G.zoomCenterX+=(G.puck.x-G.zoomCenterX)*fr;
-          G.zoomCenterY+=(G.puck.y-G.zoomCenterY)*fr;
-        }
-      } else G.zoom=1;
-    }
-    if(G.state==='done'){
-      if(settings.zoom){
-        const since=(now-G.stopPopStart)/1000;
-        if(since<ZOOM_OUT_DELAY)G.zoom=G.zoomAtStop;
-        else{const t=Math.min(1,(since-ZOOM_OUT_DELAY)/ZOOM_OUT_DURATION);
-          G.zoom=G.zoomAtStop-(G.zoomAtStop-1)*easeInOutCubic(t)}
-      } else G.zoom=1;
-    }
-    if(G.state==='idle'){
-      if(G.puckScale<1)G.puckScale=Math.min(1,G.puckScale+dt*2.6);
-      if(G.puckAlpha<1)G.puckAlpha=Math.min(1,G.puckAlpha+dt*3.4);
-      G.puck.x+=(S/2-G.puck.x)*Math.min(1,dt*12);
-      G.puck.y+=(S/2-G.puck.y)*Math.min(1,dt*12);
-      G.zoom=1;
-    }
-    draw(now);
-  }
-
-  function boot(){
-    if(window.__state){G.balance=window.__state.balance;
-      balOut.textContent=Math.floor(G.balance).toLocaleString()}
-    randomizeAngle();recomputeField();syncUI();
-    requestAnimationFrame(t=>{lastT=t;requestAnimationFrame(frame)});
-  }
-
-  window.__onUpgradeBalance=function(bal){
-    G.balance=bal;balOut.textContent=Math.floor(bal).toLocaleString();
-    if(G.state==='idle'&&G.bet>G.balance){
-      G.bet=Math.min(MAX_BET,Math.max(1,Math.floor(G.balance)));
-      betInput.value=G.bet;syncUI();
-    }
-  };
-
-  function openUpgrade(){
-    if(!window.__state?.userId){window.showNotif?.('Please sign in first');return}
-    over.classList.add('show');over.setAttribute('aria-hidden','false');
-    setTimeout(()=>{resize();boot();refreshDailyBadge()},50);
-    window.__haptic?.('medium');
-  }
-  function closeUpgrade(){
-    over.classList.remove('show');over.setAttribute('aria-hidden','true');
-    closeSettings();window.__haptic?.('light');
-  }
-  window.addEventListener('open-upgrade',openUpgrade);
-  closeBtn.addEventListener('click',closeUpgrade);
-
-  function refreshDailyBadge(){
-    if(!window.__state?.userId)return;
-    fetch(SERVER_URL+'/api/ice/upgrade/status?userId='+encodeURIComponent(window.__state.userId))
-      .then(r=>r.json()).then(d=>{
-        if(!d.ok)return;
-        dailyBadge.textContent=(d.upgradesLeft|0)+' LEFT TODAY';
-        dailyBadge.style.color=d.upgradesLeft===0?'#ff6b7f':'#f0d080';
-      }).catch(()=>{});
-  }
-  window.addEventListener('resize',()=>{if(over.classList.contains('show'))resize()});
+  window.__state=state;
 })();
 </script>
 
