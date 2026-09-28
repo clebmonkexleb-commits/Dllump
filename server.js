@@ -687,13 +687,29 @@ function launchIcePuck() {
   iceRoom.gameState = 'sliding';
   iceRoom.puck.x = iceRoom.spinStartX;
   iceRoom.puck.y = iceRoom.spinStartY;
-  iceRoom.puck.vx = 0;
-  iceRoom.puck.vy = 0;
-  iceRoom.slideStartTime = Date.now();
-  iceRoom.pathStartTime = Date.now();
-  iceRoom.pathDuration = 5350 + Math.random() * 180; // ≈ client's 5440 ms budget
-  iceRoom.lastBounceIdx = 0;
-  iceRoom.lastBounceTime = 0;
+
+  // Sample the path a tiny bit ahead so the first broadcast already
+  // has a realistic velocity. Otherwise the client sees vx=0/vy=0 for
+  // one tick and misreads the launch as a stop (causing instant zoom-in).
+  const pathDuration = 5350 + Math.random() * 180;
+  iceRoom.pathDuration = pathDuration;
+
+  if (iceRoom.path && iceRoom.path.total > 0) {
+    const sampleDt = 0.016;                        // ~1 frame
+    const sampleU  = sampleDt / pathDuration;
+    const sampleD  = iceRoom.path.total * distFracIce(sampleU);
+    const sample   = pointAtIcePath(iceRoom.path, sampleD);
+    iceRoom.puck.vx = (sample.x - iceRoom.puck.x) / sampleDt;
+    iceRoom.puck.vy = (sample.y - iceRoom.puck.y) / sampleDt;
+  } else {
+    iceRoom.puck.vx = 0;
+    iceRoom.puck.vy = 0;
+  }
+
+  iceRoom.slideStartTime  = Date.now();
+  iceRoom.pathStartTime   = Date.now();
+  iceRoom.lastBounceIdx   = 0;
+  iceRoom.lastBounceTime  = 0;
 }
 
 async function endIceGame() {
