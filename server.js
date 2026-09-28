@@ -109,9 +109,6 @@ const LEVEL_RANKS = [
 ];
 const MAX_LEVEL = LEVEL_RANKS.length;
 
-// NEW: much steeper XP curve. Cumulative XP for reaching level L (1-indexed) = 500 * (L-1) * L
-// L2=1000, L3=3000, L4=6000, L5=10000, L6=15000, L7=21000, L8=28000, L9=36000, L10=45000 …
-// L22=231000
 const LEVEL_XP = (() => {
   const arr = [0];
   for (let l = 1; l < MAX_LEVEL; l++) {
@@ -175,11 +172,19 @@ const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 400);
 const ICE_FIELD_SCALE = 0.92;
 
 function createIceRoom(id) {
-  return { id, gameState: 'idle', players: [], pot: 0, countdownStartTime: 0,
+  return {
+    id, gameState: 'idle', players: [], pot: 0, countdownStartTime: 0,
     spinStartTime: 0, spinDuration: 0, spinFinalAngle: 0,
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
-    recentWinners: [], slideStartTime: 0, lastBounceTime: 0 };
+    recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
+    // Chance-based path & pre-determined winner
+    path: null,
+    pathStartTime: 0,
+    pathDuration: 0,
+    predeterminedWinner: null,
+    lastBounceIdx: 0,
+  };
 }
 const iceRoom = createIceRoom('ice');
 
@@ -429,27 +434,7 @@ function startIceCountdown() {
   iceRoom.gameState = 'countdown';
   iceRoom.countdownStartTime = Date.now();
 }
-function startIceSpin() {
-  iceRoom.gameState = 'spinning';
-  iceRoom.spinStartTime = Date.now();
-  iceRoom.spinDuration = 2.6 + Math.random() * 1.6;
-  iceRoom.spinFinalAngle = Math.random() * Math.PI * 2;
-  const margin = 30;
-  iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
-  iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
-}
-function launchIcePuck() {
-  iceRoom.gameState = 'sliding';
-  const baseSpeed = 32;
-  const speed = baseSpeed + Math.random() * 4;
-  const angle = iceRoom.spinFinalAngle;
-  iceRoom.puck.x = iceRoom.spinStartX;
-  iceRoom.puck.y = iceRoom.spinStartY;
-  iceRoom.puck.vx = Math.cos(angle) * speed;
-  iceRoom.puck.vy = Math.sin(angle) * speed;
-  iceRoom.slideStartTime = Date.now();
-  iceRoom.lastBounceTime = 0;
-}
+
 function pointInPoly(px, py, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -477,10 +462,247 @@ function getIceWinner() {
   }
   return closest;
 }
+
+/* ============================================================
+   ICE ARENA — chance-based winner + billiard path
+   ============================================================ */
+
+// Weighted random by bet, so bigger bets are more likely to win.
+function pickIceWinner() {
+  const players = iceRoom.players;
+  if (players.length === 0) return null;
+  const total = players.reduce((s, p) => s + Math.max(1, p.bet), 0);
+  let r = Math.random() * total;
+  for (const p of players) {
+    r -= Math.max(1, p.bet);
+    if (r <= 0) return p;
+  }
+  return players[players.length - 1];
+}
+
+function distToEdges(px, py, poly) {
+  let minD = Infinity;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const ax = poly[j].x, ay = poly[j].y;
+    const bx = poly[i].x, by = poly[i].y;
+    const dx = bx - ax, dy = by - ay;
+    const l2 = dx * dx + dy * dy;
+    let t = l2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    if (d < minD) minD = d;
+  }
+  return minD;
+}
+
+function pickPointInPoly(poly, margin) {
+  if (!poly || poly.length < 3) return { x: ICE_SIZE / 2, y: ICE_SIZE / 2 };
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const v of poly) {
+    if (v.x < minX) minX = v.x;
+    if (v.y < minY) minY = v.y;
+    if (v.x > maxX) maxX = v.x;
+    if (v.y > maxY) maxY = v.y;
+  }
+  const w = maxX - minX, h = maxY - minY;
+  const margins = [
+    Math.min(margin, w * 0.32, h * 0.32),
+    Math.min(margin * 0.7, w * 0.24, h * 0.24),
+    Math.min(margin * 0.4, w * 0.16, h * 0.16),
+    5, 2, 0.5, 0,
+  ];
+  for (const m of margins) {
+    for (let i = 0; i < 200; i++) {
+      const x = minX + Math.random() * w;
+      const y = minY + Math.random() * h;
+      if (pointInPoly(x, y, poly) && distToEdges(x, y, poly) >= m) return { x, y };
+    }
+  }
+  return polyCentroid(poly);
+}
+
+// Reflect inside a square [0, S] (same trick the upgrade game uses).
+function foldAxisIce(v) {
+  const S = ICE_SIZE;
+  const m = ((v % (2 * S)) + 2 * S) % (2 * S);
+  return m <= S ? m : 2 * S - m;
+}
+
+const ICE_CORNER_MARGIN_FOR_PATH = ICE_CORNER_RADIUS + 22;
+
+function buildIcePath(start, target) {
+  const S = ICE_SIZE;
+  const TARGET_LEN = S * 13;             // ≈ 5200 on 400
+  const LEN_MIN = TARGET_LEN * 0.88;
+  const LEN_MAX = TARGET_LEN * 1.12;
+  const MIN_SEG = 30;
+
+  let best = null, bestDelta = Infinity;
+
+  for (let attempt = 0; attempt < 5000; attempt++) {
+    const ix = Math.floor(Math.random() * 60) - 30;
+    const iy = Math.floor(Math.random() * 60) - 30;
+    if (ix === 0 && iy === 0) continue;
+    const sx = Math.random() < 0.5 ? -1 : 1;
+    const sy = Math.random() < 0.5 ? -1 : 1;
+    const U = { x: sx * target.x + 2 * S * ix, y: sy * target.y + 2 * S * iy };
+    const dx = U.x - start.x, dy = U.y - start.y;
+    const straight = Math.hypot(dx, dy);
+    if (straight < LEN_MIN || straight > LEN_MAX) continue;
+
+    const cuts = [];
+    if (Math.abs(dx) > 1e-6) {
+      const k0 = Math.ceil(Math.min(start.x, U.x) / S);
+      const k1 = Math.floor(Math.max(start.x, U.x) / S);
+      for (let k = k0; k <= k1; k++) {
+        const t = (k * S - start.x) / dx;
+        if (t > 1e-4 && t < 1 - 1e-4) cuts.push(t);
+      }
+    }
+    if (Math.abs(dy) > 1e-6) {
+      const k0 = Math.ceil(Math.min(start.y, U.y) / S);
+      const k1 = Math.floor(Math.max(start.y, U.y) / S);
+      for (let k = k0; k <= k1; k++) {
+        const t = (k * S - start.y) / dy;
+        if (t > 1e-4 && t < 1 - 1e-4) cuts.push(t);
+      }
+    }
+    cuts.sort((a, b) => a - b);
+
+    // reject corner hits
+    let cornerHit = false;
+    for (let i = 1; i < cuts.length; i++) {
+      if (Math.abs(cuts[i] - cuts[i - 1]) < 1e-5) { cornerHit = true; break; }
+    }
+    if (cornerHit) continue;
+
+    const pts = [{ x: start.x, y: start.y }];
+    for (const t of cuts) {
+      const ux = start.x + dx * t;
+      const uy = start.y + dy * t;
+      pts.push({ x: foldAxisIce(ux), y: foldAxisIce(uy) });
+    }
+    pts.push({ x: target.x, y: target.y });
+
+    // reject bounce points that are too close to a corner
+    let bad = false;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i];
+      const nearX = p.x < ICE_CORNER_MARGIN_FOR_PATH || p.x > S - ICE_CORNER_MARGIN_FOR_PATH;
+      const nearY = p.y < ICE_CORNER_MARGIN_FOR_PATH || p.y > S - ICE_CORNER_MARGIN_FOR_PATH;
+      if (nearX && nearY) { bad = true; break; }
+    }
+    if (bad) continue;
+
+    let minSeg = Infinity;
+    for (let i = 1; i < pts.length; i++) {
+      const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      if (d < minSeg) minSeg = d;
+    }
+    if (minSeg < MIN_SEG) continue;
+
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) {
+      cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    }
+    const total = cum[cum.length - 1];
+    if (total < LEN_MIN) continue;
+
+    const delta = Math.abs(total - TARGET_LEN);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      best = { pts, cum, total };
+    }
+    if (bestDelta < 60) break;
+  }
+
+  if (best) return best;
+
+  // Fallback — straight line
+  const dx = target.x - start.x, dy = target.y - start.y;
+  const total = Math.max(1, Math.hypot(dx, dy));
+  return {
+    pts: [{ x: start.x, y: start.y }, { x: target.x, y: target.y }],
+    cum: [0, total],
+    total,
+  };
+}
+
+function pointAtIcePath(path, d) {
+  if (d <= 0) return { x: path.pts[0].x, y: path.pts[0].y };
+  if (d >= path.total) {
+    const last = path.pts[path.pts.length - 1];
+    return { x: last.x, y: last.y };
+  }
+  let i = 0;
+  while (i < path.cum.length - 2 && path.cum[i + 1] < d) i++;
+  const segLen = path.cum[i + 1] - path.cum[i];
+  const t = segLen > 0 ? (d - path.cum[i]) / segLen : 0;
+  const a = path.pts[i], b = path.pts[i + 1];
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+// Same easing the upgrade game uses: fast first ~27% of time → slow tail.
+const ICE_FAST_FRAC = 0.55;
+const ICE_U1 = 0.27;
+const ICE_SLOW_EXP = (ICE_FAST_FRAC / ICE_U1) * (1 - ICE_U1) / (1 - ICE_FAST_FRAC);
+
+function distFracIce(u) {
+  if (u <= ICE_U1) return (u / ICE_U1) * ICE_FAST_FRAC;
+  const t = (u - ICE_U1) / (1 - ICE_U1);
+  return ICE_FAST_FRAC + (1 - ICE_FAST_FRAC) * (1 - Math.pow(1 - t, ICE_SLOW_EXP));
+}
+
+function startIceSpin() {
+  iceRoom.gameState = 'spinning';
+  iceRoom.spinStartTime = Date.now();
+  iceRoom.spinDuration = 2.6 + Math.random() * 1.6;
+
+  const margin = 30;
+  iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
+  iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
+
+  // 1) Decide the winner by bet-weighted chance
+  const winner = pickIceWinner();
+  iceRoom.predeterminedWinner = winner;
+
+  // 2) Build a billiard path that ends inside the winner's polygon
+  if (winner && winner.poly && winner.poly.length >= 3) {
+    const target = pickPointInPoly(winner.poly, 22);
+    const start  = { x: iceRoom.spinStartX, y: iceRoom.spinStartY };
+    const path   = buildIcePath(start, target);
+    iceRoom.path = path;
+
+    // First segment direction — so the arrow visually points where the puck goes
+    const dx = path.pts[1].x - path.pts[0].x;
+    const dy = path.pts[1].y - path.pts[0].y;
+    iceRoom.spinFinalAngle = Math.atan2(dy, dx);
+  } else {
+    iceRoom.path = null;
+    iceRoom.spinFinalAngle = Math.random() * Math.PI * 2;
+  }
+}
+
+function launchIcePuck() {
+  iceRoom.gameState = 'sliding';
+  iceRoom.puck.x = iceRoom.spinStartX;
+  iceRoom.puck.y = iceRoom.spinStartY;
+  iceRoom.puck.vx = 0;
+  iceRoom.puck.vy = 0;
+  iceRoom.slideStartTime = Date.now();
+  iceRoom.pathStartTime = Date.now();
+  iceRoom.pathDuration = 5350 + Math.random() * 180; // ≈ client's 5440 ms budget
+  iceRoom.lastBounceIdx = 0;
+  iceRoom.lastBounceTime = 0;
+}
+
 async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
-  const winner = getIceWinner();
+
+  // Trust the pre-picked winner; fall back to geometric lookup if missing.
+  const winner = iceRoom.predeterminedWinner || getIceWinner();
+
   let payload = null;
   if (winner) {
     const totalPot = iceRoom.pot;
@@ -520,86 +742,61 @@ async function endIceGame() {
     iceRoom.puck = { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 };
     iceRoom.gameState = 'idle';
     iceRoom.lastBounceTime = 0;
+    iceRoom.lastBounceIdx = 0;
+    iceRoom.path = null;
+    iceRoom.predeterminedWinner = null;
     botIds.clear();
     botCounter = 0;
   }, 3000);
 }
+
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
-  const totalPts = ICE_PERIMETER.length;
-  const subSteps = 8;
-  const subDt = dt / subSteps;
-  const puck = iceRoom.puck;
-  const puckRadius = 14;
-  const FRICTION_BASE    = 0.990;
-  const ROLLING_FRICTION = 0.985;
-  const RESTITUTION      = 0.78;
-  const HOLD_MS          = 3200;
-  const PR = puckRadius * puckRadius;
-  for (let step = 0; step < subSteps; step++) {
-    puck.x += puck.vx * subDt * 60;
-    puck.y += puck.vy * subDt * 60;
-    let iter = 0; const maxIter = 8;
-    while (iter < maxIter) {
-      let deepestOverlap = 0; let bestNx = 0, bestNy = 0; let bestNearX = 0, bestNearY = 0;
-      for (let i = 0; i < totalPts; i++) {
-        const j = (i + 1) % totalPts;
-        const ax = ICE_PERIMETER[i].x, ay = ICE_PERIMETER[i].y;
-        const bx = ICE_PERIMETER[j].x, by = ICE_PERIMETER[j].y;
-        const dx = bx - ax, dy = by - ay;
-        const lenSq = dx * dx + dy * dy;
-        if (lenSq === 0) continue;
-        let t = ((puck.x - ax) * dx + (puck.y - ay) * dy) / lenSq;
-        t = Math.max(0, Math.min(1, t));
-        const nearX = ax + t * dx, nearY = ay + t * dy;
-        const distX = puck.x - nearX, distY = puck.y - nearY;
-        const distSq = distX * distX + distY * distY;
-        if (distSq < PR && distSq > 0.000001) {
-          const dist = Math.sqrt(distSq);
-          const overlap = puckRadius - dist;
-          if (overlap > deepestOverlap) {
-            deepestOverlap = overlap;
-            bestNx = distX / dist; bestNy = distY / dist;
-            bestNearX = nearX; bestNearY = nearY;
-          }
-        }
-      }
-      if (deepestOverlap <= 0.0001) break;
-      puck.x += bestNx * deepestOverlap;
-      puck.y += bestNy * deepestOverlap;
-      const vn = puck.vx * bestNx + puck.vy * bestNy;
-      if (vn < 0) {
-        puck.vx -= (1 + RESTITUTION) * vn * bestNx;
-        puck.vy -= (1 + RESTITUTION) * vn * bestNy;
-        const nowMs = Date.now();
-        if (nowMs - iceRoom.lastBounceTime > 80) {
-          iceRoom.lastBounceTime = nowMs;
-          const speedAtHit = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-          if (speedAtHit > 1.5) {
-            io.emit('icePuckBounce', { x: bestNearX, y: bestNearY, intensity: Math.min(1, speedAtHit / 20) });
-          }
-        }
-      }
-      iter++;
+  if (!iceRoom.path) { endIceGame(); return; }
+
+  const now     = Date.now();
+  const elapsed = now - iceRoom.pathStartTime;
+  const u       = Math.min(1, elapsed / iceRoom.pathDuration);
+  const eased   = distFracIce(u);
+  const dist    = iceRoom.path.total * eased;
+
+  const prevX = iceRoom.puck.x;
+  const prevY = iceRoom.puck.y;
+  const pos   = pointAtIcePath(iceRoom.path, dist);
+
+  // Velocity for the client's interpolation buffer
+  const dtSec = Math.max(1e-3, dt);
+  iceRoom.puck.vx = (pos.x - prevX) / dtSec;
+  iceRoom.puck.vy = (pos.y - prevY) / dtSec;
+
+  // Emit bounce events at every wall reflection (feeds the "bounce lights" toggle)
+  const pts = iceRoom.path.pts;
+  const cum = iceRoom.path.cum;
+  let segIdx = 0;
+  while (segIdx < cum.length - 2 && cum[segIdx + 1] <= dist) segIdx++;
+  if (segIdx > (iceRoom.lastBounceIdx || 0)) {
+    for (let s = (iceRoom.lastBounceIdx || 0) + 1; s <= segIdx; s++) {
+      if (s <= 0 || s >= pts.length - 1) continue;
+      const bp = pts[s];
+      const sp = Math.hypot(iceRoom.puck.vx, iceRoom.puck.vy);
+      io.emit('icePuckBounce', {
+        x: bp.x, y: bp.y,
+        intensity: Math.min(1, 0.4 + sp / 30),
+      });
     }
-    const elapsed = Date.now() - iceRoom.slideStartTime;
-    if (elapsed < HOLD_MS) {
-      const decay = Math.pow(0.9999, subDt * 60);
-      puck.vx *= decay; puck.vy *= decay;
-    } else {
-      const friction = FRICTION_BASE + (Math.random() - 0.5) * 0.0006;
-      const decay = Math.pow(friction, subDt * 60);
-      puck.vx *= decay; puck.vy *= decay;
-      const speed2 = puck.vx * puck.vx + puck.vy * puck.vy;
-      if (speed2 < 0.8) {
-        const rollDecay = Math.pow(ROLLING_FRICTION, subDt * 60);
-        puck.vx *= rollDecay; puck.vy *= rollDecay;
-      }
-    }
+    iceRoom.lastBounceIdx = segIdx;
   }
-  const finalSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-  if (finalSpeed < 0.05) { puck.vx = 0; puck.vy = 0; endIceGame(); }
+
+  iceRoom.puck.x = pos.x;
+  iceRoom.puck.y = pos.y;
+
+  if (u >= 1) {
+    iceRoom.puck.vx = 0;
+    iceRoom.puck.vy = 0;
+    endIceGame();
+  }
 }
+
 function broadcastIceState() {
   io.emit('iceState', {
     gameState: iceRoom.gameState,
@@ -616,6 +813,10 @@ function broadcastIceState() {
     })),
   });
 }
+
+/* ============================================================
+   PVP ARENA (bump) — kept as original
+   ============================================================ */
 function computeRadii() {
   const totalBet = room.players.reduce((s, p) => s + p.bet, 0);
   if (totalBet === 0) return;
