@@ -106,32 +106,13 @@ const MAX_PLAYERS = 8;
    ============================================================ */
 
 const LEVEL_RANKS = [
-  'Starter',        // 1
-  'Rookie',         // 2
-  'Pepe Lover',     // 3
-  'Meme Fan',       // 4
-  'NFT Lover',      // 5
-  'Degen',          // 6
-  'Crypto Bro',     // 7
-  'Airdrop Hunter', // 8
-  'Diamond Hands',  // 9
-  'Whale',          // 10
-  'Ice Skater',     // 11
-  'Puck Master',    // 12
-  'Arena Regular',  // 13
-  'High Roller',    // 14
-  'Ice Veteran',    // 15
-  'Rink Legend',    // 16
-  'Arena Champion', // 17
-  'Ice King',       // 18
-  'Arena Master',   // 19
-  'Ice Lord',       // 20
-  'Rink Royalty',   // 21
-  'Arena Friend'    // 22
+  'Starter','Rookie','Pepe Lover','Meme Fan','NFT Lover','Degen','Crypto Bro',
+  'Airdrop Hunter','Diamond Hands','Whale','Ice Skater','Puck Master','Arena Regular',
+  'High Roller','Ice Veteran','Rink Legend','Arena Champion','Ice King','Arena Master',
+  'Ice Lord','Rink Royalty','Arena Friend'
 ];
 const MAX_LEVEL = LEVEL_RANKS.length;
 
-// Cumulative XP needed to reach each level (level 1 = 0 XP)
 const LEVEL_XP = (() => {
   const arr = [0];
   for (let l = 1; l < MAX_LEVEL; l++) {
@@ -171,20 +152,8 @@ function getLevelInfo(user) {
 }
 
 const QUESTS = [
-  {
-    id: 'ice_bets_5',
-    title: 'Arena Regular',
-    description: 'Place 5 bets in the Ice Arena',
-    target: 5,
-    reward: 250,
-  },
-  {
-    id: 'ice_win_1',
-    title: 'First Victory',
-    description: 'Win 1 Ice Arena game',
-    target: 1,
-    reward: 500,
-  },
+  { id: 'ice_bets_5', title: 'Arena Regular', description: 'Place 5 bets in the Ice Arena', target: 5, reward: 250 },
+  { id: 'ice_win_1', title: 'First Victory', description: 'Win 1 Ice Arena game', target: 1, reward: 500 },
 ];
 
 function buildQuestList(user) {
@@ -192,14 +161,10 @@ function buildQuestList(user) {
     const progress = Math.max(0, (user['q_' + q.id + '_p'] | 0));
     const claimed  = !!user['q_' + q.id + '_c'];
     return {
-      id: q.id,
-      title: q.title,
-      description: q.description,
-      target: q.target,
-      reward: q.reward,
+      id: q.id, title: q.title, description: q.description,
+      target: q.target, reward: q.reward,
       progress: Math.min(progress, q.target),
-      claimed,
-      complete: progress >= q.target,
+      claimed, complete: progress >= q.target,
     };
   });
 }
@@ -225,6 +190,10 @@ function createIceRoom(id) {
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
     recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
+    predeterminedWinnerId: null,
+    predeterminedTargetX: ICE_SIZE / 2,
+    predeterminedTargetY: ICE_SIZE / 2,
+    slideDuration: 0,
   };
 }
 const iceRoom = createIceRoom('ice');
@@ -452,10 +421,8 @@ function repartitionIceArena() {
   if (players.length === 0) return;
   const sorted = [...players].sort((a, b) => b.bet - a.bet);
   const root = [
-    { x: 0, y: 0 },
-    { x: ICE_SIZE, y: 0 },
-    { x: ICE_SIZE, y: ICE_SIZE },
-    { x: 0, y: ICE_SIZE }
+    { x: 0, y: 0 }, { x: ICE_SIZE, y: 0 },
+    { x: ICE_SIZE, y: ICE_SIZE }, { x: 0, y: ICE_SIZE }
   ];
   partitionPoly(sorted, 0, sorted.length, root);
 
@@ -503,18 +470,31 @@ function startIceSpin() {
   const margin = 30;
   iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
   iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
+
+  // CHANCE-BASED WINNER (weighted by bet)
+  const players = iceRoom.players;
+  const totalBet = players.reduce((s, p) => s + Math.max(1, p.bet), 0);
+  let roll = Math.random() * totalBet;
+  let chosen = players[players.length - 1];
+  for (const p of players) {
+    roll -= Math.max(1, p.bet);
+    if (roll <= 0) { chosen = p; break; }
+  }
+  iceRoom.predeterminedWinnerId = chosen.id;
+
+  const tgt = pickTargetInPoly(chosen.poly);
+  iceRoom.predeterminedTargetX = tgt.x;
+  iceRoom.predeterminedTargetY = tgt.y;
 }
 
 function launchIcePuck() {
   iceRoom.gameState = 'sliding';
-  const baseSpeed = 32;
-  const speed = baseSpeed + Math.random() * 4;
-  const angle = iceRoom.spinFinalAngle;
+  iceRoom.slideStartTime = Date.now();
+  iceRoom.slideDuration = 7000 + Math.random() * 1500;
   iceRoom.puck.x = iceRoom.spinStartX;
   iceRoom.puck.y = iceRoom.spinStartY;
-  iceRoom.puck.vx = Math.cos(angle) * speed;
-  iceRoom.puck.vy = Math.sin(angle) * speed;
-  iceRoom.slideStartTime = Date.now();
+  iceRoom.puck.vx = 0;
+  iceRoom.puck.vy = 0;
   iceRoom.lastBounceTime = 0;
 }
 
@@ -537,6 +517,28 @@ function polyCentroid(poly) {
   return { x: cx / poly.length, y: cy / poly.length };
 }
 
+function pickTargetInPoly(poly){
+  if(!poly || poly.length < 3) return { x: ICE_SIZE/2, y: ICE_SIZE/2 };
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const v of poly){
+    if(v.x<minX)minX=v.x; if(v.y<minY)minY=v.y;
+    if(v.x>maxX)maxX=v.x; if(v.y>maxY)maxY=v.y;
+  }
+  const w = maxX-minX, h = maxY-minY;
+  const m = Math.min(12, Math.min(w,h)*0.15);
+  for(let i=0;i<300;i++){
+    const x = minX + m + Math.random()*(w-2*m);
+    const y = minY + m + Math.random()*(h-2*m);
+    if(pointInPoly(x,y,poly)) return { x, y };
+  }
+  for(let i=0;i<300;i++){
+    const x = minX + Math.random()*w;
+    const y = minY + Math.random()*h;
+    if(pointInPoly(x,y,poly)) return { x, y };
+  }
+  return polyCentroid(poly);
+}
+
 function getIceWinner() {
   const px = Math.min(Math.max(iceRoom.puck.x, 0), ICE_SIZE);
   const py = Math.min(Math.max(iceRoom.puck.y, 0), ICE_SIZE);
@@ -557,7 +559,8 @@ async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
 
-  const winner = getIceWinner();
+  const winner = iceRoom.players.find(p => p.id === iceRoom.predeterminedWinnerId)
+              || getIceWinner();
 
   let payload = null;
   if (winner) {
@@ -606,109 +609,20 @@ async function endIceGame() {
     iceRoom.puck = { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 };
     iceRoom.gameState = 'idle';
     iceRoom.lastBounceTime = 0;
+    iceRoom.predeterminedWinnerId = null;
     botIds.clear();
     botCounter = 0;
   }, 3000);
 }
 
-function updateIcePhysics(dt) {
+function updateIceTimer() {
   if (iceRoom.gameState !== 'sliding') return;
-  const totalPts = ICE_PERIMETER.length;
-  const subSteps = 8;
-  const subDt = dt / subSteps;
-  const puck = iceRoom.puck;
-  const puckRadius = 14;
-
-  const FRICTION_BASE    = 0.990;
-  const ROLLING_FRICTION = 0.985;
-  const RESTITUTION      = 0.78;
-  const HOLD_MS          = 3200;
-  const PR = puckRadius * puckRadius;
-
-  for (let step = 0; step < subSteps; step++) {
-    puck.x += puck.vx * subDt * 60;
-    puck.y += puck.vy * subDt * 60;
-
-    let iter = 0;
-    const maxIter = 8;
-    while (iter < maxIter) {
-      let deepestOverlap = 0;
-      let bestNx = 0, bestNy = 0;
-      let bestNearX = 0, bestNearY = 0;
-
-      for (let i = 0; i < totalPts; i++) {
-        const j = (i + 1) % totalPts;
-        const ax = ICE_PERIMETER[i].x, ay = ICE_PERIMETER[i].y;
-        const bx = ICE_PERIMETER[j].x, by = ICE_PERIMETER[j].y;
-        const dx = bx - ax, dy = by - ay;
-        const lenSq = dx * dx + dy * dy;
-        if (lenSq === 0) continue;
-
-        let t = ((puck.x - ax) * dx + (puck.y - ay) * dy) / lenSq;
-        t = Math.max(0, Math.min(1, t));
-        const nearX = ax + t * dx, nearY = ay + t * dy;
-        const distX = puck.x - nearX, distY = puck.y - nearY;
-        const distSq = distX * distX + distY * distY;
-
-        if (distSq < PR && distSq > 0.000001) {
-          const dist = Math.sqrt(distSq);
-          const overlap = puckRadius - dist;
-          if (overlap > deepestOverlap) {
-            deepestOverlap = overlap;
-            bestNx = distX / dist;
-            bestNy = distY / dist;
-            bestNearX = nearX;
-            bestNearY = nearY;
-          }
-        }
-      }
-
-      if (deepestOverlap <= 0.0001) break;
-
-      puck.x += bestNx * deepestOverlap;
-      puck.y += bestNy * deepestOverlap;
-
-      const vn = puck.vx * bestNx + puck.vy * bestNy;
-      if (vn < 0) {
-        puck.vx -= (1 + RESTITUTION) * vn * bestNx;
-        puck.vy -= (1 + RESTITUTION) * vn * bestNy;
-
-        const nowMs = Date.now();
-        if (nowMs - iceRoom.lastBounceTime > 80) {
-          iceRoom.lastBounceTime = nowMs;
-          const speedAtHit = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-          if (speedAtHit > 1.5) {
-            io.emit('icePuckBounce', {
-              x: bestNearX, y: bestNearY,
-              intensity: Math.min(1, speedAtHit / 20),
-            });
-          }
-        }
-      }
-      iter++;
-    }
-
-    const elapsed = Date.now() - iceRoom.slideStartTime;
-    if (elapsed < HOLD_MS) {
-      const decay = Math.pow(0.9999, subDt * 60);
-      puck.vx *= decay;
-      puck.vy *= decay;
-    } else {
-      const friction = FRICTION_BASE + (Math.random() - 0.5) * 0.0006;
-      const decay = Math.pow(friction, subDt * 60);
-      puck.vx *= decay;
-      puck.vy *= decay;
-      const speed2 = puck.vx * puck.vx + puck.vy * puck.vy;
-      if (speed2 < 0.8) {
-        const rollDecay = Math.pow(ROLLING_FRICTION, subDt * 60);
-        puck.vx *= rollDecay;
-        puck.vy *= rollDecay;
-      }
-    }
+  const elapsed = Date.now() - iceRoom.slideStartTime;
+  if (elapsed >= iceRoom.slideDuration) {
+    iceRoom.puck.x = iceRoom.predeterminedTargetX;
+    iceRoom.puck.y = iceRoom.predeterminedTargetY;
+    endIceGame();
   }
-
-  const finalSpeed = Math.sqrt(puck.vx * puck.vx + puck.vy * puck.vy);
-  if (finalSpeed < 0.05) { puck.vx = 0; puck.vy = 0; endIceGame(); }
 }
 
 function broadcastIceState() {
@@ -721,11 +635,16 @@ function broadcastIceState() {
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX,
     spinStartY: iceRoom.spinStartY,
+    predeterminedWinnerId: iceRoom.predeterminedWinnerId,
+    predeterminedTargetX: iceRoom.predeterminedTargetX,
+    predeterminedTargetY: iceRoom.predeterminedTargetY,
+    slideStartTime: iceRoom.slideStartTime,
+    slideDuration: iceRoom.slideDuration,
     puck: {
       x: iceRoom.puck.x,
       y: iceRoom.puck.y,
-      vx: iceRoom.puck.vx,
-      vy: iceRoom.puck.vy,
+      vx: 0,
+      vy: 0,
     },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
@@ -1013,7 +932,7 @@ setInterval(() => {
 
     const icePrev = iceRoom.gameState;
 
-    if (iceRoom.gameState === 'sliding') updateIcePhysics(dt);
+    if (iceRoom.gameState === 'sliding') updateIceTimer();
     else if (iceRoom.gameState === 'countdown') {
       if ((now - iceRoom.countdownStartTime) / 1000 >= 10.0) startIceSpin();
     } else if (iceRoom.gameState === 'spinning') {
@@ -1023,13 +942,6 @@ setInterval(() => {
     }
 
     tickCount++;
-
-    if (iceRoom.gameState === 'sliding') {
-      io.emit('icePuck', {
-        x: iceRoom.puck.x, y: iceRoom.puck.y,
-        vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding'
-      });
-    }
 
     if (iceRoom.gameState !== icePrev || tickCount % STATE_EVERY === 0) {
       broadcastState();
