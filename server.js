@@ -178,7 +178,6 @@ function createIceRoom(id) {
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
     recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
-    // Chance-based path & pre-determined winner
     path: null,
     pathStartTime: 0,
     pathDuration: 0,
@@ -530,8 +529,7 @@ function foldAxisIce(v) {
 
 const ICE_CORNER_MARGIN_FOR_PATH = ICE_CORNER_RADIUS + 22;
 
-// Increased variety: wider unfolding grid + variable target length,
-// so trajectories feel less repetitive.
+// Wide unfolding grid + variable target length → very varied trajectories.
 function buildIcePath(start, target) {
   const S = ICE_SIZE;
   const TARGET_LEN_BASE = S * 13;
@@ -572,7 +570,6 @@ function buildIcePath(start, target) {
     }
     cuts.sort((a, b) => a - b);
 
-    // reject corner hits
     let cornerHit = false;
     for (let i = 1; i < cuts.length; i++) {
       if (Math.abs(cuts[i] - cuts[i - 1]) < 1e-5) { cornerHit = true; break; }
@@ -587,7 +584,6 @@ function buildIcePath(start, target) {
     }
     pts.push({ x: target.x, y: target.y });
 
-    // reject bounce points that are too close to a corner
     let bad = false;
     for (let i = 1; i < pts.length - 1; i++) {
       const p = pts[i];
@@ -621,7 +617,6 @@ function buildIcePath(start, target) {
 
   if (best) return best;
 
-  // Fallback — straight line
   const dx = target.x - start.x, dy = target.y - start.y;
   const total = Math.max(1, Math.hypot(dx, dy));
   return {
@@ -645,7 +640,6 @@ function pointAtIcePath(path, d) {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
-// Tangent direction at a given arc-length distance.
 function tangentAtIcePath(path, d) {
   if (!path || path.pts.length < 2) return { x: 0, y: 0 };
   if (d <= 0) d = 0;
@@ -660,15 +654,15 @@ function tangentAtIcePath(path, d) {
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Easing — SLOWED DOWN significantly.
-   Old: fast phase covered 55% distance in first 27% time → most of
-        the motion was over before you could see it.
-   New: fast phase covers only 40% distance in first 30% time, and
-        the tail power curve is much gentler (SLOW_EXP ~1.56 vs 3.3),
-        so the puck keeps gliding visibly all the way to the end.
+   Easing — LONGER, slower tail.
+   U1 = 0.25 → the fast "launch" phase only lasts the first 25% of
+              time (was 30%).
+   SLOW_EXP = 2.0 → the tail decays quadratically, so the puck
+                    spends a much longer stretch visibly crawling
+                    to a stop in the last ~30% of the animation.
    ────────────────────────────────────────────────────────────── */
 const ICE_FAST_FRAC = 0.40;
-const ICE_U1 = 0.30;
+const ICE_U1 = 0.25;
 const ICE_SLOW_EXP = (ICE_FAST_FRAC / ICE_U1) * (1 - ICE_U1) / (1 - ICE_FAST_FRAC);
 
 function distFracIce(u) {
@@ -677,8 +671,9 @@ function distFracIce(u) {
   return ICE_FAST_FRAC + (1 - ICE_FAST_FRAC) * (1 - Math.pow(1 - t, ICE_SLOW_EXP));
 }
 
-// Longer total duration → noticeably slower overall
-const ICE_PATH_DURATION_BASE   = 6400;
+// Total ride time: ~9 s. Roughly 40 % longer than before, so the
+// slow tail is proportionally much longer in absolute seconds.
+const ICE_PATH_DURATION_BASE   = 9000;
 const ICE_PATH_DURATION_JITTER = 500;
 
 function startIceSpin() {
@@ -690,18 +685,15 @@ function startIceSpin() {
   iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
   iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
 
-  // 1) Decide the winner by bet-weighted chance
   const winner = pickIceWinner();
   iceRoom.predeterminedWinner = winner;
 
-  // 2) Build a billiard path that ends inside the winner's polygon
   if (winner && winner.poly && winner.poly.length >= 3) {
     const target = pickPointInPoly(winner.poly, 22);
     const start  = { x: iceRoom.spinStartX, y: iceRoom.spinStartY };
     const path   = buildIcePath(start, target);
     iceRoom.path = path;
 
-    // First segment direction — so the arrow visually points where the puck goes
     const dx = path.pts[1].x - path.pts[0].x;
     const dy = path.pts[1].y - path.pts[0].y;
     iceRoom.spinFinalAngle = Math.atan2(dy, dx);
@@ -719,12 +711,11 @@ function launchIcePuck() {
   const pathDuration = ICE_PATH_DURATION_BASE + Math.random() * ICE_PATH_DURATION_JITTER;
   iceRoom.pathDuration = pathDuration;
 
-  // Initial velocity from path derivative — smooth, never zero at start.
   if (iceRoom.path && iceRoom.path.total > 0) {
     const sampleDt = 0.016;
     const sampleU  = sampleDt / (pathDuration / 1000);
     const sampleD  = iceRoom.path.total * distFracIce(sampleU);
-    const speed    = sampleD / sampleDt;               // px/s
+    const speed    = sampleD / sampleDt;
     const dir      = tangentAtIcePath(iceRoom.path, 0);
     iceRoom.puck.vx = dir.x * speed;
     iceRoom.puck.vy = dir.y * speed;
@@ -743,7 +734,6 @@ async function endIceGame() {
   if (iceRoom.gameState === 'finished') return;
   iceRoom.gameState = 'finished';
 
-  // Trust the pre-picked winner; fall back to geometric lookup if missing.
   const winner = iceRoom.predeterminedWinner || getIceWinner();
 
   let payload = null;
@@ -802,19 +792,17 @@ function updateIcePhysics(dt) {
   const u       = Math.min(1, elapsed / iceRoom.pathDuration);
   const dist    = iceRoom.path.total * distFracIce(u);
 
-  // ─── Smooth velocity from path tangent + easing derivative ───
-  // Avoids the finite-difference jitter that made the puck look glitchy.
+  // Smooth velocity from path tangent + easing derivative (no jitter).
   const duSample = 0.0008;
   const uAhead   = Math.min(1, u + duSample);
   const distAhead = iceRoom.path.total * distFracIce(uAhead);
   const dtSeconds = duSample * (iceRoom.pathDuration / 1000);
-  const speed = dtSeconds > 0 ? (distAhead - dist) / dtSeconds : 0;   // px/s
+  const speed = dtSeconds > 0 ? (distAhead - dist) / dtSeconds : 0;
 
   const dir = tangentAtIcePath(iceRoom.path, dist);
   iceRoom.puck.vx = dir.x * speed;
   iceRoom.puck.vy = dir.y * speed;
 
-  // ─── Emit bounce events at every wall reflection ───
   const pts = iceRoom.path.pts;
   const cum = iceRoom.path.cum;
   let segIdx = 0;
@@ -831,8 +819,9 @@ function updateIcePhysics(dt) {
     iceRoom.lastBounceIdx = segIdx;
   }
 
-  iceRoom.puck.x = pointAtIcePath(iceRoom.path, dist).x;
-  iceRoom.puck.y = pointAtIcePath(iceRoom.path, dist).y;
+  const finalPos = pointAtIcePath(iceRoom.path, dist);
+  iceRoom.puck.x = finalPos.x;
+  iceRoom.puck.y = finalPos.y;
 
   if (u >= 1) {
     iceRoom.puck.vx = 0;
@@ -850,7 +839,7 @@ function broadcastIceState() {
     spinDuration: iceRoom.spinDuration,
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX, spinStartY: iceRoom.spinStartY,
-    pathDuration: iceRoom.pathDuration,             // NEW — client uses this for zoom timing
+    pathDuration: iceRoom.pathDuration,
     puck: { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
@@ -860,7 +849,7 @@ function broadcastIceState() {
 }
 
 /* ============================================================
-   PVP ARENA (bump) — kept as original
+   PVP ARENA (bump) — unchanged
    ============================================================ */
 function computeRadii() {
   const totalBet = room.players.reduce((s, p) => s + p.bet, 0);
