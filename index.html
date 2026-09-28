@@ -3096,6 +3096,10 @@
     }, 120);
   });
 
+  /* ==================================================================
+     ICE STATE — includes pathDuration so the client knows how long
+     the current slide will take (used for name-display timing).
+     ================================================================== */
   const iceState={
     gameState:'idle',players:[],pot:0,arenaSize:0,perimeterPoints:[],cornerRadius:0,
     countdownStartTime:0,spinStartTime:0,spinDuration:0,spinFinalAngle:0,
@@ -3115,7 +3119,9 @@
     countdownLastSecond:-1,
     countdownPulseStart:0,
     confetti:[],
-    nearStopFrames:0
+    nearStopFrames:0,
+    // NEW: server-provided slide duration for the current round
+    pathDuration:7500
   };
 
   const puckBuffer = [];
@@ -3159,6 +3165,11 @@
   function applyIceServerState(snapshot){
     const prev=iceState.gameState;
 
+    // ── Store server-provided slide duration ──
+    if (typeof snapshot.pathDuration === 'number' && snapshot.pathDuration > 0) {
+      iceState.pathDuration = snapshot.pathDuration;
+    }
+
     if (snapshot.puck) {
       pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
     }
@@ -3193,7 +3204,7 @@
       iceCountdownTimer.classList.remove('cinematic','urgent','tick');
     }
     if(snapshot.gameState==='spinning'&&prev!=='spinning'){iceState.puckVisible=true;iceState.puckPopStart=performance.now();iceState.puckScale=0;iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false}
-    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.nearStopFrames=0;iceState.zoomCenterX=0;iceState.zoomCenterY=0}
+    if(snapshot.gameState==='sliding'&&prev!=='sliding'){iceState.slideStartTime=performance.now();iceState.zoom=1;iceState.isZoomingIn=false;iceState.isZoomingOut=false;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.winnerPuckPop=false;iceState.zoomCenterFixed=false;iceState.prevRenderX=0;iceState.prevRenderY=0;iceState.lastFrameTime=0;iceState.peakSpeed=0;iceState.zoomFired=false;iceState.nearStopFrames=0;iceState.zoomCenterX=0;iceState.zoomCenterY=0;iceState.showOwnerName=false;iceState.nameFadeIn=0;iceState.currentOwnerName=''}
     if(snapshot.gameState==='finished'&&prev!=='finished'){
       iceState.zoomOutTriggered=true;
       iceState.isZoomingOut=true;
@@ -3519,20 +3530,10 @@
     const path=cachedPerimeterPath;
     if(!path) return;
 
-    let zoomActive = iceState.zoomCenterFixed && iceState.zoom > 1.001;
-    if(zoomActive){
-      const csx=iceState.zoomCenterX*s,csy=iceState.zoomCenterY*s;
-      const tx=(half-csx)*iceState.zoom+half-half*iceState.zoom;
-      const ty=(half-csy)*iceState.zoom+half-half*iceState.zoom;
-      iceCtx.fillStyle = '#060a12';
-      iceCtx.fillRect(0, 0, w, w);
-      iceCtx.save();
-      iceCtx.translate(tx,ty);
-      iceCtx.scale(iceState.zoom,iceState.zoom);
-      if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
-    } else {
-      if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
-    }
+    // Zoom is disabled — keep the arena at 1x the whole time.
+    iceCtx.fillStyle = '#060a12';
+    iceCtx.fillRect(0, 0, w, w);
+    if(rinkCache) iceCtx.drawImage(rinkCache,0,0,w,w);
 
     if(iceState.gameState==='countdown' && iceState.countdownPulseStart){
       const age=(performance.now()-iceState.countdownPulseStart)/1000;
@@ -3572,7 +3573,7 @@
       if(y-r<margin){y=margin+r;vy=-vy}if(y+r>w-margin){y=w-margin-r;vy=-vy}
       iceState.idlePuck.x=x;iceState.idlePuck.y=y;iceState.idlePuck.vx=vx;iceState.idlePuck.vy=vy;
       drawPuckSprite(iceCtx,x,y,PUCK_RENDER_RADIUS*s);
-      if(iceState.players.length===0){if(zoomActive)iceCtx.restore();return}
+      if(iceState.players.length===0){return}
     }
 
     const now=performance.now();
@@ -3586,52 +3587,18 @@
     }
 
     if(iceState.gameState==='sliding'){
-      const elapsedMs = now - iceState.slideStartTime;
-
-      if(!iceState.zoomFired){
-        const ZOOM_LEAD_MS = 200;
-        const EXPECTED_STOP_MS = 5440;
-        let trigger = elapsedMs >= (EXPECTED_STOP_MS - ZOOM_LEAD_MS);
-        if(!trigger && puckBuffer.length){
-          const lastSnap = puckBuffer[puckBuffer.length - 1];
-          const sv = Math.hypot(lastSnap.vx || 0, lastSnap.vy || 0);
-          if(sv < 0.15) trigger = true;
-        }
-        if(trigger){
-          iceState.zoomCenterX = rpx;
-          iceState.zoomCenterY = rpy;
-          iceState.zoomCenterFixed = true;
-          iceState.isZoomingIn = true;
-          iceState.zoomStartTime = now;
-          iceState.zoomTarget = 1.45;
-          iceState.zoomFired = true;
-          iceState.zoomDuration = 0.5;
-        }
-      }
-
-      if(iceState.isZoomingIn){
-        iceState.zoomCenterX += (rpx - iceState.zoomCenterX) * 0.25;
-        iceState.zoomCenterY += (rpy - iceState.zoomCenterY) * 0.25;
-      }
-
       iceState.prevRenderX = rpx;
       iceState.prevRenderY = rpy;
       iceState.lastFrameTime = now;
+
+      // Since we disabled the zoom, mark it as fired immediately.
+      if(!iceState.zoomFired){
+        iceState.zoomFired = true;
+        iceState.zoomCenterFixed = false;
+        iceState.zoom = 1;
+      }
     }
 
-    if(iceState.isZoomingOut){
-      const elapsed=(now-iceState.zoomStartTime)/1000,p=Math.min(elapsed/iceState.zoomDuration,1),e=easeInOutCubic(p);
-      iceState.zoom=iceState.zoomTarget+(1-iceState.zoomTarget)*(1-e);
-      const cX=SERVER_ARENA_SIZE/2, cY=SERVER_ARENA_SIZE/2;
-      iceState.zoomCenterX += (cX - iceState.zoomCenterX)*0.11;
-      iceState.zoomCenterY += (cY - iceState.zoomCenterY)*0.11;
-      if(p>=1){iceState.isZoomingOut=false;iceState.zoom=1;iceState.zoomLocked=false;iceState.zoomOutTriggered=false;iceState.zoomCenterFixed=false;}
-    }
-    if(iceState.isZoomingIn){
-      const elapsed=(now-iceState.zoomStartTime)/1000,p=Math.min(elapsed/iceState.zoomDuration,1),e=easeInOutCubic(p);
-      iceState.zoom=1+(iceState.zoomTarget-1)*e;
-      if(p>=1){iceState.isZoomingIn=false;iceState.zoomLocked=true;iceState.zoom=iceState.zoomTarget;}
-    }
     const speed=Math.sqrt(Math.pow(rpx-iceState.puckPrevX,2)+Math.pow(rpy-iceState.puckPrevY,2));
 
     iceCtx.save();
@@ -3823,25 +3790,28 @@
       else{px=rpx*s;py=rpy*s}
       const r=PUCK_RENDER_RADIUS*s*total;
       drawPuckSprite(iceCtx,px,py,r);
-      const isSlow=speed<2&&iceState.gameState==='sliding';
+      // isSlow is now elapsed-time based, NOT speed based.
+      // Name appears the moment the puck starts visibly slowing down.
+      const slideElapsed = iceState.gameState === 'sliding' ? (nowMs - iceState.slideStartTime) : 0;
+      const slideTotal = iceState.pathDuration || 7500;
+      const isSlow = iceState.gameState === 'sliding' && slideElapsed > slideTotal * 0.58;
       let ownerName='';
       if(iceState.players.length>0&&iceState.gameState==='sliding'){
         for(const p of iceState.players){
           if(p.poly && pointInPoly(rpx, rpy, p.poly)){ownerName=p.name||'Player';break}
         }
       }
-      if(isSlow&&ownerName){iceState.currentOwnerName=ownerName;iceState.showOwnerName=true;iceState.nameFadeIn=Math.min(1,iceState.nameFadeIn+.03)}
-      else if(!isSlow||!ownerName){iceState.nameFadeIn=Math.max(0,iceState.nameFadeIn-.02);if(iceState.nameFadeIn<=0)iceState.showOwnerName=false}
+      if(isSlow&&ownerName){iceState.currentOwnerName=ownerName;iceState.showOwnerName=true;iceState.nameFadeIn=Math.min(1,iceState.nameFadeIn+.05)}
+      else if(!isSlow||!ownerName){iceState.nameFadeIn=Math.max(0,iceState.nameFadeIn-.04);if(iceState.nameFadeIn<=0)iceState.showOwnerName=false}
       if(iceState.showOwnerName&&iceState.currentOwnerName&&iceState.nameFadeIn>.1){
-        const alpha=iceState.nameFadeIn*.6,fs=Math.max(9,Math.min(14,r*.9));
+        const alpha=iceState.nameFadeIn*.85,fs=Math.max(11,Math.min(16,r*1.1));
         iceCtx.save();iceCtx.globalAlpha=alpha;iceCtx.textAlign='center';iceCtx.textBaseline='top';
         iceCtx.font='bold '+fs+'px system-ui, sans-serif';
-        iceCtx.fillStyle='rgba(255,255,255,.9)';iceCtx.shadowColor='rgba(0,0,0,.9)';iceCtx.shadowBlur=6;
-        let dn=iceState.currentOwnerName;if(dn.length>10)dn=dn.slice(0,9)+'…';
-        iceCtx.fillText(dn,px,py+r+4);iceCtx.restore();
+        iceCtx.fillStyle='rgba(255,255,255,.95)';iceCtx.shadowColor='rgba(0,0,0,.9)';iceCtx.shadowBlur=8;
+        let dn=iceState.currentOwnerName;if(dn.length>12)dn=dn.slice(0,11)+'…';
+        iceCtx.fillText(dn,px,py+r+6);iceCtx.restore();
       }
     }
-    if(zoomActive)iceCtx.restore();
   }
 
   let _cdCine=false,_cdUrg=false;
