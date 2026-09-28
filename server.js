@@ -111,9 +111,7 @@ const MAX_LEVEL = LEVEL_RANKS.length;
 
 const LEVEL_XP = (() => {
   const arr = [0];
-  for (let l = 1; l < MAX_LEVEL; l++) {
-    arr.push(500 * l * (l + 1));
-  }
+  for (let l = 1; l < MAX_LEVEL; l++) arr.push(500 * l * (l + 1));
   return arr;
 })();
 
@@ -133,15 +131,10 @@ function getLevelInfo(user) {
   const span = Math.max(1, nextBase - curBase);
   const progress = isMax ? 1 : Math.min(1, Math.max(0, (xp - curBase) / span));
   const edges = 3 + Math.floor((level - 1) / 2);
-  return {
-    level, rank, xp, edges, maxLevel: MAX_LEVEL,
-    currentLevelXp: curBase,
-    nextLevelXp: isMax ? null : nextBase,
-    xpIntoLevel: xp - curBase,
-    xpForLevel: isMax ? 0 : nextBase - curBase,
-    xpToNext: isMax ? 0 : nextBase - xp,
-    progress, isMax,
-  };
+  return { level, rank, xp, edges, maxLevel: MAX_LEVEL,
+    currentLevelXp: curBase, nextLevelXp: isMax ? null : nextBase,
+    xpIntoLevel: xp - curBase, xpForLevel: isMax ? 0 : nextBase - curBase,
+    xpToNext: isMax ? 0 : nextBase - xp, progress, isMax };
 }
 
 const QUESTS = [
@@ -162,7 +155,6 @@ function createRoom(id) {
     gameTime: 0, countdownStartTime: 0, prestartTimer: 0, recentWinners: [] };
 }
 const room = createRoom('main');
-
 function getAlive() { return room.players.filter(p => p.alive); }
 function getPlayer(id) { return room.players.find(p => p.id === id); }
 
@@ -178,15 +170,12 @@ function createIceRoom(id) {
     spinStartX: ICE_SIZE / 2, spinStartY: ICE_SIZE / 2,
     puck: { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 },
     recentWinners: [], slideStartTime: 0, lastBounceTime: 0,
-    path: null,
-    pathStartTime: 0,
-    pathDuration: 0,
     predeterminedWinner: null,
-    lastBounceIdx: 0,
+    targetPoint: null,
+    pathDuration: 7500,
   };
 }
 const iceRoom = createIceRoom('ice');
-
 function getIcePlayer(id) { return iceRoom.players.find(p => p.id === id); }
 
 let botCounter = 0;
@@ -249,32 +238,26 @@ app.post('/api/upgrade', async (req, res) => {
   try {
     const { userId, bet, chance } = req.body || {};
     if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
-
     const betAmt = Math.floor(Number(bet));
     if (!Number.isFinite(betAmt) || betAmt < UPGRADE_MIN_BET)
       return res.status(400).json({ ok: false, error: 'Minimum bet is ' + UPGRADE_MIN_BET });
     if (betAmt > UPGRADE_MAX_BET)
       return res.status(400).json({ ok: false, error: 'Maximum bet is ' + UPGRADE_MAX_BET });
-
     const ch = Number(chance);
     if (!Number.isFinite(ch) || ch < 0.0005 || ch > 0.95)
       return res.status(400).json({ ok: false, error: 'Invalid chance' });
-
     const user = await getUser(userId);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
     if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
     if (user.balance < betAmt) return res.status(400).json({ ok: false, error: 'Insufficient balance' });
-
     const tk = dayKey();
     if (user.upgradeDay !== tk) { user.upgradeDay = tk; user.upgradeCount = 0; }
     const used = user.upgradeCount | 0;
     if (used >= UPGRADE_DAILY_LIMIT)
       return res.status(400).json({ ok: false, error: 'Daily limit reached (' + UPGRADE_DAILY_LIMIT + ' plays/day)' });
-
     user.balance -= betAmt;
     user.upgradeCount = used + 1;
     user.xp = (user.xp | 0) + betAmt;
-
     const win = Math.random() < ch;
     const mult = (1 - UPGRADE_HOUSE) / ch;
     let payout = 0;
@@ -286,16 +269,8 @@ app.post('/api/upgrade', async (req, res) => {
       user.losses = (user.losses | 0) + 1;
     }
     await saveUser(user);
-
-    res.json({
-      ok: true,
-      win,
-      multiplier: mult,
-      payout,
-      newBalance: user.balance,
-      remaining: UPGRADE_DAILY_LIMIT - user.upgradeCount,
-      level: getLevelInfo(user),
-    });
+    res.json({ ok: true, win, multiplier: mult, payout, newBalance: user.balance,
+      remaining: UPGRADE_DAILY_LIMIT - user.upgradeCount, level: getLevelInfo(user) });
   } catch (err) {
     console.error('upgrade error:', err);
     res.status(500).json({ ok: false, error: 'Internal error' });
@@ -463,10 +438,9 @@ function getIceWinner() {
 }
 
 /* ============================================================
-   ICE ARENA — chance-based winner + billiard path
+   ICE ARENA — real physics + gentle magnet toward pre-picked winner
    ============================================================ */
 
-// Weighted random by bet, so bigger bets are more likely to win.
 function pickIceWinner() {
   const players = iceRoom.players;
   if (players.length === 0) return null;
@@ -520,214 +494,36 @@ function pickPointInPoly(poly, margin) {
   return polyCentroid(poly);
 }
 
-// Reflect inside a square [0, S] (same trick the upgrade game uses).
-function foldAxisIce(v) {
-  const S = ICE_SIZE;
-  const m = ((v % (2 * S)) + 2 * S) % (2 * S);
-  return m <= S ? m : 2 * S - m;
-}
-
-const ICE_CORNER_MARGIN_FOR_PATH = ICE_CORNER_RADIUS + 22;
-
-// Wide unfolding grid + variable target length → very varied trajectories.
-function buildIcePath(start, target) {
-  const S = ICE_SIZE;
-  const TARGET_LEN_BASE = S * 13;
-  const TARGET_LEN = TARGET_LEN_BASE + (Math.random() - 0.5) * S * 4;
-  const LEN_MIN = TARGET_LEN * 0.86;
-  const LEN_MAX = TARGET_LEN * 1.14;
-  const MIN_SEG = 32;
-
-  let best = null, bestDelta = Infinity;
-
-  for (let attempt = 0; attempt < 9000; attempt++) {
-    const ix = Math.floor(Math.random() * 90) - 45;
-    const iy = Math.floor(Math.random() * 90) - 45;
-    if (ix === 0 && iy === 0) continue;
-    const sx = Math.random() < 0.5 ? -1 : 1;
-    const sy = Math.random() < 0.5 ? -1 : 1;
-    const U = { x: sx * target.x + 2 * S * ix, y: sy * target.y + 2 * S * iy };
-    const dx = U.x - start.x, dy = U.y - start.y;
-    const straight = Math.hypot(dx, dy);
-    if (straight < LEN_MIN || straight > LEN_MAX) continue;
-
-    const cuts = [];
-    if (Math.abs(dx) > 1e-6) {
-      const k0 = Math.ceil(Math.min(start.x, U.x) / S);
-      const k1 = Math.floor(Math.max(start.x, U.x) / S);
-      for (let k = k0; k <= k1; k++) {
-        const t = (k * S - start.x) / dx;
-        if (t > 1e-4 && t < 1 - 1e-4) cuts.push(t);
-      }
-    }
-    if (Math.abs(dy) > 1e-6) {
-      const k0 = Math.ceil(Math.min(start.y, U.y) / S);
-      const k1 = Math.floor(Math.max(start.y, U.y) / S);
-      for (let k = k0; k <= k1; k++) {
-        const t = (k * S - start.y) / dy;
-        if (t > 1e-4 && t < 1 - 1e-4) cuts.push(t);
-      }
-    }
-    cuts.sort((a, b) => a - b);
-
-    let cornerHit = false;
-    for (let i = 1; i < cuts.length; i++) {
-      if (Math.abs(cuts[i] - cuts[i - 1]) < 1e-5) { cornerHit = true; break; }
-    }
-    if (cornerHit) continue;
-
-    const pts = [{ x: start.x, y: start.y }];
-    for (const t of cuts) {
-      const ux = start.x + dx * t;
-      const uy = start.y + dy * t;
-      pts.push({ x: foldAxisIce(ux), y: foldAxisIce(uy) });
-    }
-    pts.push({ x: target.x, y: target.y });
-
-    let bad = false;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const p = pts[i];
-      const nearX = p.x < ICE_CORNER_MARGIN_FOR_PATH || p.x > S - ICE_CORNER_MARGIN_FOR_PATH;
-      const nearY = p.y < ICE_CORNER_MARGIN_FOR_PATH || p.y > S - ICE_CORNER_MARGIN_FOR_PATH;
-      if (nearX && nearY) { bad = true; break; }
-    }
-    if (bad) continue;
-
-    let minSeg = Infinity;
-    for (let i = 1; i < pts.length; i++) {
-      const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-      if (d < minSeg) minSeg = d;
-    }
-    if (minSeg < MIN_SEG) continue;
-
-    const cum = [0];
-    for (let i = 1; i < pts.length; i++) {
-      cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-    }
-    const total = cum[cum.length - 1];
-    if (total < LEN_MIN) continue;
-
-    const delta = Math.abs(total - TARGET_LEN);
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      best = { pts, cum, total };
-    }
-    if (bestDelta < 60) break;
-  }
-
-  if (best) return best;
-
-  const dx = target.x - start.x, dy = target.y - start.y;
-  const total = Math.max(1, Math.hypot(dx, dy));
-  return {
-    pts: [{ x: start.x, y: start.y }, { x: target.x, y: target.y }],
-    cum: [0, total],
-    total,
-  };
-}
-
-function pointAtIcePath(path, d) {
-  if (d <= 0) return { x: path.pts[0].x, y: path.pts[0].y };
-  if (d >= path.total) {
-    const last = path.pts[path.pts.length - 1];
-    return { x: last.x, y: last.y };
-  }
-  let i = 0;
-  while (i < path.cum.length - 2 && path.cum[i + 1] < d) i++;
-  const segLen = path.cum[i + 1] - path.cum[i];
-  const t = segLen > 0 ? (d - path.cum[i]) / segLen : 0;
-  const a = path.pts[i], b = path.pts[i + 1];
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
-function tangentAtIcePath(path, d) {
-  if (!path || path.pts.length < 2) return { x: 0, y: 0 };
-  if (d <= 0) d = 0;
-  if (d >= path.total) d = path.total - 0.001;
-  let i = 0;
-  while (i < path.cum.length - 2 && path.cum[i + 1] <= d) i++;
-  const a = path.pts[i], b = path.pts[i + 1];
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const len = Math.hypot(dx, dy);
-  if (len < 0.0001) return { x: 0, y: 0 };
-  return { x: dx / len, y: dy / len };
-}
-
-/* ──────────────────────────────────────────────────────────────
-   Easing — LONGER, slower tail.
-   U1 = 0.25 → the fast "launch" phase only lasts the first 25% of
-              time (was 30%).
-   SLOW_EXP = 2.0 → the tail decays quadratically, so the puck
-                    spends a much longer stretch visibly crawling
-                    to a stop in the last ~30% of the animation.
-   ────────────────────────────────────────────────────────────── */
-const ICE_FAST_FRAC = 0.40;
-const ICE_U1 = 0.25;
-const ICE_SLOW_EXP = (ICE_FAST_FRAC / ICE_U1) * (1 - ICE_U1) / (1 - ICE_FAST_FRAC);
-
-function distFracIce(u) {
-  if (u <= ICE_U1) return (u / ICE_U1) * ICE_FAST_FRAC;
-  const t = (u - ICE_U1) / (1 - ICE_U1);
-  return ICE_FAST_FRAC + (1 - ICE_FAST_FRAC) * (1 - Math.pow(1 - t, ICE_SLOW_EXP));
-}
-
-// Total ride time: ~9 s. Roughly 40 % longer than before, so the
-// slow tail is proportionally much longer in absolute seconds.
-const ICE_PATH_DURATION_BASE   = 9000;
-const ICE_PATH_DURATION_JITTER = 500;
-
 function startIceSpin() {
   iceRoom.gameState = 'spinning';
   iceRoom.spinStartTime = Date.now();
   iceRoom.spinDuration = 2.6 + Math.random() * 1.6;
-
+  iceRoom.spinFinalAngle = Math.random() * Math.PI * 2;
   const margin = 30;
   iceRoom.spinStartX = margin + Math.random() * (ICE_SIZE - 2 * margin);
   iceRoom.spinStartY = margin + Math.random() * (ICE_SIZE - 2 * margin);
 
   const winner = pickIceWinner();
   iceRoom.predeterminedWinner = winner;
-
   if (winner && winner.poly && winner.poly.length >= 3) {
-    const target = pickPointInPoly(winner.poly, 22);
-    const start  = { x: iceRoom.spinStartX, y: iceRoom.spinStartY };
-    const path   = buildIcePath(start, target);
-    iceRoom.path = path;
-
-    const dx = path.pts[1].x - path.pts[0].x;
-    const dy = path.pts[1].y - path.pts[0].y;
-    iceRoom.spinFinalAngle = Math.atan2(dy, dx);
+    iceRoom.targetPoint = pickPointInPoly(winner.poly, 18);
   } else {
-    iceRoom.path = null;
-    iceRoom.spinFinalAngle = Math.random() * Math.PI * 2;
+    iceRoom.targetPoint = null;
   }
 }
 
 function launchIcePuck() {
   iceRoom.gameState = 'sliding';
+  const baseSpeed = 32;
+  const speed = baseSpeed + Math.random() * 4;
+  const angle = iceRoom.spinFinalAngle;
   iceRoom.puck.x = iceRoom.spinStartX;
   iceRoom.puck.y = iceRoom.spinStartY;
-
-  const pathDuration = ICE_PATH_DURATION_BASE + Math.random() * ICE_PATH_DURATION_JITTER;
-  iceRoom.pathDuration = pathDuration;
-
-  if (iceRoom.path && iceRoom.path.total > 0) {
-    const sampleDt = 0.016;
-    const sampleU  = sampleDt / (pathDuration / 1000);
-    const sampleD  = iceRoom.path.total * distFracIce(sampleU);
-    const speed    = sampleD / sampleDt;
-    const dir      = tangentAtIcePath(iceRoom.path, 0);
-    iceRoom.puck.vx = dir.x * speed;
-    iceRoom.puck.vy = dir.y * speed;
-  } else {
-    iceRoom.puck.vx = 0;
-    iceRoom.puck.vy = 0;
-  }
-
-  iceRoom.slideStartTime  = Date.now();
-  iceRoom.pathStartTime   = Date.now();
-  iceRoom.lastBounceIdx   = 0;
-  iceRoom.lastBounceTime  = 0;
+  iceRoom.puck.vx = Math.cos(angle) * speed;
+  iceRoom.puck.vy = Math.sin(angle) * speed;
+  iceRoom.slideStartTime = Date.now();
+  iceRoom.lastBounceTime = 0;
+  iceRoom.pathDuration = 7500;
 }
 
 async function endIceGame() {
@@ -775,9 +571,8 @@ async function endIceGame() {
     iceRoom.puck = { x: ICE_SIZE / 2, y: ICE_SIZE / 2, vx: 0, vy: 0 };
     iceRoom.gameState = 'idle';
     iceRoom.lastBounceTime = 0;
-    iceRoom.lastBounceIdx = 0;
-    iceRoom.path = null;
     iceRoom.predeterminedWinner = null;
+    iceRoom.targetPoint = null;
     botIds.clear();
     botCounter = 0;
   }, 3000);
@@ -785,47 +580,114 @@ async function endIceGame() {
 
 function updateIcePhysics(dt) {
   if (iceRoom.gameState !== 'sliding') return;
-  if (!iceRoom.path) { endIceGame(); return; }
+  const totalPts = ICE_PERIMETER.length;
+  const subSteps = 8;
+  const subDt = dt / subSteps;
+  const puck = iceRoom.puck;
+  const puckRadius = 14;
+  const FRICTION_BASE    = 0.990;
+  const ROLLING_FRICTION = 0.985;
+  const RESTITUTION      = 0.78;
+  const HOLD_MS          = 4200;
+  const PR = puckRadius * puckRadius;
 
-  const now     = Date.now();
-  const elapsed = now - iceRoom.pathStartTime;
-  const u       = Math.min(1, elapsed / iceRoom.pathDuration);
-  const dist    = iceRoom.path.total * distFracIce(u);
+  const nowMs = Date.now();
+  const elapsedMs = nowMs - iceRoom.slideStartTime;
 
-  // Smooth velocity from path tangent + easing derivative (no jitter).
-  const duSample = 0.0008;
-  const uAhead   = Math.min(1, u + duSample);
-  const distAhead = iceRoom.path.total * distFracIce(uAhead);
-  const dtSeconds = duSample * (iceRoom.pathDuration / 1000);
-  const speed = dtSeconds > 0 ? (distAhead - dist) / dtSeconds : 0;
+  for (let step = 0; step < subSteps; step++) {
+    puck.x += puck.vx * subDt * 60;
+    puck.y += puck.vy * subDt * 60;
 
-  const dir = tangentAtIcePath(iceRoom.path, dist);
-  iceRoom.puck.vx = dir.x * speed;
-  iceRoom.puck.vy = dir.y * speed;
-
-  const pts = iceRoom.path.pts;
-  const cum = iceRoom.path.cum;
-  let segIdx = 0;
-  while (segIdx < cum.length - 2 && cum[segIdx + 1] <= dist) segIdx++;
-  if (segIdx > (iceRoom.lastBounceIdx || 0)) {
-    for (let s = (iceRoom.lastBounceIdx || 0) + 1; s <= segIdx; s++) {
-      if (s <= 0 || s >= pts.length - 1) continue;
-      const bp = pts[s];
-      io.emit('icePuckBounce', {
-        x: bp.x, y: bp.y,
-        intensity: Math.min(1, 0.4 + speed / 900),
-      });
+    let iter = 0; const maxIter = 8;
+    while (iter < maxIter) {
+      let deepestOverlap = 0; let bestNx = 0, bestNy = 0; let bestNearX = 0, bestNearY = 0;
+      for (let i = 0; i < totalPts; i++) {
+        const j = (i + 1) % totalPts;
+        const ax = ICE_PERIMETER[i].x, ay = ICE_PERIMETER[i].y;
+        const bx = ICE_PERIMETER[j].x, by = ICE_PERIMETER[j].y;
+        const dx = bx - ax, dy = by - ay;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) continue;
+        let t = ((puck.x - ax) * dx + (puck.y - ay) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        const nearX = ax + t * dx, nearY = ay + t * dy;
+        const distX = puck.x - nearX, distY = puck.y - nearY;
+        const distSq = distX * distX + distY * distY;
+        if (distSq < PR && distSq > 0.000001) {
+          const dist = Math.sqrt(distSq);
+          const overlap = puckRadius - dist;
+          if (overlap > deepestOverlap) {
+            deepestOverlap = overlap;
+            bestNx = distX / dist; bestNy = distY / dist;
+            bestNearX = nearX; bestNearY = nearY;
+          }
+        }
+      }
+      if (deepestOverlap <= 0.0001) break;
+      puck.x += bestNx * deepestOverlap;
+      puck.y += bestNy * deepestOverlap;
+      const vn = puck.vx * bestNx + puck.vy * bestNy;
+      if (vn < 0) {
+        puck.vx -= (1 + RESTITUTION) * vn * bestNx;
+        puck.vy -= (1 + RESTITUTION) * vn * bestNy;
+        const nowT = Date.now();
+        if (nowT - iceRoom.lastBounceTime > 80) {
+          iceRoom.lastBounceTime = nowT;
+          const spAt = Math.hypot(puck.vx, puck.vy);
+          if (spAt > 1.5) {
+            io.emit('icePuckBounce', { x: bestNearX, y: bestNearY,
+              intensity: Math.min(1, spAt / 20) });
+          }
+        }
+      }
+      iter++;
     }
-    iceRoom.lastBounceIdx = segIdx;
+
+    if (elapsedMs < HOLD_MS) {
+      const decay = Math.pow(0.9999, subDt * 60);
+      puck.vx *= decay; puck.vy *= decay;
+    } else {
+      const friction = FRICTION_BASE + (Math.random() - 0.5) * 0.0006;
+      const decay = Math.pow(friction, subDt * 60);
+      puck.vx *= decay; puck.vy *= decay;
+      const s2 = puck.vx * puck.vx + puck.vy * puck.vy;
+      if (s2 < 0.8) {
+        const rollDecay = Math.pow(ROLLING_FRICTION, subDt * 60);
+        puck.vx *= rollDecay; puck.vy *= rollDecay;
+      }
+    }
+
+    if (iceRoom.targetPoint) {
+      const tx = iceRoom.targetPoint.x - puck.x;
+      const ty = iceRoom.targetPoint.y - puck.y;
+      const dist = Math.hypot(tx, ty);
+      if (dist > 1.5) {
+        const sp = Math.hypot(puck.vx, puck.vy);
+        const normSp = Math.min(1, sp / 22);
+        const blend = 0.045 * (1 - normSp);
+        if (blend > 0.0005) {
+          const targetVx = (tx / dist) * sp;
+          const targetVy = (ty / dist) * sp;
+          puck.vx = puck.vx * (1 - blend) + targetVx * blend;
+          puck.vy = puck.vy * (1 - blend) + targetVy * blend;
+        }
+      }
+    }
   }
 
-  const finalPos = pointAtIcePath(iceRoom.path, dist);
-  iceRoom.puck.x = finalPos.x;
-  iceRoom.puck.y = finalPos.y;
+  const speed = Math.hypot(puck.vx, puck.vy);
+  const targetDist = iceRoom.targetPoint
+    ? Math.hypot(puck.x - iceRoom.targetPoint.x, puck.y - iceRoom.targetPoint.y)
+    : Infinity;
 
-  if (u >= 1) {
-    iceRoom.puck.vx = 0;
-    iceRoom.puck.vy = 0;
+  const timeout = elapsedMs > 11000;
+
+  if (speed < 0.05 || (elapsedMs > 5500 && targetDist < 2) || timeout) {
+    if (iceRoom.targetPoint) {
+      puck.x = iceRoom.targetPoint.x;
+      puck.y = iceRoom.targetPoint.y;
+    }
+    puck.vx = 0; puck.vy = 0;
     endIceGame();
   }
 }
@@ -840,7 +702,7 @@ function broadcastIceState() {
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX, spinStartY: iceRoom.spinStartY,
     pathDuration: iceRoom.pathDuration,
-    puck: { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
+    puck: { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx * 60, vy: iceRoom.puck.vy * 60 },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
       poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
@@ -849,7 +711,7 @@ function broadcastIceState() {
 }
 
 /* ============================================================
-   PVP ARENA (bump) — unchanged
+   PVP ARENA (bump)
    ============================================================ */
 function computeRadii() {
   const totalBet = room.players.reduce((s, p) => s + p.bet, 0);
@@ -1077,6 +939,8 @@ function updatePhysics(dt) {
 }
 
 const TICK_HZ = 60;
+const ICE_EMIT_HZ = 30;
+let iceEmitCounter = 0;
 const STATE_EVERY = 3;
 let tickCount = 0;
 let lastTick = Date.now();
@@ -1106,7 +970,18 @@ setInterval(() => {
     }
     tickCount++;
     if (iceRoom.gameState === 'sliding') {
-      io.emit('icePuck', { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding' });
+      iceEmitCounter++;
+      if (iceEmitCounter % Math.round(TICK_HZ / ICE_EMIT_HZ) === 0) {
+        io.emit('icePuck', {
+          x: iceRoom.puck.x,
+          y: iceRoom.puck.y,
+          vx: iceRoom.puck.vx * 60,
+          vy: iceRoom.puck.vy * 60,
+          g: 'sliding'
+        });
+      }
+    } else {
+      iceEmitCounter = 0;
     }
     if (iceRoom.gameState !== icePrev || tickCount % STATE_EVERY === 0) {
       broadcastState();
@@ -1338,7 +1213,6 @@ function adminAuth(req, res, next) {
   next();
 }
 app.get('/admin', (req, res) => res.send(ADMIN_HTML));
-
 app.post('/admin/api/toggle-auto-bot', adminAuth, (req, res) => {
   const { enabled } = req.body;
   if (typeof enabled !== 'boolean') return res.status(400).json({ ok: false, error: 'Invalid' });
