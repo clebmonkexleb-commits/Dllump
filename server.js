@@ -530,18 +530,21 @@ function foldAxisIce(v) {
 
 const ICE_CORNER_MARGIN_FOR_PATH = ICE_CORNER_RADIUS + 22;
 
+// Increased variety: wider unfolding grid + variable target length,
+// so trajectories feel less repetitive.
 function buildIcePath(start, target) {
   const S = ICE_SIZE;
-  const TARGET_LEN = S * 13;             // ≈ 5200 on 400
-  const LEN_MIN = TARGET_LEN * 0.88;
-  const LEN_MAX = TARGET_LEN * 1.12;
-  const MIN_SEG = 30;
+  const TARGET_LEN_BASE = S * 13;
+  const TARGET_LEN = TARGET_LEN_BASE + (Math.random() - 0.5) * S * 4;
+  const LEN_MIN = TARGET_LEN * 0.86;
+  const LEN_MAX = TARGET_LEN * 1.14;
+  const MIN_SEG = 32;
 
   let best = null, bestDelta = Infinity;
 
-  for (let attempt = 0; attempt < 5000; attempt++) {
-    const ix = Math.floor(Math.random() * 60) - 30;
-    const iy = Math.floor(Math.random() * 60) - 30;
+  for (let attempt = 0; attempt < 9000; attempt++) {
+    const ix = Math.floor(Math.random() * 90) - 45;
+    const iy = Math.floor(Math.random() * 90) - 45;
     if (ix === 0 && iy === 0) continue;
     const sx = Math.random() < 0.5 ? -1 : 1;
     const sy = Math.random() < 0.5 ? -1 : 1;
@@ -642,9 +645,30 @@ function pointAtIcePath(path, d) {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
-// Same easing the upgrade game uses: fast first ~27% of time → slow tail.
-const ICE_FAST_FRAC = 0.55;
-const ICE_U1 = 0.27;
+// Tangent direction at a given arc-length distance.
+function tangentAtIcePath(path, d) {
+  if (!path || path.pts.length < 2) return { x: 0, y: 0 };
+  if (d <= 0) d = 0;
+  if (d >= path.total) d = path.total - 0.001;
+  let i = 0;
+  while (i < path.cum.length - 2 && path.cum[i + 1] <= d) i++;
+  const a = path.pts[i], b = path.pts[i + 1];
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.0001) return { x: 0, y: 0 };
+  return { x: dx / len, y: dy / len };
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Easing — SLOWED DOWN significantly.
+   Old: fast phase covered 55% distance in first 27% time → most of
+        the motion was over before you could see it.
+   New: fast phase covers only 40% distance in first 30% time, and
+        the tail power curve is much gentler (SLOW_EXP ~1.56 vs 3.3),
+        so the puck keeps gliding visibly all the way to the end.
+   ────────────────────────────────────────────────────────────── */
+const ICE_FAST_FRAC = 0.40;
+const ICE_U1 = 0.30;
 const ICE_SLOW_EXP = (ICE_FAST_FRAC / ICE_U1) * (1 - ICE_U1) / (1 - ICE_FAST_FRAC);
 
 function distFracIce(u) {
@@ -652,6 +676,10 @@ function distFracIce(u) {
   const t = (u - ICE_U1) / (1 - ICE_U1);
   return ICE_FAST_FRAC + (1 - ICE_FAST_FRAC) * (1 - Math.pow(1 - t, ICE_SLOW_EXP));
 }
+
+// Longer total duration → noticeably slower overall
+const ICE_PATH_DURATION_BASE   = 6400;
+const ICE_PATH_DURATION_JITTER = 500;
 
 function startIceSpin() {
   iceRoom.gameState = 'spinning';
@@ -688,19 +716,18 @@ function launchIcePuck() {
   iceRoom.puck.x = iceRoom.spinStartX;
   iceRoom.puck.y = iceRoom.spinStartY;
 
-  // Sample the path a tiny bit ahead so the first broadcast already
-  // has a realistic velocity. Otherwise the client sees vx=0/vy=0 for
-  // one tick and misreads the launch as a stop (causing instant zoom-in).
-  const pathDuration = 5350 + Math.random() * 180;
+  const pathDuration = ICE_PATH_DURATION_BASE + Math.random() * ICE_PATH_DURATION_JITTER;
   iceRoom.pathDuration = pathDuration;
 
+  // Initial velocity from path derivative — smooth, never zero at start.
   if (iceRoom.path && iceRoom.path.total > 0) {
-    const sampleDt = 0.016;                        // ~1 frame
-    const sampleU  = sampleDt / pathDuration;
+    const sampleDt = 0.016;
+    const sampleU  = sampleDt / (pathDuration / 1000);
     const sampleD  = iceRoom.path.total * distFracIce(sampleU);
-    const sample   = pointAtIcePath(iceRoom.path, sampleD);
-    iceRoom.puck.vx = (sample.x - iceRoom.puck.x) / sampleDt;
-    iceRoom.puck.vy = (sample.y - iceRoom.puck.y) / sampleDt;
+    const speed    = sampleD / sampleDt;               // px/s
+    const dir      = tangentAtIcePath(iceRoom.path, 0);
+    iceRoom.puck.vx = dir.x * speed;
+    iceRoom.puck.vy = dir.y * speed;
   } else {
     iceRoom.puck.vx = 0;
     iceRoom.puck.vy = 0;
@@ -773,19 +800,21 @@ function updateIcePhysics(dt) {
   const now     = Date.now();
   const elapsed = now - iceRoom.pathStartTime;
   const u       = Math.min(1, elapsed / iceRoom.pathDuration);
-  const eased   = distFracIce(u);
-  const dist    = iceRoom.path.total * eased;
+  const dist    = iceRoom.path.total * distFracIce(u);
 
-  const prevX = iceRoom.puck.x;
-  const prevY = iceRoom.puck.y;
-  const pos   = pointAtIcePath(iceRoom.path, dist);
+  // ─── Smooth velocity from path tangent + easing derivative ───
+  // Avoids the finite-difference jitter that made the puck look glitchy.
+  const duSample = 0.0008;
+  const uAhead   = Math.min(1, u + duSample);
+  const distAhead = iceRoom.path.total * distFracIce(uAhead);
+  const dtSeconds = duSample * (iceRoom.pathDuration / 1000);
+  const speed = dtSeconds > 0 ? (distAhead - dist) / dtSeconds : 0;   // px/s
 
-  // Velocity for the client's interpolation buffer
-  const dtSec = Math.max(1e-3, dt);
-  iceRoom.puck.vx = (pos.x - prevX) / dtSec;
-  iceRoom.puck.vy = (pos.y - prevY) / dtSec;
+  const dir = tangentAtIcePath(iceRoom.path, dist);
+  iceRoom.puck.vx = dir.x * speed;
+  iceRoom.puck.vy = dir.y * speed;
 
-  // Emit bounce events at every wall reflection (feeds the "bounce lights" toggle)
+  // ─── Emit bounce events at every wall reflection ───
   const pts = iceRoom.path.pts;
   const cum = iceRoom.path.cum;
   let segIdx = 0;
@@ -794,17 +823,16 @@ function updateIcePhysics(dt) {
     for (let s = (iceRoom.lastBounceIdx || 0) + 1; s <= segIdx; s++) {
       if (s <= 0 || s >= pts.length - 1) continue;
       const bp = pts[s];
-      const sp = Math.hypot(iceRoom.puck.vx, iceRoom.puck.vy);
       io.emit('icePuckBounce', {
         x: bp.x, y: bp.y,
-        intensity: Math.min(1, 0.4 + sp / 30),
+        intensity: Math.min(1, 0.4 + speed / 900),
       });
     }
     iceRoom.lastBounceIdx = segIdx;
   }
 
-  iceRoom.puck.x = pos.x;
-  iceRoom.puck.y = pos.y;
+  iceRoom.puck.x = pointAtIcePath(iceRoom.path, dist).x;
+  iceRoom.puck.y = pointAtIcePath(iceRoom.path, dist).y;
 
   if (u >= 1) {
     iceRoom.puck.vx = 0;
@@ -822,6 +850,7 @@ function broadcastIceState() {
     spinDuration: iceRoom.spinDuration,
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX, spinStartY: iceRoom.spinStartY,
+    pathDuration: iceRoom.pathDuration,             // NEW — client uses this for zoom timing
     puck: { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
