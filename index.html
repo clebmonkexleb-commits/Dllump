@@ -331,6 +331,16 @@
   .tx-entry .tx-amount.bet{color:#f0c040}
   .tx-empty{text-align:center;padding:14px 0;font-size:12px;color:var(--text3)}
 
+  .tx-clickable{
+    color:#8fbdff;
+    text-decoration:underline;
+    text-decoration-style:dotted;
+    text-underline-offset:2px;
+    cursor:pointer;
+    transition:color .15s ease;
+  }
+  .tx-clickable:active{color:#c8d8ff}
+
   .card-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;background:var(--surface);border-radius:14px;padding:10px;border:.5px solid var(--border);margin-bottom:10px}
   .card-stats .cs-item{display:flex;flex-direction:column;align-items:center;padding:3px 0}
   .card-stats .cs-label{font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-weight:700}
@@ -1065,6 +1075,41 @@
   #tr-continue.enabled:active{transform:scale(.975)}
   @keyframes continueReady{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
   #tr-continue.success{background:linear-gradient(135deg,#4ade80,#22c55e);border-color:rgba(120,220,160,.6);box-shadow:0 14px 32px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.3)}
+
+  /* Recent recipients chips */
+  .tr-recents-container{
+    margin-top:14px;
+    display:none;
+    flex-shrink:0;
+  }
+  .tr-recents-label{
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:1.8px;
+    color:rgba(200,215,235,.42);
+    margin-bottom:6px;
+  }
+  .tr-recents-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .tr-recent-chip{
+    padding:7px 11px;
+    border-radius:10px;
+    border:1px solid rgba(91,157,255,.30);
+    background:rgba(91,157,255,.08);
+    color:#cfe0ff;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .15s cubic-bezier(.34,1.56,.64,1),background .18s ease;
+  }
+  .tr-recent-chip:active{
+    transform:scale(.94);
+    background:rgba(91,157,255,.18);
+  }
 
   .anon-open-btn{width:100%;display:flex;align-items:center;gap:12px;padding:16px;margin:12px 0 10px;border-radius:16px;background:linear-gradient(135deg,#0b0b0e,#050506);border:1px solid rgba(255,255,255,.06);color:#fff;font-family:inherit;font-size:13.5px;font-weight:800;letter-spacing:.2px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s var(--ease-spring),background .25s ease;box-shadow:0 10px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)}
   .anon-open-btn::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 20% 0%,rgba(140,180,255,.12),transparent 60%)}
@@ -1881,6 +1926,7 @@
           <div class="tr-input-display" id="tr-username-display"></div>
         </div>
       </div>
+      <div class="tr-recents-container" id="tr-recents-container"></div>
     </div>
     <div class="tr-bottom">
       <div class="tr-error" id="tr-error"></div>
@@ -2281,7 +2327,7 @@
     anonymous:false,hidePfp:false,anonymousName:'Anonymous',
     defaultAvatar:'https://i.pravatar.cc/150?img=0',
     topPlayers:[],topPlayerIds:new Map(),winStreak:0,
-    transactions:[],maxTx:20,
+    transactions:[],recentRecipients:[],maxTx:40,
     memberSince:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
     soundEnabled:false,bounceLightsEnabled:false,currentTab:'ice',
     storyRingsEnabled:false,
@@ -2339,6 +2385,36 @@
   const cardBalanceValue=document.getElementById('card-balance-value');
   const cardHolder=document.getElementById('card-holder');
 
+  /* ====== Persistent transaction history ====== */
+  function txKey()  { return 'dllump_tx_' + (state.userId || 'anon'); }
+  function recKey() { return 'dllump_recent_' + (state.userId || 'anon'); }
+
+  function loadTransactions() {
+    try {
+      const raw = localStorage.getItem(txKey());
+      if (raw) state.transactions = JSON.parse(raw) || [];
+      const raw2 = localStorage.getItem(recKey());
+      if (raw2) state.recentRecipients = JSON.parse(raw2) || [];
+    } catch (_) {}
+    refreshTransactions();
+    refreshCardStats();
+  }
+
+  function saveTransactions() {
+    try {
+      localStorage.setItem(txKey(), JSON.stringify(state.transactions.slice(0, state.maxTx)));
+      localStorage.setItem(recKey(), JSON.stringify(state.recentRecipients.slice(0, 6)));
+    } catch (_) {}
+  }
+
+  function addRecentRecipient(username, amount) {
+    if (!username) return;
+    state.recentRecipients = state.recentRecipients.filter(r => r.username !== username);
+    state.recentRecipients.unshift({ username, amount, time: Date.now() });
+    if (state.recentRecipients.length > 6) state.recentRecipients.length = 6;
+    saveTransactions();
+  }
+
   const socket=(typeof io!=='undefined')?io(SERVER_URL,{transports:['websocket','polling']}):null;
   function setOnline(on){
     if(statusDot)statusDot.classList.toggle('offline',!on);
@@ -2355,6 +2431,7 @@
         state.balance=res.user.balance;state.wins=res.user.wins;state.losses=res.user.losses;
         state.anonymous=!!res.user.anonymousEnabled;state.hidePfp=!!res.user.hidePfp;
         state.anonymousName=res.user.anonymousName||'Anonymous';
+        loadTransactions();
         if(window.__syncAnonFromJoin) window.__syncAnonFromJoin(res.user);
         if(window.__applyLevelFromJoin) window.__applyLevelFromJoin(res.level, res.quests);
         window.__levelState = res.level;
@@ -2492,18 +2569,50 @@
     wrWin.style.width = Math.max(0, Math.min(100, wr)).toFixed(1) + '%';
   }
 
-  function addTransaction(type,amount,label){
-    state.transactions.unshift({type,amount,label:label||'Bet',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
-    if(state.transactions.length>state.maxTx)state.transactions.pop();
-    refreshTransactions();refreshCardStats();
+  function addTransaction(type,amount,label,meta){
+    const tx = {
+      type, amount, label: label || 'Bet',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      ts: Date.now()
+    };
+    if (meta) Object.assign(tx, meta);
+    state.transactions.unshift(tx);
+    if (state.transactions.length > state.maxTx) state.transactions.length = state.maxTx;
+    saveTransactions();
+    refreshTransactions();
+    refreshCardStats();
   }
+
   function refreshTransactions(){
-    const list=$('#tx-list');if(!list)return;
-    if(state.transactions.length===0){list.innerHTML='<div class="tx-empty">No transactions yet</div>';return}
+    const list=document.getElementById('tx-list');
+    if(!list)return;
+    if(state.transactions.length===0){
+      list.innerHTML='<div class="tx-empty">No transactions yet</div>';
+      return;
+    }
     let html='';
-    state.transactions.forEach(tx=>{const s=tx.amount>0?'+':'';html+='<div class="tx-entry"><span>'+tx.label+'</span><span class="tx-amount '+tx.type+'">'+s+tx.amount+'</span></div>'});
-    list.innerHTML=html;
+    state.transactions.forEach((tx, idx)=>{
+      const sign = tx.amount > 0 ? '+' : '';
+      let labelHtml;
+      if (tx.toUsername){
+        labelHtml = '<span class="tx-clickable" data-idx="' + idx + '" role="button">' +
+                    escapeHtml(tx.label) + '</span>';
+      } else {
+        labelHtml = escapeHtml(tx.label);
+      }
+      html += '<div class="tx-entry"><span>' + labelHtml + '</span>' +
+              '<span class="tx-amount ' + tx.type + '">' + sign + tx.amount + '</span></div>';
+    });
+    list.innerHTML = html;
+
+    list.querySelectorAll('.tx-clickable').forEach(el => {
+      el.addEventListener('click', () => {
+        const tx = state.transactions[parseInt(el.dataset.idx, 10)];
+        if (tx && tx.toUsername) { haptic('light'); openTransfer(tx.toUsername); }
+      });
+    });
   }
+
   function refreshCardStats(){
     let w=0,b=0,n=0;
     state.transactions.forEach(tx=>{if(tx.type==='bet')w+=Math.abs(tx.amount);else if(tx.type==='win'){n+=tx.amount;if(tx.amount>b)b=tx.amount}else if(tx.type==='loss')n+=tx.amount});
@@ -3119,8 +3228,8 @@
   };
 
   const puckBuffer = [];
-  const PUCK_BUFFER_MAX = 30;
-  const PUCK_INTERP_DELAY = 35;
+  const PUCK_BUFFER_MAX = 20;
+  const PUCK_INTERP_DELAY = 50;
   let puckLastSnapshotT = 0;
 
   function pushPuckSnapshot(x, y, vx, vy) {
@@ -4378,9 +4487,39 @@
     trShowPage('compose');
   }
 
-  function openTransfer(){
+  function renderRecentRecipients() {
+    const box = document.getElementById('tr-recents-container');
+    if (!box) return;
+    if (!state.recentRecipients.length) {
+      box.innerHTML = '';
+      box.style.display = 'none';
+      return;
+    }
+    box.style.display = 'block';
+    let html = '<div class="tr-recents-label">RECENT</div><div class="tr-recents-list">';
+    state.recentRecipients.forEach(r => {
+      html += '<button type="button" class="tr-recent-chip" data-username="' +
+              escapeHtml(r.username) + '">@' + escapeHtml(r.username) + '</button>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+    box.querySelectorAll('.tr-recent-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        trUsernameInput.value = btn.dataset.username;
+        trUsernameMirror.sync();
+        haptic('light');
+      });
+    });
+  }
+
+  function openTransfer(prefillUsername){
     if(!state.userId){ showNotif('Please sign in first'); return; }
     trReset();
+    renderRecentRecipients();
+    if (prefillUsername) {
+      trUsernameInput.value = prefillUsername;
+      trUsernameMirror.sync();
+    }
     trOverlay.style.display = 'flex';
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
@@ -4487,7 +4626,8 @@
         const to  = trTransferData.username;
         state.balance = d.newBalance;
         updateBalance();
-        addTransaction('bet', -amt, 'Transfer to @' + to);
+        addTransaction('bet', -amt, 'Transfer to @' + to, { toUsername: to });
+        addRecentRecipient(to, amt);
         trOverlay.style.transition = 'transform .18s ease, opacity .18s ease';
         trOverlay.classList.remove('show');
         showTransferSuccess(amt, to);
@@ -4537,7 +4677,7 @@
   }
 
   const walletTransferBtn = document.getElementById('wallet-transfer-btn');
-  if(walletTransferBtn) walletTransferBtn.addEventListener('click', openTransfer);
+  if(walletTransferBtn) walletTransferBtn.addEventListener('click', () => openTransfer());
 
   window.addEventListener('resize', () => {
     if(trOverlay.classList.contains('show') && trSignPage.classList.contains('active')){
@@ -5006,8 +5146,8 @@
 
   let levelState = {
     level: 1, rank: 'Starter', xp: 0, edges: 3, maxLevel: 22,
-    currentLevelXp: 0, nextLevelXp: 300, xpIntoLevel: 0, xpForLevel: 300,
-    xpToNext: 300, progress: 0, isMax: false,
+    currentLevelXp: 0, nextLevelXp: 500, xpIntoLevel: 0, xpForLevel: 500,
+    xpToNext: 500, progress: 0, isMax: false,
   };
   let levelQuests = [];
   let levelMenuOpen = false;
@@ -5434,9 +5574,21 @@
   };
 
   function init(){
-    if(tg?.initDataUnsafe?.user){const u=tg.initDataUnsafe.user;state.username=u.username||u.first_name||'player';state.pfp=u.photo_url||''}
-    applyIdentity();applyLayout(layoutMode);resizeIceCanvas();initWalletCard();
-    setOnline(false);updateIndicator(false);requestAnimationFrame(renderLoop);refreshCardUI();
+    if(tg?.initDataUnsafe?.user){
+      const u=tg.initDataUnsafe.user;
+      state.username=u.username||u.first_name||'player';
+      state.pfp=u.photo_url||'';
+      if (u.id) state.userId = String(u.id);
+      loadTransactions();
+    }
+    applyIdentity();
+    applyLayout(layoutMode);
+    resizeIceCanvas();
+    initWalletCard();
+    setOnline(false);
+    updateIndicator(false);
+    requestAnimationFrame(renderLoop);
+    refreshCardUI();
     renderBadgeButton();
     setTimeout(() => { if(window.__refreshLevel) window.__refreshLevel(true); }, 1500);
   }
