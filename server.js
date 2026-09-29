@@ -116,15 +116,15 @@ const MAX_LEVEL = LEVEL_RANKS.length;
 /* Steep, super-linear progression.
    Level 1 → 0 XP
    Level 2 → 500 XP
-   Level 3 → 1,300 XP
-   Level 10 → ~ 12k XP
-   Level 22 → ~ 95k XP
+   Level 3 → ~1,300 XP
+   Level 10 → ~12k XP
+   Level 22 → ~95k XP
 */
 const LEVEL_XP = (() => {
   const arr = [0];
   for (let l = 1; l < MAX_LEVEL; l++) {
-    const base   = 500 + (l - 1) * 250;       // linear term
-    const growth = Math.round(Math.pow(l, 2.15) * 22); // super-linear term
+    const base   = 500 + (l - 1) * 250;
+    const growth = Math.round(Math.pow(l, 2.15) * 22);
     arr.push(arr[l - 1] + base + growth);
   }
   return arr;
@@ -690,6 +690,7 @@ function updateIcePhysics(dt) {
 }
 
 function broadcastIceState() {
+  const sliding = iceRoom.gameState === 'sliding';
   io.emit('iceState', {
     gameState: iceRoom.gameState,
     pot: iceRoom.pot,
@@ -699,12 +700,12 @@ function broadcastIceState() {
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX,
     spinStartY: iceRoom.spinStartY,
-    puck: {
-      x: iceRoom.puck.x,
-      y: iceRoom.puck.y,
-      vx: iceRoom.puck.vx,
-      vy: iceRoom.puck.vy,
-    },
+    /* During sliding, `icePuck` events are the ONLY authoritative puck
+       stream. We echo a static snapshot here so clients ignore it and
+       the interpolator isn't fed two competing timelines. */
+    puck: sliding
+      ? { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: 0, vy: 0, _sliding: true }
+      : { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
     players: iceRoom.players.map(p => ({
       id: p.id, name: p.name, pfp: p.pfp, bet: p.bet, color: p.color,
       poly: p.poly ? p.poly.map(v => ({ x: v.x, y: v.y })) : null,
@@ -976,8 +977,13 @@ let lastTick = Date.now();
 
 setInterval(() => {
   const now = Date.now();
-  const dt = Math.min((now - lastTick) / 1000, 0.1);
+  let dt = (now - lastTick) / 1000;
   lastTick = now;
+  /* Cap to ~2 frames @ 60Hz. If the event loop is throttled (Railway cold
+     starts, GC pauses), the puck advances slowly instead of leaping
+     forward and teleporting on the client. */
+  dt = Math.min(dt, 0.034);
+
   try {
     if (room.gameState === 'playing') updatePhysics(dt);
     else if (room.gameState === 'countdown') {
@@ -1002,8 +1008,8 @@ setInterval(() => {
 
     tickCount++;
 
-    /* Puck broadcast: 30 Hz (every 2nd tick) */
-    if (iceRoom.gameState === 'sliding' && tickCount % 2 === 0) {
+    /* Puck broadcast: send every tick during sliding for maximum smoothness. */
+    if (iceRoom.gameState === 'sliding') {
       io.emit('icePuck', {
         x: iceRoom.puck.x, y: iceRoom.puck.y,
         vx: iceRoom.puck.vx, vy: iceRoom.puck.vy, g: 'sliding'
