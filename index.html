@@ -3708,13 +3708,18 @@
       const elapsedMs = now - iceState.slideStartTime;
 
       if(!iceState.zoomFired){
-        const ZOOM_LEAD_MS = 200;
+        /* Fire zoom exactly 500ms before the puck stops.
+           Time-based countdown from slide start + velocity-based fallback
+           (puck stops at speed 0.05, so 0.075 is roughly 500ms earlier at
+           the current decay rate). Both triggers land within ~50ms of the
+           intended moment regardless of wall bounces. */
+        const ZOOM_LEAD_MS = 500;
         const EXPECTED_STOP_MS = 5440;
         let trigger = elapsedMs >= (EXPECTED_STOP_MS - ZOOM_LEAD_MS);
         if(!trigger && puckBuffer.length){
           const lastSnap = puckBuffer[puckBuffer.length - 1];
           const sv = Math.hypot(lastSnap.vx || 0, lastSnap.vy || 0);
-          if(sv < 0.15) trigger = true;
+          if(sv > 0 && sv < 0.075) trigger = true;
         }
         if(trigger){
           iceState.zoomCenterX = rpx;
