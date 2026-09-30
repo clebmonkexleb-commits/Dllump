@@ -1076,7 +1076,6 @@
   @keyframes continueReady{0%{transform:scale(.96)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
   #tr-continue.success{background:linear-gradient(135deg,#4ade80,#22c55e);border-color:rgba(120,220,160,.6);box-shadow:0 14px 32px rgba(34,197,94,.5),inset 0 1px 0 rgba(255,255,255,.3)}
 
-  /* Recent recipients chips */
   .tr-recents-container{
     margin-top:14px;
     display:none;
@@ -2043,7 +2042,7 @@
     <div class="lvl-progress-wrap">
       <div class="lvl-progress-head">
         <span id="lvl-xp-label">0 XP</span>
-        <span id="lvl-xp-next">300 XP TO GO</span>
+        <span id="lvl-xp-next">500 XP TO GO</span>
       </div>
       <div class="lvl-progress-track">
         <div class="lvl-progress-fill" id="lvl-progress-fill"></div>
@@ -3228,8 +3227,8 @@
   };
 
   const puckBuffer = [];
-  const PUCK_BUFFER_MAX = 20;
-  const PUCK_INTERP_DELAY = 50;
+  const PUCK_BUFFER_MAX = 12;
+  const PUCK_INTERP_DELAY = 60;
   let puckLastSnapshotT = 0;
 
   function pushPuckSnapshot(x, y, vx, vy) {
@@ -3267,12 +3266,21 @@
 
   function applyIceServerState(snapshot){
     const prev=iceState.gameState;
+    const newState = snapshot.gameState;
+    const transitionIntoSliding = (newState === 'sliding' && prev !== 'sliding');
+    const transitionOutOfSliding = (prev === 'sliding' && newState !== 'sliding');
 
-    if (snapshot.puck) {
+    /* During sliding, the `icePuck` event is the ONLY source of puck motion.
+       The `iceState` broadcast echoes a static snapshot every 3 ticks. If we
+       fed both into the interpolator, they'd fight each other and produce
+       freeze + teleport artifacts. Accept the puck from iceState only when
+       we're NOT actively sliding, or when crossing the boundary INTO sliding
+       (so we can seed the buffer). */
+    if (snapshot.puck && newState !== 'sliding' && !snapshot.puck._sliding) {
       pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
     }
 
-    if(snapshot.gameState==='sliding'&&prev!=='sliding'){
+    if(transitionIntoSliding){
       puckBuffer.length = 0;
       puckLastSnapshotT = 0;
       pushPuckSnapshot(snapshot.puck.x, snapshot.puck.y, snapshot.puck.vx || 0, snapshot.puck.vy || 0);
@@ -3281,7 +3289,8 @@
       iceState.puckUpdateTime=Date.now();
       if(snapshot.puck.vx!==undefined){iceState.puckVx=snapshot.puck.vx;iceState.puckVy=snapshot.puck.vy}
     }
-    iceState.gameState=snapshot.gameState;
+
+    iceState.gameState=newState;
     iceState.pot=snapshot.pot;
     iceState.countdownStartTime=snapshot.countdownStartTime;
     iceState.spinStartTime=snapshot.spinStartTime;
@@ -3289,7 +3298,8 @@
     iceState.spinFinalAngle=snapshot.spinFinalAngle;
     iceState.spinStartX=snapshot.spinStartX||iceState.arenaSize/2;
     iceState.spinStartY=snapshot.spinStartY||iceState.arenaSize/2;
-    if(snapshot.gameState!=='sliding'||prev==='sliding'){
+
+    if(newState !== 'sliding' || transitionOutOfSliding){
       iceState.puckPrevX=iceState.puck.x;iceState.puckPrevY=iceState.puck.y;
       iceState.puck.x=snapshot.puck.x;iceState.puck.y=snapshot.puck.y;
       iceState.puckUpdateTime=Date.now();
