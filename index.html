@@ -97,7 +97,6 @@
   @keyframes glowDiamond{0%,100%{filter:drop-shadow(0 0 6px rgba(200,168,78,.3))}50%{filter:drop-shadow(0 0 24px rgba(200,168,78,.7)) brightness(1.2)}}
   #bal{font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
 
-  /* ============== CASHBACK TOPBAR TAG ============== */
   .cb-tag-btn{
     display:inline-flex;align-items:center;justify-content:center;
     width:18px;height:18px;padding:0;border:none;background:transparent;
@@ -551,7 +550,6 @@
   body.perf-lite .pc-shine{ animation:none; }
   body.perf-lite .champion-card::after{ animation:none; }
 
-  /* ============== TRANSFER OVERLAY (existing) ============== */
   .tr-overlay{position:fixed;inset:0;z-index:9998;max-width:440px;margin:0 auto;background:#0b0c10;display:none;flex-direction:column;overflow:hidden;opacity:0;transform:translateX(100%);transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
   .tr-overlay::before{content:'';position:absolute;top:-40%;left:-30%;right:-30%;height:80%;background:radial-gradient(ellipse at 50% 0%, rgba(91,157,255,.16), transparent 55%);pointer-events:none}
   .tr-overlay.show{display:flex;opacity:1;transform:translateX(0)}
@@ -637,7 +635,109 @@
   .tr-recent-chip{padding:7px 11px;border-radius:10px;border:1px solid rgba(91,157,255,.30);background:rgba(91,157,255,.08);color:#cfe0ff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:transform .15s cubic-bezier(.34,1.56,.64,1),background .18s ease}
   .tr-recent-chip:active{transform:scale(.94);background:rgba(91,157,255,.18)}
 
-  /* ============== ANON (existing) ============== */
+  /* ============ TRANSFER CAPTCHA ============ */
+  #tr-verify-page{justify-content:flex-start}
+  .tr-verify-sub{
+    text-align:center;font-size:12.5px;font-weight:600;
+    color:rgba(200,215,235,.55);
+    margin:-8px 0 14px;letter-spacing:.2px;
+  }
+  .tr-verify-arena{
+    position:relative;width:100%;max-width:340px;margin:0 auto;
+    aspect-ratio:1/1;
+    border-radius:20px;
+    background:linear-gradient(180deg, rgba(20,22,30,.6), rgba(10,10,14,.8));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+    overflow:hidden;
+    touch-action:none;
+    flex-shrink:0;
+  }
+  .tr-gif-wrap{
+    position:absolute;top:0;left:0;
+    width:80px;height:80px;
+    z-index:5;cursor:grab;touch-action:none;
+    transform-origin:center center;will-change:transform,opacity;
+  }
+  .tr-gif-wrap img{width:100%;height:100%;object-fit:contain;display:block;
+    pointer-events:none;filter:drop-shadow(0 8px 20px rgba(0,0,0,.6));}
+  .tr-gif-halo{
+    position:absolute;inset:-7px;
+    border:1.5px dashed rgba(255,255,255,.35);
+    border-radius:12px;pointer-events:none;opacity:1;
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .tr-gif-halo.hidden{opacity:0;transform:scale(.85)}
+
+  .tr-box-wrap{
+    position:absolute;bottom:10px;left:50%;
+    transform:translateX(-50%);
+    width:170px;height:145px;
+    z-index:4;pointer-events:none;
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .tr-box-wrap.pulse{animation:trBoxPulse .8s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes trBoxPulse{
+    0%{transform:translateX(-50%) scale(1)}
+    40%{transform:translateX(-50%) scale(1.06)}
+    100%{transform:translateX(-50%) scale(1)}
+  }
+  .tr-box-wrap.highlight .tr-box-body{
+    box-shadow:0 0 0 2px rgba(76,195,138,.55),
+               0 12px 40px rgba(0,0,0,.7),
+               0 0 40px rgba(76,195,138,.3);
+  }
+  .tr-box-body{
+    position:absolute;bottom:0;left:0;right:0;height:95px;
+    border-radius:0 0 10px 10px;
+    background:linear-gradient(180deg,#7a5a3a 0%,#5b4128 55%,#3f2c1c 100%);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.08),
+               inset 0 -6px 14px rgba(0,0,0,.55),
+               0 12px 40px rgba(0,0,0,.7);
+    overflow:hidden;z-index:1;transition:box-shadow .35s ease;
+  }
+  .tr-box-wrap.front-raised .tr-box-body{z-index:6}
+  .tr-box-body::before{
+    content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:24px;height:100%;
+    background:linear-gradient(180deg,#d4b98a,#a98a55);opacity:.85;
+  }
+  .tr-box-lid{
+    position:absolute;bottom:91px;left:0;right:0;height:22px;
+    border-radius:10px 10px 4px 4px;
+    background:linear-gradient(180deg,#8c6a44 0%,#6a4d2e 100%);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.15),0 4px 12px rgba(0,0,0,.5);
+    transform-origin:right center;
+    transition:transform .55s cubic-bezier(.34,1.56,.64,1);
+    z-index:2;
+  }
+  .tr-box-lid.open{transform:rotate(-32deg) translateY(-6px)}
+  .tr-drop-zone{
+    position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+    width:105px;height:50px;
+    border:1.5px dashed rgba(255,255,255,.32);
+    border-radius:12px;pointer-events:none;opacity:0;
+    transition:opacity .28s ease, border-color .22s ease, background .22s ease, transform .28s ease;
+  }
+  .tr-drop-zone.show{opacity:1}
+  .tr-drop-zone.hidden{opacity:0;transform:translateX(-50%) scale(.85)}
+  .tr-drop-zone.active{
+    border-color:rgba(76,195,138,.85);background:rgba(76,195,138,.08);
+  }
+  .tr-verify-hint{
+    position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+    color:rgba(255,255,255,.30);pointer-events:none;text-align:center;width:80%;
+    transition:opacity .3s ease;
+  }
+  .tr-verify-hint.hidden{opacity:0}
+  .tr-verify-result{
+    margin-top:14px;min-height:20px;text-align:center;
+    font-size:13px;font-weight:800;letter-spacing:.3px;
+  }
+  .tr-verify-result.success{color:#4CC38A}
+  .tr-verify-result.fail{color:#e0556b}
+
+  /* ============== ANON ============== */
   .anon-open-btn{width:100%;display:flex;align-items:center;gap:12px;padding:16px;margin:12px 0 10px;border-radius:16px;background:linear-gradient(135deg,#0b0b0e,#050506);border:1px solid rgba(255,255,255,.06);color:#fff;font-family:inherit;font-size:13.5px;font-weight:800;letter-spacing:.2px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s var(--ease-spring),background .25s ease;box-shadow:0 10px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)}
   .anon-open-btn::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 20% 0%,rgba(140,180,255,.12),transparent 60%)}
   .anon-open-btn:active{transform:scale(.98);background:linear-gradient(135deg,#14161f,#0a0c12)}
@@ -716,7 +816,7 @@
   .type-char{display:inline-block;opacity:0;animation:typeCharIn .32s cubic-bezier(.34,1.56,.64,1) forwards;}
   @keyframes typeCharIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
 
-  /* ============== LEVEL UI (existing) ============== */
+  /* ============== LEVEL UI ============== */
   .lvl-badge{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0;background:none;border:none;padding:0;cursor:pointer;color:var(--text);-webkit-tap-highlight-color:transparent;transition:opacity .25s ease}
   .lvl-badge svg{display:block;transition:transform .22s var(--ease-spring)}
   .lvl-badge:active svg{transform:scale(1.12)}
@@ -775,7 +875,7 @@
   .lvl-quest-btn.ready{background:#ffffff;color:#000000;border-color:#ffffff;box-shadow:0 6px 18px rgba(255,255,255,.18)}
   .lvl-quest-btn.done{background:transparent;color:var(--text3);border-color:rgba(255,255,255,.06);pointer-events:none}
 
-  /* ============== CASHBACK OVERLAY (BLACK/WHITE UI) ============== */
+  /* ============== CASHBACK OVERLAY (FIXED) ============== */
   .cb-overlay{
     position:fixed;inset:0;z-index:10070;max-width:440px;margin:0 auto;
     display:none;flex-direction:column;overflow:hidden;
@@ -824,7 +924,6 @@
     font-size:17px;font-weight:800;letter-spacing:-.3px;color:#fff;
   }
 
-  /* CARD */
   .cb-card{
     background:#0d0d0d;
     border:1px solid #181818;
@@ -832,7 +931,6 @@
     position:relative;
     overflow:hidden;
   }
-  /* corner glow borders */
   .cb-card::before{
     content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
     background:
@@ -846,41 +944,33 @@
     pointer-events:none;z-index:2;
   }
 
-  /* PROFILE CARD */
   .cb-profile{
-    padding:20px 18px 16px;
+    padding:22px 18px 18px;
     display:flex;flex-direction:column;align-items:center;
+    gap:12px;
   }
   .cb-profile .cb-pfp{
-    width:70px;height:70px;border-radius:50%;
+    width:76px;height:76px;border-radius:50%;
     object-fit:cover;background:#111;
-    border:1px solid rgba(255,255,255,.14);
-    margin-bottom:10px;
+    border:2px solid rgba(255,255,255,.14);
+    box-shadow:0 8px 24px rgba(0,0,0,.6), 0 0 22px rgba(91,157,255,.18);
+    display:block;
   }
   .cb-profile .cb-nick{
-    font-size:16px;font-weight:800;color:#fff;
+    font-size:17px;font-weight:800;color:#fff;
     letter-spacing:-.3px;line-height:1.15;
     text-align:center;max-width:100%;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    margin-bottom:12px;
+    margin-bottom:2px;
   }
   .cb-rank-track{
     width:100%;display:flex;align-items:center;gap:10px;
-    padding:10px 12px;background:#080808;
-    border:1px solid #181818;border-radius:14px;
-    margin-bottom:14px;position:relative;
-  }
-  .cb-rank-track::before{
-    content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
-    background:
-      linear-gradient(135deg, rgba(255,255,255,.16) 0%, transparent 30%) top left / 100% 100% no-repeat,
-      linear-gradient(315deg, rgba(255,255,255,.10) 0%, transparent 30%) bottom right / 100% 100% no-repeat;
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor;mask-composite:exclude;
-    pointer-events:none;
+    padding:11px 12px;background:#080808;
+    border:1px solid #1a1a1a;border-radius:14px;
+    position:relative;
   }
   .cb-rk-slot{
-    position:relative;width:34px;height:34px;flex-shrink:0;
+    width:36px;height:36px;flex-shrink:0;position:relative;
     display:flex;align-items:center;justify-content:center;
   }
   .cb-rk-slot img{
@@ -888,41 +978,42 @@
     object-fit:contain;transition:opacity .3s ease;
   }
   .cb-rk-slot .cb-lock{
-    position:absolute;inset:0;width:100%;height:100%;
-    color:#4a4a4a;stroke-width:1.6;display:none;
+    position:absolute;inset:6px;color:#4a4a4a;
+    stroke-width:1.6;display:none;
   }
   .cb-rk-slot.locked img{opacity:0}
   .cb-rk-slot.locked .cb-lock{display:block}
   .cb-rk-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .cb-rk-name{font-size:12.5px;font-weight:800;color:#fff;letter-spacing:-.1px}
+  .cb-rk-name{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.1px}
   .cb-rk-name.locked{color:#4a4a4a}
-  .cb-rk-sub{font-size:10px;font-weight:700;color:#4a4a4a;letter-spacing:.2px}
-  .cb-rk-arrow{
-    width:20px;height:8px;color:#4a4a4a;flex-shrink:0;
-  }
+  .cb-rk-sub{font-size:10.5px;font-weight:700;color:#4a4a4a;letter-spacing:.2px}
+  .cb-rk-arrow{width:22px;height:8px;color:#4a4a4a;flex-shrink:0}
   .cb-rk-arrow svg{width:100%;height:100%;display:block;stroke:currentColor;fill:none;stroke-width:1.4}
   .cb-rk-slot.next{opacity:.55}
   .cb-rk-slot.next.max{opacity:.25}
 
   .cb-progress-head{
     width:100%;display:flex;justify-content:space-between;align-items:center;
-    font-size:11px;font-weight:700;color:#4a4a4a;
-    letter-spacing:.1px;margin-bottom:8px;
-    font-variant-numeric:tabular-nums;
+    font-size:11px;font-weight:700;color:#6a6a6a;
+    letter-spacing:.1px;font-variant-numeric:tabular-nums;
+    padding:0 2px;
   }
-  .cb-progress-head .right{color:#8a8a8a}
+  .cb-progress-head .right{color:#a8a8a8}
   .cb-progress-track{
-    position:relative;width:100%;height:5px;
-    background:#141414;border-radius:5px;
+    position:relative;width:100%;height:6px;
+    background:#141414;border-radius:6px;
+    overflow:hidden;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.6);
   }
   .cb-progress-fill{
     position:absolute;left:0;top:0;bottom:0;width:0%;
-    background:#e8e8e8;border-radius:5px;
+    background:linear-gradient(90deg,#e8e8e8,#ffffff);
+    border-radius:6px;
     transition:width .55s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 0 10px rgba(255,255,255,.35);
   }
 
-  /* CLAIM CARD */
-  .cb-claim{padding:14px 14px 13px}
+  .cb-claim{padding:16px 16px 15px}
   .cb-claim-row{
     display:flex;align-items:center;justify-content:space-between;
     gap:10px;margin-bottom:10px;
@@ -937,7 +1028,6 @@
     font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
     color:#4a4a4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  /* solid green pill with WHITE text */
   .cb-pct-pill{
     display:inline-flex;align-items:center;justify-content:center;
     padding:5px 12px;border-radius:999px;
@@ -961,9 +1051,9 @@
     margin-bottom:12px;
   }
   .cb-claim-amount img{width:17px;height:17px;object-fit:contain;opacity:.85}
-  .cb-btns{display:flex;gap:8px}
+  .cb-btns{display:flex;gap:8px;margin-top:2px}
   .cb-btns button{
-    flex:1;padding:12px 10px;border-radius:999px;
+    flex:1;min-height:44px;padding:12px 10px;border-radius:999px;
     font-family:inherit;font-size:12.5px;font-weight:800;
     letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;
     transition:transform .18s var(--ease-spring),background .2s ease,border-color .2s ease,color .2s ease;
@@ -1005,15 +1095,9 @@
     letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;
     transition:border-color .2s ease,color .2s ease,background .2s ease;
   }
-  .cb-stake-row button::before{
-    content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
-    width:22px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);
-    pointer-events:none;
-  }
   .cb-stake-row button:active{background:rgba(255,255,255,.05);color:#fff}
   .cb-stake-row button span{display:block;font-size:9.5px;color:#4a4a4a;font-weight:700;margin-top:3px}
 
-  /* ACTIVE STAKES */
   .cb-stakes{padding:14px 14px 12px}
   .cb-stakes-title{
     font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
@@ -1060,7 +1144,6 @@
     50%{box-shadow:0 0 0 6px rgba(76,195,138,0)}
   }
 
-  /* WHEEL ZONE — no card, floating */
   .cb-wheel-zone{padding:16px 0 4px;position:relative}
   .cb-wheel-area{
     display:flex;align-items:center;justify-content:center;
@@ -1654,6 +1737,31 @@
       <button id="tr-submit" type="button"><span>Send diamonds</span><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></button>
     </div>
   </div>
+
+  <!-- NEW: captcha verification page -->
+  <div class="tr-page" id="tr-verify-page">
+    <div class="tr-head">
+      <button class="tr-back" id="tr-verify-back" type="button" aria-label="Back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="tr-title">Verify transfer</div>
+    </div>
+    <div class="tr-verify-sub">Drag the NFT into the box to confirm</div>
+    <div class="tr-verify-arena" id="tr-verify-arena">
+      <div class="tr-box-wrap" id="tr-box-wrap">
+        <div class="tr-box-lid" id="tr-box-lid"></div>
+        <div class="tr-box-body"></div>
+        <div class="tr-drop-zone" id="tr-drop-zone"></div>
+      </div>
+      <div class="tr-gif-wrap" id="tr-gif-wrap">
+        <img id="tr-gif-img" src="" alt="">
+        <div class="tr-gif-halo" id="tr-gif-halo"></div>
+      </div>
+      <div class="tr-verify-hint" id="tr-verify-hint">Drag &amp; release into the box</div>
+    </div>
+    <div class="tr-verify-result" id="tr-verify-result"></div>
+  </div>
+
   <div class="tr-page" id="tr-sign-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-sign-back" type="button" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
@@ -2494,7 +2602,6 @@
     }, { passive: false });
   })();
 
-  /* ============= CASHBACK PANEL CONTROLS ============= */
   function openCashbackPanel(){
     if(!state.userId){ showNotif('Please sign in first'); return; }
     const ov = document.getElementById('cb-overlay');
@@ -2505,7 +2612,6 @@
     requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add('show')));
     haptic('medium');
     renderCashbackPanel();
-    // refresh from server in case stale
     if(state.userId){
       fetch(SERVER_URL + '/api/cashback-info?userId=' + encodeURIComponent(state.userId))
         .then(r => r.json())
@@ -2595,7 +2701,6 @@
     } catch(err){ showNotif('Network error'); }
   }
 
-  // update stake countdowns every second if panel is open
   setInterval(() => {
     if(!state.cashbackOpen) return;
     const info = state.cashback;
@@ -4420,6 +4525,7 @@
 
   const trOverlay       = document.getElementById('transfer-overlay');
   const trComposePage   = document.getElementById('tr-compose-page');
+  const trVerifyPage    = document.getElementById('tr-verify-page');
   const trSignPage      = document.getElementById('tr-sign-page');
   const trClose         = document.getElementById('tr-close');
   const trSignBack      = document.getElementById('tr-sign-back');
@@ -4544,8 +4650,10 @@
   }
 
   function trShowPage(which){
-    if(which === 'compose'){ trComposePage.classList.add('active'); trSignPage.classList.remove('active'); }
-    else { trComposePage.classList.remove('active'); trSignPage.classList.add('active'); }
+    trComposePage.classList.toggle('active', which === 'compose');
+    if(trVerifyPage) trVerifyPage.classList.toggle('active', which === 'verify');
+    trSignPage.classList.toggle('active', which === 'sign');
+    if(which !== 'verify') stopCaptcha();
   }
 
   function resizeSigCanvas(){
@@ -4582,6 +4690,7 @@
     trError.textContent   = '';
     trContinue.textContent = 'Continue';
     trClearSig();
+    if(typeof stopCaptcha === 'function') stopCaptcha();
     trShowPage('compose');
   }
 
@@ -4686,18 +4795,47 @@
     if(clean === (state.username || '').toLowerCase()){ flashError('Cannot transfer to yourself'); haptic('light'); return; }
     if(!Number.isFinite(amount) || amount <= 0){ flashError('Enter a valid amount'); haptic('light'); return; }
     if(amount > state.balance){ flashError('Insufficient balance'); haptic('light'); return; }
+
     trTransferData = { username: clean, amount };
-    paperTo.textContent = '@' + clean;
-    paperAmountNum.textContent = amount.toLocaleString();
+
+    startTransferCaptcha();
+    trShowPage('verify');
+    haptic('medium');
+  });
+
+  document.getElementById('tr-verify-back').addEventListener('click', () => {
+    if(captchaState.phase === 'dragging' || captchaState.phase === 'flying' || captchaState.phase === 'landed') return;
+    stopCaptcha();
+    trShowPage('compose');
+    haptic('light');
+  });
+
+  function onCaptchaSuccess(){
+    const d = trTransferData;
+    if(!d){ trShowPage('compose'); return; }
+    paperTo.textContent = '@' + d.username;
+    paperAmountNum.textContent = d.amount.toLocaleString();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     paperDate.textContent = dateStr + ' · ' + timeStr;
     paperSender.textContent = '@' + (state.username || 'player');
-    trShowPage('sign');
-    haptic('medium');
-    requestAnimationFrame(()=>{ resizeSigCanvas(); setTimeout(resizeSigCanvas, 60); });
-  });
+    setTimeout(() => {
+      trShowPage('sign');
+      haptic('medium');
+      requestAnimationFrame(()=>{ resizeSigCanvas(); setTimeout(resizeSigCanvas, 60); });
+    }, 900);
+  }
+
+  function onCaptchaFail(){
+    setTimeout(() => {
+      trReset();
+      trShowPage('compose');
+      flashError('Transfer declined · please try again');
+      haptic('heavy');
+      showNotif('Transfer declined — verification failed');
+    }, 1200);
+  }
 
   trSignBack.addEventListener('click', () => {
     if(trPending) return;
@@ -4787,7 +4925,326 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
-  /* ANONYMOUS IDENTITY */
+  /* ============ TRANSFER CAPTCHA ============ */
+  const CAPTCHA_GIFS = [
+    'https://i.postimg.cc/vZg4sqNh/ezgif-731108219aa0df74.gif',
+    'https://i.postimg.cc/c1k1L7Y5/ezgif-7124ab8b286672fc.gif',
+    'https://i.postimg.cc/VNwmVKyV/ezgif-7ea5c48f28c00991.gif'
+  ];
+  const CAPTCHA_GIF_SIZE = 80;
+  const CAPTCHA_HALF     = CAPTCHA_GIF_SIZE / 2;
+
+  const captchaState = {
+    phase: 'idle',
+    x: 0, y: 0, vx: 0, vy: 0,
+    angle: 0, rotVel: 0,
+    prevX: 0, prevY: 0,
+    pointerId: null,
+    grabOffsetX: 0, grabOffsetY: 0,
+    lastPointerX: 0, lastPointerY: 0, lastPointerTime: 0,
+    arenaW: 0, arenaH: 0,
+    rafId: null, lastFrame: 0,
+    boxTopY: 0, boxLeftX: 0, boxRightX: 0,
+    catchLeftX: 0, catchRightX: 0, boxFloorY: 0,
+    bounceCount: 0,
+    resultTimer: null
+  };
+
+  const trArena     = document.getElementById('tr-verify-arena');
+  const trGifWrap   = document.getElementById('tr-gif-wrap');
+  const trGifImg    = document.getElementById('tr-gif-img');
+  const trGifHalo   = document.getElementById('tr-gif-halo');
+  const trBoxWrap   = document.getElementById('tr-box-wrap');
+  const trBoxLid    = document.getElementById('tr-box-lid');
+  const trDropZone  = document.getElementById('tr-drop-zone');
+  const trVerifyHint= document.getElementById('tr-verify-hint');
+  const trVerifyRes = document.getElementById('tr-verify-result');
+
+  const CAP_GRAVITY   = 1600;
+  const CAP_AIR_DRAG  = 0.55;
+  const CAP_ANG_DRAG  = 0.5;
+  const CAP_REST_WALL = 0.5;
+  const CAP_REST_TOP  = 0.15;
+  const CAP_REST_FLOOR= 0.42;
+  const CAP_CATCH_W   = 45;
+
+  function captchaApplyTransform(){
+    trGifWrap.style.transform =
+      'translate(' + (captchaState.x - CAPTCHA_HALF) + 'px,' + (captchaState.y - CAPTCHA_HALF) + 'px) ' +
+      'rotate(' + captchaState.angle + 'deg)';
+  }
+
+  function captchaMeasure(){
+    const r = trArena.getBoundingClientRect();
+    captchaState.arenaW = r.width;
+    captchaState.arenaH = r.height;
+    captchaState.boxTopY   = r.height - 105;
+    captchaState.boxFloorY = r.height - 12;
+    captchaState.boxLeftX  = r.width / 2 - 85;
+    captchaState.boxRightX = r.width / 2 + 85;
+    captchaState.catchLeftX = r.width / 2 - CAP_CATCH_W;
+    captchaState.catchRightX= r.width / 2 + CAP_CATCH_W;
+  }
+
+  function captchaKillHalo(){
+    trGifHalo.classList.add('hidden');
+    trGifHalo.style.display = 'none';
+  }
+  function captchaKillDropZone(){
+    trDropZone.classList.add('hidden');
+    trDropZone.classList.remove('active');
+  }
+
+  function captchaLoop(ts){
+    captchaState.rafId = null;
+    if(captchaState.phase !== 'flying' && captchaState.phase !== 'landed') return;
+    if(!captchaState.lastFrame) captchaState.lastFrame = ts;
+    let dt = (ts - captchaState.lastFrame) / 1000;
+    captchaState.lastFrame = ts;
+    dt = Math.min(dt, 0.05);
+
+    captchaState.vy += CAP_GRAVITY * dt;
+    const air = Math.pow(CAP_AIR_DRAG, dt);
+    captchaState.vx *= air;
+    captchaState.vy *= air;
+    captchaState.rotVel *= Math.pow(CAP_ANG_DRAG, dt);
+
+    captchaState.prevX = captchaState.x;
+    captchaState.prevY = captchaState.y;
+    captchaState.x += captchaState.vx * dt;
+    captchaState.y += captchaState.vy * dt;
+    captchaState.angle += captchaState.rotVel * dt;
+
+    if(captchaState.x - CAPTCHA_HALF < 0){
+      captchaState.x = CAPTCHA_HALF;
+      captchaState.vx = -captchaState.vx * CAP_REST_WALL;
+      captchaState.rotVel += captchaState.vx * 0.04;
+    } else if(captchaState.x + CAPTCHA_HALF > captchaState.arenaW){
+      captchaState.x = captchaState.arenaW - CAPTCHA_HALF;
+      captchaState.vx = -captchaState.vx * CAP_REST_WALL;
+      captchaState.rotVel += captchaState.vx * 0.04;
+    }
+    if(captchaState.y - CAPTCHA_HALF < 0){
+      captchaState.y = CAPTCHA_HALF;
+      captchaState.vy = -captchaState.vy * CAP_REST_TOP;
+    }
+
+    if(captchaState.phase === 'landed'){
+      const innerL = captchaState.boxLeftX + 14 + CAPTCHA_HALF;
+      const innerR = captchaState.boxRightX - 14 - CAPTCHA_HALF;
+      if(captchaState.x < innerL){ captchaState.x = innerL; captchaState.vx = Math.abs(captchaState.vx) * 0.4; }
+      if(captchaState.x > innerR){ captchaState.x = innerR; captchaState.vx = -Math.abs(captchaState.vx) * 0.4; }
+
+      const floorY = captchaState.boxFloorY - CAPTCHA_HALF;
+      if(captchaState.y > floorY){
+        captchaState.y = floorY;
+        if(captchaState.vy > 0){
+          captchaState.vy = -captchaState.vy * CAP_REST_FLOOR;
+          captchaState.vx *= 0.7;
+          captchaState.rotVel *= 0.5;
+          captchaState.bounceCount++;
+          haptic('light');
+        }
+      }
+
+      const openingY = captchaState.boxTopY;
+      const depth = Math.max(0, (captchaState.y + CAPTCHA_HALF) - openingY);
+      const totalDepth = (captchaState.boxFloorY + CAPTCHA_HALF) - openingY;
+      const t = Math.min(1, depth / Math.max(1, totalDepth));
+      const op = Math.max(0, 1 - t * 1.15);
+      trGifWrap.style.opacity = op.toFixed(3);
+
+      const settled = captchaState.bounceCount >= 2 &&
+                      Math.abs(captchaState.vy) < 55 &&
+                      Math.abs(captchaState.vx) < 45;
+      const maxed = captchaState.bounceCount >= 5;
+      const deep  = op < 0.05;
+
+      if(settled || maxed || deep){
+        captchaState.phase = 'result';
+        trGifWrap.style.opacity = '0';
+        captchaApplyTransform();
+        trVerifyRes.textContent = 'Verified ✓';
+        trVerifyRes.className = 'tr-verify-result success';
+        trVerifyHint.classList.add('hidden');
+        haptic('heavy');
+        onCaptchaSuccess();
+        return;
+      }
+
+      captchaApplyTransform();
+      captchaState.rafId = requestAnimationFrame(captchaLoop);
+      return;
+    }
+
+    const prevBottom = captchaState.prevY + CAPTCHA_HALF;
+    const curBottom  = captchaState.y + CAPTCHA_HALF;
+    if(captchaState.vy > 0 && prevBottom < captchaState.boxTopY && curBottom >= captchaState.boxTopY){
+      const denom = (curBottom - prevBottom) || 1;
+      const tt = (captchaState.boxTopY - prevBottom) / denom;
+      const crossX = captchaState.prevX + (captchaState.x - captchaState.prevX) * tt;
+      if(crossX >= captchaState.catchLeftX && crossX <= captchaState.catchRightX){
+        captchaState.phase = 'landed';
+        captchaState.y = captchaState.boxTopY - CAPTCHA_HALF + 1;
+        captchaState.vy = Math.max(captchaState.vy, 150);
+        captchaState.bounceCount = 0;
+        captchaKillHalo();
+        captchaKillDropZone();
+        trBoxWrap.classList.remove('highlight');
+        trBoxWrap.classList.add('front-raised');
+        captchaApplyTransform();
+        captchaState.rafId = requestAnimationFrame(captchaLoop);
+        return;
+      }
+    }
+
+    if(captchaState.y - CAPTCHA_HALF > captchaState.arenaH + 40){
+      captchaState.phase = 'result';
+      trGifWrap.style.opacity = '0';
+      trVerifyRes.textContent = 'Verification failed ✗';
+      trVerifyRes.className = 'tr-verify-result fail';
+      trVerifyHint.classList.add('hidden');
+      haptic('heavy');
+      onCaptchaFail();
+      return;
+    }
+
+    const over = captchaState.x >= captchaState.catchLeftX && captchaState.x <= captchaState.catchRightX &&
+                 captchaState.y > captchaState.boxTopY - 130 && captchaState.y < captchaState.boxTopY + 30;
+    trDropZone.classList.toggle('active', over);
+    trBoxWrap.classList.toggle('highlight', over);
+
+    captchaApplyTransform();
+    captchaState.rafId = requestAnimationFrame(captchaLoop);
+  }
+
+  function startTransferCaptcha(){
+    if(captchaState.rafId){ cancelAnimationFrame(captchaState.rafId); captchaState.rafId = null; }
+    captchaState.phase = 'idle';
+    captchaState.bounceCount = 0;
+    captchaState.angle = 0; captchaState.rotVel = 0;
+    captchaState.vx = 0; captchaState.vy = 0;
+
+    trGifImg.src = CAPTCHA_GIFS[Math.floor(Math.random() * CAPTCHA_GIFS.length)];
+    trVerifyRes.textContent = '';
+    trVerifyRes.className = 'tr-verify-result';
+
+    requestAnimationFrame(() => {
+      captchaMeasure();
+      captchaState.x = captchaState.arenaW / 2;
+      captchaState.y = 70;
+      captchaState.prevX = captchaState.x;
+      captchaState.prevY = captchaState.y;
+
+      trGifWrap.style.transition = 'none';
+      trGifWrap.style.opacity = '1';
+      captchaApplyTransform();
+
+      trGifHalo.classList.remove('hidden');
+      trGifHalo.style.display = '';
+      trGifHalo.style.opacity = '';
+      trDropZone.classList.remove('active','hidden','show');
+      trBoxLid.classList.remove('open');
+      trBoxWrap.classList.remove('highlight','pulse','front-raised');
+      trVerifyHint.classList.remove('hidden');
+
+      setTimeout(() => {
+        if(captchaState.phase !== 'idle') return;
+        trBoxLid.classList.add('open');
+        trBoxWrap.classList.add('pulse');
+        setTimeout(() => trBoxWrap.classList.remove('pulse'), 800);
+        haptic('medium');
+      }, 300);
+
+      setTimeout(() => trGifHalo.classList.add('hidden'), 1200);
+      setTimeout(() => trDropZone.classList.add('show'), 600);
+    });
+  }
+
+  function stopCaptcha(){
+    if(captchaState.rafId){ cancelAnimationFrame(captchaState.rafId); captchaState.rafId = null; }
+    if(captchaState.resultTimer){ clearTimeout(captchaState.resultTimer); captchaState.resultTimer = null; }
+    captchaState.phase = 'idle';
+    captchaState.pointerId = null;
+  }
+
+  trGifWrap.addEventListener('pointerdown', e => {
+    if(captchaState.phase !== 'idle') return;
+    e.preventDefault();
+    captchaState.pointerId = e.pointerId;
+    captchaKillHalo();
+    captchaKillDropZone();
+
+    const r = trGifWrap.getBoundingClientRect();
+    captchaState.grabOffsetX = e.clientX - (r.left + r.width / 2);
+    captchaState.grabOffsetY = e.clientY - (r.top  + r.height / 2);
+
+    captchaState.lastPointerX = e.clientX;
+    captchaState.lastPointerY = e.clientY;
+    captchaState.lastPointerTime = performance.now();
+    captchaState.vx = 0; captchaState.vy = 0;
+    captchaState.rotVel = 0;
+    captchaState.angle = 0;
+    captchaState.phase = 'dragging';
+    try { trGifWrap.setPointerCapture(e.pointerId); } catch(_){}
+    haptic('light');
+  });
+
+  document.addEventListener('pointermove', e => {
+    if(captchaState.phase !== 'dragging' || e.pointerId !== captchaState.pointerId) return;
+    e.preventDefault();
+    const r = trArena.getBoundingClientRect();
+    const cx = e.clientX - r.left - captchaState.grabOffsetX;
+    const cy = e.clientY - r.top  - captchaState.grabOffsetY;
+
+    const now = performance.now();
+    const dt = (now - captchaState.lastPointerTime) / 1000;
+    if(dt > 0.001){
+      captchaState.vx = (e.clientX - captchaState.lastPointerX) / dt;
+      captchaState.vy = (e.clientY - captchaState.lastPointerY) / dt;
+    }
+    captchaState.lastPointerX = e.clientX;
+    captchaState.lastPointerY = e.clientY;
+    captchaState.lastPointerTime = now;
+
+    captchaState.prevX = captchaState.x;
+    captchaState.prevY = captchaState.y;
+    captchaState.x = cx;
+    captchaState.y = cy;
+
+    const tilt = Math.max(-22, Math.min(22, captchaState.vx * 0.012 + (captchaState.x - captchaState.arenaW/2) * 0.07));
+    captchaState.angle = captchaState.angle * 0.6 + tilt * 0.4;
+    captchaState.rotVel = (tilt - captchaState.angle) * 2;
+    captchaApplyTransform();
+  }, { passive: false });
+
+  function captchaEndDrag(e){
+    if(captchaState.phase !== 'dragging') return;
+    if(captchaState.pointerId != null && e.pointerId !== captchaState.pointerId) return;
+    try { trGifWrap.releasePointerCapture(e.pointerId); } catch(_){}
+    captchaState.pointerId = null;
+
+    const sp = Math.hypot(captchaState.vx, captchaState.vy);
+    const MAX = 1900;
+    if(sp > MAX){
+      captchaState.vx = (captchaState.vx / sp) * MAX;
+      captchaState.vy = (captchaState.vy / sp) * MAX;
+    }
+    if(Math.abs(captchaState.vy) < 40 && Math.abs(captchaState.vx) < 40){
+      captchaState.vx *= 0.5;
+      captchaState.vy = 100;
+    }
+    captchaState.rotVel = Math.max(-360, Math.min(360, captchaState.rotVel));
+    captchaState.phase = 'flying';
+    captchaState.lastFrame = 0;
+    captchaState.bounceCount = 0;
+    if(captchaState.rafId) cancelAnimationFrame(captchaState.rafId);
+    captchaState.rafId = requestAnimationFrame(captchaLoop);
+  }
+  document.addEventListener('pointerup', captchaEndDrag);
+  document.addEventListener('pointercancel', captchaEndDrag);
+
+  /* ============ ANON IDENTITY ============ */
   const ANON_FEES = { name: 50, username: 150, phone: 1500 };
 
   const anonOpenBtn      = document.getElementById('anon-open-btn');
