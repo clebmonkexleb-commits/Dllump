@@ -875,7 +875,7 @@
   .lvl-quest-btn.ready{background:#ffffff;color:#000000;border-color:#ffffff;box-shadow:0 6px 18px rgba(255,255,255,.18)}
   .lvl-quest-btn.done{background:transparent;color:var(--text3);border-color:rgba(255,255,255,.06);pointer-events:none}
 
-  /* ============== CASHBACK OVERLAY (FIXED) ============== */
+  /* ============== CASHBACK OVERLAY (FIXED v2) ============== */
   .cb-overlay{
     position:fixed;inset:0;z-index:10070;max-width:440px;margin:0 auto;
     display:none;flex-direction:column;overflow:hidden;
@@ -897,11 +897,13 @@
   }
   .cb-panel{
     position:relative;z-index:1;
-    flex:1;display:flex;flex-direction:column;
+    flex:1;min-height:0;
+    display:flex;flex-direction:column;
     padding:calc(22px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
     overflow-y:auto;-webkit-overflow-scrolling:touch;
     gap:12px;
   }
+  .cb-panel > *{ flex-shrink:0; }
   .cb-panel::-webkit-scrollbar{width:0;display:none}
 
   .cb-panel-head{
@@ -926,23 +928,16 @@
 
   .cb-card{
     background:#0d0d0d;
-    border:1px solid #181818;
+    border:1px solid #1f1f1f;
     border-radius:18px;
     position:relative;
-    overflow:hidden;
+    flex-shrink:0;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.06),
+      inset 0 -1px 0 rgba(0,0,0,.5),
+      0 6px 24px rgba(0,0,0,.45);
   }
-  .cb-card::before{
-    content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
-    background:
-      linear-gradient(135deg, rgba(255,255,255,.34) 0%, transparent 22%) top left / 100% 100% no-repeat,
-      linear-gradient(315deg, rgba(255,255,255,.22) 0%, transparent 22%) bottom right / 100% 100% no-repeat;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor;
-            mask-composite:exclude;
-    pointer-events:none;z-index:2;
-  }
+  .cb-card > *{ position:relative; z-index:1; }
 
   .cb-profile{
     padding:22px 18px 18px;
@@ -954,7 +949,7 @@
     object-fit:cover;background:#111;
     border:2px solid rgba(255,255,255,.14);
     box-shadow:0 8px 24px rgba(0,0,0,.6), 0 0 22px rgba(91,157,255,.18);
-    display:block;
+    display:block;flex-shrink:0;
   }
   .cb-profile .cb-nick{
     font-size:17px;font-weight:800;color:#fff;
@@ -967,7 +962,7 @@
     width:100%;display:flex;align-items:center;gap:10px;
     padding:11px 12px;background:#080808;
     border:1px solid #1a1a1a;border-radius:14px;
-    position:relative;
+    position:relative;flex-shrink:0;
   }
   .cb-rk-slot{
     width:36px;height:36px;flex-shrink:0;position:relative;
@@ -984,9 +979,9 @@
   .cb-rk-slot.locked img{opacity:0}
   .cb-rk-slot.locked .cb-lock{display:block}
   .cb-rk-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .cb-rk-name{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.1px}
+  .cb-rk-name{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cb-rk-name.locked{color:#4a4a4a}
-  .cb-rk-sub{font-size:10.5px;font-weight:700;color:#4a4a4a;letter-spacing:.2px}
+  .cb-rk-sub{font-size:10.5px;font-weight:700;color:#4a4a4a;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cb-rk-arrow{width:22px;height:8px;color:#4a4a4a;flex-shrink:0}
   .cb-rk-arrow svg{width:100%;height:100%;display:block;stroke:currentColor;fill:none;stroke-width:1.4}
   .cb-rk-slot.next{opacity:.55}
@@ -1018,7 +1013,7 @@
     display:flex;align-items:center;justify-content:space-between;
     gap:10px;margin-bottom:10px;
   }
-  .cb-claim-left{display:flex;align-items:center;gap:9px;min-width:0}
+  .cb-claim-left{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
   .cb-claim-icon{
     width:26px;height:26px;object-fit:contain;flex-shrink:0;
     transition:opacity .3s ease;
@@ -1026,7 +1021,8 @@
   .cb-claim-icon.locked{opacity:.35}
   .cb-claim-label{
     font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
-    color:#4a4a4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:#7a7a7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    min-width:0;
   }
   .cb-pct-pill{
     display:inline-flex;align-items:center;justify-content:center;
@@ -1045,54 +1041,43 @@
   }
   .cb-claim-amount{
     display:flex;align-items:center;gap:8px;
-    font-size:24px;font-weight:900;color:#fff;
-    letter-spacing:-1px;line-height:1;
+    font-size:26px;font-weight:900;color:#fff;
+    letter-spacing:-1px;line-height:1.1;
     font-variant-numeric:tabular-nums;
-    margin-bottom:12px;
+    margin-bottom:14px;
+    min-height:28px;
   }
-  .cb-claim-amount img{width:17px;height:17px;object-fit:contain;opacity:.85}
+  .cb-claim-amount img{width:18px;height:18px;object-fit:contain;opacity:.9;flex-shrink:0}
   .cb-btns{display:flex;gap:8px;margin-top:2px}
   .cb-btns button{
-    flex:1;min-height:44px;padding:12px 10px;border-radius:999px;
-    font-family:inherit;font-size:12.5px;font-weight:800;
+    flex:1;min-height:46px;padding:12px 10px;border-radius:999px;
+    font-family:inherit;font-size:13px;font-weight:800;
     letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;
-    transition:transform .18s var(--ease-spring),background .2s ease,border-color .2s ease,color .2s ease;
-    border:1px solid #1f1f1f;
-    background:linear-gradient(180deg,#0f0f0f,#080808);
+    transition:transform .18s var(--ease-spring),background .2s ease,border-color .2s ease,color .2s ease,opacity .2s ease;
+    border:1px solid #2a2a2a;
+    background:#141414;
     color:#f2f2f2;
-  }
-  .cb-btns button::before{
-    content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
-    background:
-      linear-gradient(135deg, rgba(255,255,255,.30) 0%, transparent 30%) top left / 100% 100% no-repeat,
-      linear-gradient(315deg, rgba(255,255,255,.18) 0%, transparent 30%) bottom right / 100% 100% no-repeat;
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor;mask-composite:exclude;
-    pointer-events:none;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
   }
   .cb-btns button:active{transform:scale(.98)}
-  .cb-btns button:disabled{opacity:.3;pointer-events:none}
+  .cb-btns button:disabled{opacity:.35;pointer-events:none}
   .cb-btns button.solid{
     background:#f2f2f2;color:#000;border-color:#f2f2f2;
-  }
-  .cb-btns button.solid::before{
-    background:
-      linear-gradient(135deg, rgba(0,0,0,.20) 0%, transparent 30%) top left / 100% 100% no-repeat,
-      linear-gradient(315deg, rgba(0,0,0,.12) 0%, transparent 30%) bottom right / 100% 100% no-repeat;
+    box-shadow:0 6px 18px rgba(255,255,255,.15), inset 0 1px 0 rgba(255,255,255,.9);
   }
   .cb-btns button.solid:active{background:#c8c8c8}
 
   .cb-stake-row{
     display:none;margin-top:11px;padding-top:11px;
-    border-top:1px solid #181818;gap:8px;
+    border-top:1px solid #1a1a1a;gap:8px;
   }
   .cb-stake-row.open{display:flex}
   .cb-stake-row button{
     flex:1;padding:11px 6px;border-radius:999px;
     border:1px solid #1f1f1f;
-    background:linear-gradient(180deg,#0f0f0f,#080808);
+    background:#0f0f0f;
     color:#8a8a8a;font-family:inherit;font-size:11px;font-weight:800;
-    letter-spacing:.3px;cursor:pointer;position:relative;overflow:hidden;
+    letter-spacing:.3px;cursor:pointer;
     transition:border-color .2s ease,color .2s ease,background .2s ease;
   }
   .cb-stake-row button:active{background:rgba(255,255,255,.05);color:#fff}
@@ -1144,7 +1129,7 @@
     50%{box-shadow:0 0 0 6px rgba(76,195,138,0)}
   }
 
-  .cb-wheel-zone{padding:16px 0 4px;position:relative}
+  .cb-wheel-zone{padding:16px 0 4px;position:relative;flex-shrink:0}
   .cb-wheel-area{
     display:flex;align-items:center;justify-content:center;
     gap:0;cursor:grab;touch-action:none;
@@ -1612,7 +1597,6 @@
       <div class="cb-panel-title">Cashback</div>
     </div>
 
-    <!-- PROFILE CARD -->
     <div class="cb-card cb-profile">
       <img class="cb-pfp" id="cb-pfp" src="https://i.pravatar.cc/150?img=12" alt="">
       <div class="cb-nick" id="cb-nick">Player</div>
@@ -1644,7 +1628,6 @@
       </div>
     </div>
 
-    <!-- CLAIM CARD -->
     <div class="cb-card cb-claim">
       <div class="cb-claim-row">
         <div class="cb-claim-left">
@@ -1668,7 +1651,6 @@
       </div>
     </div>
 
-    <!-- ACTIVE STAKES -->
     <div class="cb-card cb-stakes">
       <div class="cb-stakes-title">Active stakes</div>
       <div class="cb-stakes-list" id="cb-stakes-list">
@@ -1676,7 +1658,6 @@
       </div>
     </div>
 
-    <!-- RANK WHEEL -->
     <div class="cb-wheel-zone">
       <div class="cb-wheel-area" id="cb-wheel">
         <div class="cb-reel-window">
@@ -1738,7 +1719,6 @@
     </div>
   </div>
 
-  <!-- NEW: captcha verification page -->
   <div class="tr-page" id="tr-verify-page">
     <div class="tr-head">
       <button class="tr-back" id="tr-verify-back" type="button" aria-label="Back">
@@ -2510,7 +2490,6 @@
     });
   }
 
-  /* ============= CASHBACK WHEEL ============= */
   function buildCashbackReel(){
     const strip = document.getElementById('cb-reel-strip');
     if(!strip) return;
@@ -2707,8 +2686,6 @@
     if(!info || !info.stakes || !info.stakes.length) return;
     renderCashbackStakes(info.stakes);
   }, 1000);
-
-  /* ============= END CASHBACK ============= */
 
   let balanceAnimInterval=null;
   function animateBalanceTo(target){
@@ -4653,7 +4630,7 @@
     trComposePage.classList.toggle('active', which === 'compose');
     if(trVerifyPage) trVerifyPage.classList.toggle('active', which === 'verify');
     trSignPage.classList.toggle('active', which === 'sign');
-    if(which !== 'verify') stopCaptcha();
+    if(which !== 'verify' && typeof stopCaptcha === 'function') stopCaptcha();
   }
 
   function resizeSigCanvas(){
