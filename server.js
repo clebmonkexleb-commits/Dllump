@@ -102,7 +102,7 @@ const COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e67e22'
 const MAX_PLAYERS = 8;
 
 /* ============================================================
-   LEVEL / XP SYSTEM  (steep curve — getting higher level is harder)
+   LEVEL / XP SYSTEM
    ============================================================ */
 
 const LEVEL_RANKS = [
@@ -113,13 +113,6 @@ const LEVEL_RANKS = [
 ];
 const MAX_LEVEL = LEVEL_RANKS.length;
 
-/* Steep, super-linear progression.
-   Level 1 → 0 XP
-   Level 2 → 500 XP
-   Level 3 → ~1,300 XP
-   Level 10 → ~12k XP
-   Level 22 → ~95k XP
-*/
 const LEVEL_XP = (() => {
   const arr = [0];
   for (let l = 1; l < MAX_LEVEL; l++) {
@@ -160,6 +153,45 @@ function getLevelInfo(user) {
   };
 }
 
+/* ============================================================
+   CASHBACK SYSTEM
+   ============================================================ */
+const CASHBACK_RANKS = [
+  { rank: 1, threshold: 7500,    pct: 1.5, img: 'https://i.postimg.cc/LXwm8NP4/jq06s-removebg-preview.png' },
+  { rank: 2, threshold: 25000,   pct: 2.0, img: 'https://i.postimg.cc/CKMhPZYB/o-Tz-Q4-removebg-preview.png' },
+  { rank: 3, threshold: 75000,   pct: 2.5, img: 'https://i.postimg.cc/x12Tmx4z/FLYTP-removebg-preview.png' },
+  { rank: 4, threshold: 200000,  pct: 3.0, img: 'https://i.postimg.cc/x8whWZmr/x8a-KM-removebg-preview.png' },
+  { rank: 5, threshold: 500000,  pct: 3.5, img: 'https://i.postimg.cc/DZz9sLhj/gzp-WY-removebg-preview.png' },
+  { rank: 6, threshold: 1500000, pct: 4.0, img: 'https://i.postimg.cc/fRcQhM59/Oa-Uf-D-removebg-preview.png' },
+];
+const CASHBACK_STAKES = { 2: 1.25, 4: 1.5, 7: 2.0 };
+
+function getCashbackInfo(user) {
+  const wagered = Math.max(0, ((user && user.totalWagered) | 0) || 0);
+  let rank = 0, pct = 0;
+  for (let i = 0; i < CASHBACK_RANKS.length; i++) {
+    if (wagered >= CASHBACK_RANKS[i].threshold) { rank = CASHBACK_RANKS[i].rank; pct = CASHBACK_RANKS[i].pct; }
+    else break;
+  }
+  const cur  = rank > 0 ? CASHBACK_RANKS[rank - 1] : null;
+  const next = rank < CASHBACK_RANKS.length ? CASHBACK_RANKS[rank] : null;
+  const base   = cur ? cur.threshold : 0;
+  const target = next ? next.threshold : base;
+  const span   = Math.max(1, target - base);
+  const progress = next ? Math.min(1, Math.max(0, (wagered - base) / span)) : 1;
+  const pending = Math.max(0, ((user && user.pendingCashback) | 0) || 0);
+  const stakes = Array.isArray(user && user.cashbackStakes) ? user.cashbackStakes.slice() : [];
+  return {
+    rank, pct, wagered,
+    nextThreshold: next ? next.threshold : null,
+    nextPct: next ? next.pct : null,
+    progress,
+    isMax: rank >= CASHBACK_RANKS.length,
+    pending,
+    stakes,
+  };
+}
+
 const QUESTS = [
   { id: 'ice_bets_5', title: 'Arena Regular', description: 'Place 5 bets in the Ice Arena', target: 5, reward: 250 },
   { id: 'ice_win_1',  title: 'First Victory', description: 'Win 1 Ice Arena game',       target: 1, reward: 500 },
@@ -192,7 +224,6 @@ const ICE_CORNER_RADIUS = ARENA_SIZE * 0.045;
 const ICE_PERIMETER = generatePerimeter(ICE_SIZE, ICE_CORNER_RADIUS, 400);
 const ICE_FIELD_SCALE = 0.92;
 
-/* Pre-computed geometry for O(1) rounded-rect collision */
 const ICE_HALF = ICE_SIZE / 2;
 const ICE_CORNER_R_CLAMPED = Math.min(ICE_CORNER_RADIUS, ICE_HALF);
 const ICE_INNER_HALF = Math.max(0, ICE_HALF - ICE_CORNER_R_CLAMPED);
@@ -590,8 +621,6 @@ async function endIceGame() {
   }, 3000);
 }
 
-/* Fast analytical collision against a rounded rect.
-   Returns { nx, ny, overlap } where (nx, ny) is the inward normal. */
 function resolvePuckWallCollision(puck, puckRadius) {
   const half = ICE_HALF;
   const r = ICE_CORNER_R_CLAMPED;
@@ -700,9 +729,6 @@ function broadcastIceState() {
     spinFinalAngle: iceRoom.spinFinalAngle,
     spinStartX: iceRoom.spinStartX,
     spinStartY: iceRoom.spinStartY,
-    /* During sliding, `icePuck` events are the ONLY authoritative puck
-       stream. We echo a static snapshot here so clients ignore it and
-       the interpolator isn't fed two competing timelines. */
     puck: sliding
       ? { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: 0, vy: 0, _sliding: true }
       : { x: iceRoom.puck.x, y: iceRoom.puck.y, vx: iceRoom.puck.vx, vy: iceRoom.puck.vy },
@@ -979,9 +1005,6 @@ setInterval(() => {
   const now = Date.now();
   let dt = (now - lastTick) / 1000;
   lastTick = now;
-  /* Cap to ~2 frames @ 60Hz. If the event loop is throttled (Railway cold
-     starts, GC pauses), the puck advances slowly instead of leaping
-     forward and teleporting on the client. */
   dt = Math.min(dt, 0.034);
 
   try {
@@ -1008,7 +1031,6 @@ setInterval(() => {
 
     tickCount++;
 
-    /* Puck broadcast: send every tick during sliding for maximum smoothness. */
     if (iceRoom.gameState === 'sliding') {
       io.emit('icePuck', {
         x: iceRoom.puck.x, y: iceRoom.puck.y,
@@ -1075,6 +1097,7 @@ io.on('connection', (socket) => {
           xp: user.xp || 0 },
         level: getLevelInfo(user),
         quests: buildQuestList(user),
+        cashback: getCashbackInfo(user),
         arena: { size: ARENA_SIZE, cornerRadius: CORNER_RADIUS, perimeter: PERIMETER },
         iceArena: { size: ICE_SIZE, cornerRadius: ICE_CORNER_RADIUS, perimeter: ICE_PERIMETER },
         recentWinners: room.recentWinners,
@@ -1119,9 +1142,10 @@ io.on('connection', (socket) => {
         const full = map.get(String(t.id));
         const base = full || t;
         const lvl = getLevelInfo(base);
-        if (!full) return { ...t, level: lvl.level, rank: lvl.rank };
+        if (!full) return { ...t, level: lvl.level, rank: lvl.rank, cashbackRank: 0 };
         return {
           ...t,
+          cashbackRank: getCashbackInfo(full).rank,
           anonymousName: full.anonymousName || '',
           anonymousUsername: full.anonymousUsername || '',
           anonymousPhone: full.anonymousPhone || '',
@@ -1148,15 +1172,27 @@ io.on('connection', (socket) => {
       if (iceRoom.players.length >= MAX_PLAYERS && !getIcePlayer(userId)) {
         return ack?.({ ok: false, error: 'Rink is full.' });
       }
+
+      const prevRank = getCashbackInfo(user).rank;
+
       user.balance -= amt;
       user.xp = (user.xp | 0) + amt;
       user['q_ice_bets_5_p'] = (user['q_ice_bets_5_p'] | 0) + 1;
+      user.totalWagered = ((user.totalWagered | 0) || 0) + amt;
+
+      const cbNow = getCashbackInfo(user);
+      let cashbackCredit = 0;
+      if (cbNow.rank > 0) {
+        cashbackCredit = Math.floor(amt * cbNow.pct / 100);
+        user.pendingCashback = ((user.pendingCashback | 0) || 0) + cashbackCredit;
+      }
       await saveUser(user);
+
       const existing = getIcePlayer(userId);
       if (existing) { existing.bet += amt; repartitionIceArena(); }
       else { makeIcePlayer(userId, amt, user.username, user.pfp); }
       iceRoom.pot += amt;
-      ack?.({ ok: true, balance: user.balance });
+      ack?.({ ok: true, balance: user.balance, cashbackCredit, cashbackInfo: getCashbackInfo(user), rankUp: getCashbackInfo(user).rank > prevRank });
       broadcastIceState();
     } catch (err) { console.error('Ice bet error:', err); ack?.({ ok: false, error: 'Internal error' }); }
   });
@@ -1412,21 +1448,16 @@ function formatPhone(digits){
 
 function generatePhone(){
   const r = Math.random() * 100000;
-
   if(r < 2){
-    const pool = [
-      '+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
+    const pool = ['+888 000 000', '+777 777 777', '+000 000 000', '+999 999 999',
       '+888 888 888', '+111 111 111', '+123 456 789', '+987 654 321',
-      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'
-    ];
+      '+222 222 222', '+555 555 555', '+666 000 666', '+123 000 000'];
     return { phone: pick(pool), tier: 'mythic' };
   }
-
   if(r < 22){
     const d = 1 + Math.floor(Math.random() * 9);
     return { phone: formatPhone(String(d).repeat(9)), tier: 'legendary' };
   }
-
   if(r < 122){
     const a = Math.floor(Math.random() * 10);
     const b = Math.floor(Math.random() * 10);
@@ -1436,7 +1467,6 @@ function generatePhone(){
     const full = digits + `${a}${b}`;
     return { phone: formatPhone(full), tier: 'epic' };
   }
-
   if(r < 522){
     const d = Math.floor(Math.random() * 10);
     const triple = String(d).repeat(3);
@@ -1445,7 +1475,6 @@ function generatePhone(){
     const digits = Math.random() < 0.5 ? triple + rest : rest + triple;
     return { phone: formatPhone(digits), tier: 'rare' };
   }
-
   if(r < 2022){
     const digits = [];
     for(let i = 0; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
@@ -1454,7 +1483,6 @@ function generatePhone(){
     digits[pos] = d; digits[pos+1] = d; digits[pos+2] = d;
     return { phone: formatPhone(digits.join('')), tier: 'uncommon' };
   }
-
   let s = '';
   for(let i = 0; i < 9; i++) s += Math.floor(Math.random() * 10);
   return { phone: formatPhone(s), tier: 'common' };
@@ -1690,6 +1718,79 @@ app.post('/api/claim-quest', async (req, res) => {
     console.error('claim-quest:', err);
     res.status(500).json({ ok: false, error: 'Internal error' });
   }
+});
+
+/* ============================================================
+   CASHBACK ENDPOINTS
+   ============================================================ */
+app.post('/api/claim-cashback', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+    const amt = Math.max(0, (user.pendingCashback | 0) || 0);
+    if (amt <= 0) return res.status(400).json({ ok: false, error: 'Nothing to claim' });
+    user.pendingCashback = 0;
+    user.balance = (user.balance | 0) + amt;
+    await saveUser(user);
+    res.json({ ok: true, amount: amt, newBalance: user.balance, cashback: getCashbackInfo(user) });
+  } catch (err) { console.error('claim-cashback:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+
+app.post('/api/stake-cashback', async (req, res) => {
+  try {
+    const { userId, days } = req.body;
+    if (!userId || !days) return res.status(400).json({ ok: false, error: 'Missing params' });
+    const mult = CASHBACK_STAKES[parseInt(days, 10)];
+    if (!mult) return res.status(400).json({ ok: false, error: 'Invalid stake duration' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (user.banned) return res.status(403).json({ ok: false, error: 'You are banned' });
+    const amt = Math.max(0, (user.pendingCashback | 0) || 0);
+    if (amt <= 0) return res.status(400).json({ ok: false, error: 'Nothing to stake' });
+    user.pendingCashback = 0;
+    if (!Array.isArray(user.cashbackStakes)) user.cashbackStakes = [];
+    user.cashbackStakes.push({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      amount: amt,
+      days: parseInt(days, 10),
+      multiplier: mult,
+      endsAt: Date.now() + parseInt(days, 10) * 86400000,
+    });
+    await saveUser(user);
+    res.json({ ok: true, amount: amt, multiplier: mult, cashback: getCashbackInfo(user) });
+  } catch (err) { console.error('stake-cashback:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+
+app.post('/api/claim-stake', async (req, res) => {
+  try {
+    const { userId, stakeId } = req.body;
+    if (!userId || !stakeId) return res.status(400).json({ ok: false, error: 'Missing params' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    if (!Array.isArray(user.cashbackStakes)) return res.status(404).json({ ok: false, error: 'Stake not found' });
+    const idx = user.cashbackStakes.findIndex(s => s.id === stakeId);
+    if (idx === -1) return res.status(404).json({ ok: false, error: 'Stake not found' });
+    const stake = user.cashbackStakes[idx];
+    if (Date.now() < stake.endsAt) return res.status(400).json({ ok: false, error: 'Stake not ready' });
+    const payout = Math.floor(stake.amount * stake.multiplier);
+    user.cashbackStakes.splice(idx, 1);
+    user.balance = (user.balance | 0) + payout;
+    await saveUser(user);
+    res.json({ ok: true, payout, newBalance: user.balance, cashback: getCashbackInfo(user) });
+  } catch (err) { console.error('claim-stake:', err); res.status(500).json({ ok: false, error: 'Internal error' }); }
+});
+
+app.get('/api/cashback-info', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ ok: false, error: 'Missing userId' });
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    res.json({ ok: true, cashback: getCashbackInfo(user) });
+  } catch (err) { res.status(500).json({ ok: false, error: 'Internal error' }); }
 });
 
 /* ============================================================
