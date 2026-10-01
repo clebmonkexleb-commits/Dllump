@@ -1192,7 +1192,7 @@ io.on('connection', (socket) => {
       if (existing) { existing.bet += amt; repartitionIceArena(); }
       else { makeIcePlayer(userId, amt, user.username, user.pfp); }
       iceRoom.pot += amt;
-      ack?.({ ok: true, balance: user.balance, cashbackCredit, cashbackInfo: getCashbackInfo(user), rankUp: getCashbackInfo(user).rank > prevRank });
+      ack?.({ ok: true, balance: user.balance, cashbackCredit, cashbackInfo: getCashbackInfo(user), rankUp: getCashbackInfo(user).rank > prevRank, level: getLevelInfo(user) });
       broadcastIceState();
     } catch (err) { console.error('Ice bet error:', err); ack?.({ ok: false, error: 'Internal error' }); }
   });
