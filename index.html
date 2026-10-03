@@ -169,7 +169,6 @@
   .ice-bet-row{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:1px;opacity:1;transition:opacity .2s ease .08s}
   #ice-bet-input{flex:1;max-width:100px;padding:2px 8px;height:30px;border-radius:var(--r-sm);border:1px solid rgba(180,210,255,.18);background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.04));color:#fff;font-size:16px;font-weight:700;text-align:center;outline:none;font-variant-numeric:tabular-nums;font-family:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
   #ice-bet-input:focus{border-color:rgba(140,180,255,.55)}
-  /* ALL IN — now BLUE */
   #ice-all-in-btn{height:30px;padding:0 12px;border-radius:var(--r-sm);border:1px solid rgba(140,180,255,.4);background:linear-gradient(180deg,#6da9ff,#4a86e8);color:#fff;font-weight:800;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit;letter-spacing:.3px;position:relative;overflow:hidden;box-shadow:0 4px 12px rgba(91,157,255,.35),inset 0 1px 0 rgba(255,255,255,.28)}
   #ice-bet-btn{padding:8px 0;height:34px;border-radius:var(--r-md);border:1px solid rgba(140,180,255,.35);background:linear-gradient(135deg,#6da9ff 0%,#4a86e8 100%);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;letter-spacing:.3px;width:100%;text-align:center;margin-top:3px;font-family:inherit;box-shadow:0 5px 16px rgba(91,157,255,.35);position:relative;overflow:hidden;opacity:1;transition:opacity .2s ease .08s}
   #ice-bet-btn:disabled{opacity:.4;pointer-events:none}
@@ -1214,6 +1213,101 @@
   }
   @media (max-height:600px){ #ice-win-gif-container{display:none} }
   @media (pointer:coarse){ input,select,textarea{font-size:16px !important} }
+
+  /* ============================================================
+     PERFORMANCE TIERS — device-adaptive
+     ============================================================ */
+  body.perf-medium #app::before{ filter:blur(18px) brightness(.42) saturate(.85); }
+  body.perf-medium .card-aura{ animation:none; opacity:.6; }
+  body.perf-medium .card-shine{ animation:none; opacity:.4; }
+  body.perf-medium .card-sheen{ opacity:.6; }
+  body.perf-medium .champion-card::after{ animation:none; }
+  body.perf-medium .pc-shine{ animation:none; opacity:.5; }
+  body.perf-medium .story-ring{ display:none; }
+  body.perf-medium .ripple-effect{ display:none; }
+  body.perf-medium .anon-card-3d::before{ animation:none; }
+  body.perf-medium .anon-card-shine{ animation:none; opacity:.5; }
+  body.perf-medium .card-stars .star{ animation:none; opacity:.35; }
+
+  body.perf-low #app::before{ filter:blur(10px) brightness(.42) saturate(.85); }
+  body.perf-low .card-aura,
+  body.perf-low .card-shine,
+  body.perf-low .card-sheen,
+  body.perf-low .card-glare,
+  body.perf-low .card-stars{ display:none; }
+  body.perf-low .champion-card::before,
+  body.perf-low .champion-card::after{ display:none; }
+  body.perf-low .pc-shine{ display:none; }
+  body.perf-low .story-ring,
+  body.perf-low .ripple-effect{ display:none !important; }
+  body.perf-low .anon-card-3d::before,
+  body.perf-low .anon-card-shine{ display:none; }
+  body.perf-low #ice-top-panel,
+  body.perf-low #ice-bet-overlay,
+  body.perf-low #ice-win-panel,
+  body.perf-low .toast,
+  body.perf-low #panel,
+  body.perf-low #panel-backdrop,
+  body.perf-low .pc-backdrop,
+  body.perf-low .cb-backdrop,
+  body.perf-low .anon-full,
+  body.perf-low .lvl-backdrop,
+  body.perf-low .bet-drag-chip,
+  body.perf-low .ice-auto-bet-panel,
+  body.perf-low .ice-auto-bet-toggle,
+  body.perf-low #tc,
+  body.perf-low .tab-inner{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+
+  body.perf-minimal #app::before,
+  body.perf-minimal #app::after{ display:none; }
+  body.perf-minimal .card-aura,
+  body.perf-minimal .card-shine,
+  body.perf-minimal .card-sheen,
+  body.perf-minimal .card-glare,
+  body.perf-minimal .card-stars,
+  body.perf-minimal .champion-card::before,
+  body.perf-minimal .champion-card::after,
+  body.perf-minimal .champion-crown,
+  body.perf-minimal .pc-shine,
+  body.perf-minimal .pc-glare,
+  body.perf-minimal .story-ring,
+  body.perf-minimal .ripple-effect,
+  body.perf-minimal .anon-card-3d::before,
+  body.perf-minimal .anon-card-shine{ display:none !important; }
+  body.perf-minimal #ice-top-panel,
+  body.perf-minimal #ice-bet-overlay,
+  body.perf-minimal #ice-win-panel,
+  body.perf-minimal .toast,
+  body.perf-minimal #panel,
+  body.perf-minimal #panel-backdrop,
+  body.perf-minimal .pc-backdrop,
+  body.perf-minimal .cb-backdrop,
+  body.perf-minimal .anon-full,
+  body.perf-minimal .lvl-backdrop,
+  body.perf-minimal .bet-drag-chip,
+  body.perf-minimal .ice-auto-bet-panel,
+  body.perf-minimal .ice-auto-bet-toggle,
+  body.perf-minimal #tc,
+  body.perf-minimal .tab-inner{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  body.perf-minimal .tile-front,
+  body.perf-minimal .card-face,
+  body.perf-minimal .top-entry,
+  body.perf-minimal .champion-card,
+  body.perf-minimal .pc-face,
+  body.perf-minimal .ice-bet-overlay,
+  body.perf-minimal .ice-top-panel,
+  body.perf-minimal .settings-list,
+  body.perf-minimal .wallet-action-btn,
+  body.perf-minimal .tab-inner{
+    box-shadow:none !important;
+  }
+  body.perf-minimal #di{ animation:none; }
 </style>
 </head>
 <body data-layout="panel" data-theme="onyx" data-bg-blur="on" data-bg-image="on">
@@ -1959,21 +2053,270 @@
 (function(){
   'use strict';
 
-  const CORES = navigator.hardwareConcurrency || 4;
-  const MEM = navigator.deviceMemory || 4;
-  const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
-  const RAW_DPR = window.devicePixelRatio || 1;
-  const IS_LOW_END = CORES <= 4 || MEM <= 3;
+  /* ============================================================
+     DEVICE OPTIMIZATION ENGINE
+     ============================================================ */
+
+  function getDeviceId(){
+    let id = null;
+    try { id = localStorage.getItem('dllump_device_id'); } catch(_){}
+    if (!id) {
+      id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      try { localStorage.setItem('dllump_device_id', id); } catch(_){}
+    }
+    return id;
+  }
+
+  function detectDevice(){
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+
+    const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+                  (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    const isMobile  = isIOS || isAndroid || /Mobi/i.test(ua);
+    const isDesktop = !isMobile;
+
+    let iosVersion = 0;
+    const iosM = ua.match(/OS (\d+)_/);
+    if (isIOS && iosM) iosVersion = parseInt(iosM[1], 10);
+
+    let androidVersion = 0;
+    const androidM = ua.match(/Android (\d+)/);
+    if (isAndroid && androidM) androidVersion = parseInt(androidM[1], 10);
+
+    const cores  = navigator.hardwareConcurrency || 4;
+    const memory = navigator.deviceMemory || 4;
+    const dpr    = window.devicePixelRatio || 1;
+    const touch  = matchMedia('(pointer:coarse)').matches;
+    const screenPixels = (screen.width || 0) * (screen.height || 0);
+
+    let gpu = '';
+    try {
+      const c = document.createElement('canvas');
+      const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (gl){
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        if (dbg) gpu = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '';
+      }
+    } catch(_){}
+    const gpuLower = gpu.toLowerCase();
+    const isHighEndGPU = /apple|m1|m2|m3|adreno 7|adreno 6[6-9]|mali-g[7-9]|rtx|radeon rx|geforce (gtx|rtx)/.test(gpuLower);
+    const isLowEndGPU  = /adreno [1-5]|mali-[4-6]|powervr|intel hd|intel uhd|intel\(r\) hd/.test(gpuLower);
+
+    return {
+      id: getDeviceId(),
+      isIOS, isAndroid, isDesktop, isMobile,
+      iosVersion, androidVersion,
+      cores, memory, dpr, touch,
+      screenPixels, gpu, gpuLower,
+      isHighEndGPU, isLowEndGPU,
+    };
+  }
+
+  const TIERS = ['minimal','low','medium','high','ultra'];
+  const tierIndex = t => Math.max(0, TIERS.indexOf(t));
+  const tierAt    = i => TIERS[Math.max(0, Math.min(TIERS.length - 1, i))];
+
+  function heuristicTier(d){
+    if (d.isIOS){
+      if (d.iosVersion >= 15 && d.cores >= 4) return 'ultra';
+      if (d.iosVersion >= 13) return 'high';
+      return 'medium';
+    }
+    if (d.isAndroid){
+      if (d.isHighEndGPU && d.cores >= 8 && d.memory >= 6) return 'high';
+      if (d.cores >= 8 && d.memory >= 4 && !d.isLowEndGPU) return 'medium';
+      if (d.cores >= 6) return 'medium';
+      if (d.isLowEndGPU || d.cores <= 4 || d.memory <= 2) return 'low';
+      return 'medium';
+    }
+    if (d.isDesktop){
+      if (d.isHighEndGPU && d.cores >= 8 && d.memory >= 8) return 'high';
+      if (d.cores >= 4 && d.memory >= 4) return 'medium';
+      return 'low';
+    }
+    return 'medium';
+  }
+
+  const Optimizer = (function(){
+    const DEVICE = detectDevice();
+    const STORAGE_KEY = 'dllump_perf_tier_v1';
+    const BENCH_KEY   = 'dllump_perf_bench_v1';
+
+    let currentTier = 'medium';
+    let adaptiveEnabled = true;
+    let lowFpsCount = 0;
+    let lastChange = 0;
+
+    function loadSaved(){
+      try {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (s && TIERS.includes(s)) return s;
+      } catch(_){}
+      return null;
+    }
+    function save(t){ try { localStorage.setItem(STORAGE_KEY, t); } catch(_){} }
+
+    function apply(tier){
+      if (!TIERS.includes(tier)) tier = 'medium';
+      currentTier = tier;
+      save(tier);
+      TIERS.forEach(t => document.body.classList.remove('perf-' + t));
+      document.body.classList.add('perf-' + tier);
+      if (tier === 'low' || tier === 'minimal'){
+        document.body.classList.add('perf-lite');
+      } else {
+        document.body.classList.remove('perf-lite');
+      }
+      window.dispatchEvent(new CustomEvent('perftierchange', { detail: { tier } }));
+      return tier;
+    }
+
+    function features(tier){
+      const i = tierIndex(tier);
+      return {
+        backdropBlur:  i >= 2,
+        cardAura:      i >= 3,
+        cardShine:     i >= 3,
+        storyRings:    i >= 3,
+        ripples:       i >= 3,
+        confetti:      i >= 2,
+        canvasShadows: i >= 3,
+        championShine: i >= 3,
+        maxDpr:        i >= 4 ? 3 : i >= 3 ? 2.5 : i >= 2 ? 2 : 1.5,
+        targetFrameMs: 0,
+      };
+    }
+
+    function benchmark(){
+      return new Promise(resolve => {
+        setTimeout(() => {
+          let frames = 0;
+          const start = performance.now();
+          const step = (t) => {
+            frames++;
+            if (t - start >= 1200){
+              const fps = frames / ((t - start) / 1000);
+              let tier;
+              if (fps >= 55)      tier = 'ultra';
+              else if (fps >= 45) tier = 'high';
+              else if (fps >= 32) tier = 'medium';
+              else if (fps >= 22) tier = 'low';
+              else                tier = 'minimal';
+              try { localStorage.setItem(BENCH_KEY, JSON.stringify({ fps, tier, t: Date.now() })); } catch(_){}
+              resolve(tier);
+              return;
+            }
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }, 2000);
+      });
+    }
+
+    let monFrames = 0, monLast = 0;
+    const monHistory = [];
+    function monTick(){
+      const now = performance.now();
+      if (!monLast) monLast = now;
+      monFrames++;
+      if (now - monLast >= 1000){
+        monHistory.push(monFrames);
+        if (monHistory.length > 4) monHistory.shift();
+        monFrames = 0;
+        monLast = now;
+
+        if (!adaptiveEnabled) { requestAnimationFrame(monTick); return; }
+        if (Date.now() - lastChange < 8000) { requestAnimationFrame(monTick); return; }
+
+        const avg = monHistory.reduce((a,b) => a+b, 0) / monHistory.length;
+        const i = tierIndex(currentTier);
+        const downgradeBelow = [Infinity, 40, 34, 28, 22][i] ?? 22;
+
+        if (monHistory.length >= 2 && avg < downgradeBelow && i > 0){
+          lowFpsCount++;
+          if (lowFpsCount >= 2){
+            const newTier = tierAt(i - 1);
+            apply(newTier);
+            lastChange = Date.now();
+            lowFpsCount = 0;
+            console.log('[opt] adaptive downgrade →', newTier, '| avg fps:', avg.toFixed(1));
+          }
+        } else {
+          lowFpsCount = 0;
+        }
+      }
+      requestAnimationFrame(monTick);
+    }
+
+    function init(){
+      const saved = loadSaved();
+      if (saved){
+        apply(saved);
+        console.log('[opt] using saved tier:', saved, '| device:', DEVICE.id);
+        return { tier: saved, source: 'saved', device: DEVICE };
+      }
+      const h = heuristicTier(DEVICE);
+      apply(h);
+
+      benchmark().then(measured => {
+        const hI = tierIndex(h);
+        const mI = tierIndex(measured);
+        if (mI < hI){
+          apply(measured);
+          console.log('[opt] benchmark downgrade:', h, '→', measured, '| device:', DEVICE.id);
+        } else {
+          console.log('[opt] benchmark kept heuristic:', h, '| measured fps tier:', measured);
+        }
+      });
+
+      console.log('[opt] device fingerprint:', {
+        id: DEVICE.id, ios: DEVICE.isIOS, android: DEVICE.isAndroid,
+        desktop: DEVICE.isDesktop, cores: DEVICE.cores, mem: DEVICE.memory,
+        gpu: DEVICE.gpu, tier: h,
+      });
+      return { tier: h, source: 'heuristic', device: DEVICE };
+    }
+
+    setTimeout(() => { requestAnimationFrame(monTick); }, 4500);
+
+    return {
+      init,
+      applyTier: apply,
+      getTier: () => currentTier,
+      getDevice: () => DEVICE,
+      getFeatures: () => features(currentTier),
+      setAdaptive: on => { adaptiveEnabled = !!on; },
+      reset: () => { try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(BENCH_KEY); } catch(_){} },
+    };
+  })();
+
+  Optimizer.init();
+
+  const IS_LOW_END = tierIndex(Optimizer.getTier()) <= 1;
 
   const PERF = {
-    dpr: Math.min(RAW_DPR, IS_LOW_END ? 2 : 3),
-    shadows: !IS_LOW_END,
-    confetti: !IS_LOW_END,
-    storyRings: !IS_LOW_END,
-    heavyEffects: !IS_LOW_END,
-    targetFrameMs: 0
+    dpr: 2, shadows: true, confetti: true, storyRings: true,
+    heavyEffects: true, targetFrameMs: 0,
   };
-  if(IS_LOW_END) document.body.classList.add('perf-lite');
+  function syncPerfFromOptimizer(){
+    const f = Optimizer.getFeatures();
+    const RAW_DPR = window.devicePixelRatio || 1;
+    PERF.dpr = Math.min(RAW_DPR, f.maxDpr);
+    PERF.shadows = f.canvasShadows;
+    PERF.confetti = f.confetti;
+    PERF.storyRings = f.storyRings;
+    PERF.heavyEffects = f.cardAura;
+    PERF.targetFrameMs = f.targetFrameMs;
+
+    try { if (typeof tileSpriteCache !== 'undefined' && tileSpriteCache && tileSpriteCache.clear) tileSpriteCache.clear(); } catch(_){}
+    try { if (typeof avatarSpriteCache !== 'undefined' && avatarSpriteCache && avatarSpriteCache.clear) avatarSpriteCache.clear(); } catch(_){}
+    try { if (typeof resizeIceCanvas === 'function') resizeIceCanvas(); } catch(_){}
+  }
+  syncPerfFromOptimizer();
+  window.addEventListener('perftierchange', syncPerfFromOptimizer);
+  window.DllumpOptimizer = Optimizer;
 
   const SERVER_URL='https://dllump-production-0a3d.up.railway.app';
   const WIN_GIFS=['https://i.postimg.cc/JzmQ6w3m/ezgif-67d79dd792fbd612.gif','https://i.postimg.cc/t45N8rkf/ezgif-66594092a04c05e4.gif','https://i.postimg.cc/Qdsq4Lgj/ezgif-63afd51ce390fe0a.gif','https://i.postimg.cc/YCkxncNB/ezgif-64eb91e49672e43a.gif','https://i.postimg.cc/X798kNCC/ezgif-660ff3be5bccd489.gif','https://i.postimg.cc/XJFG6q3Z/ezgif-5492df507ab574af.gif'];
